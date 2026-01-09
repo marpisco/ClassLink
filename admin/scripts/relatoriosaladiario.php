@@ -89,8 +89,53 @@ if (isset($_POST['gerar_pdf'])) {
     // Start output buffering to prevent any output before PDF
     ob_start();
     
+    // Create custom TCPDF class with header and footer
+    class PDF extends TCPDF {
+        private $print_datetime;
+        
+        public function setPrintDateTime($datetime) {
+            $this->print_datetime = $datetime;
+        }
+        
+        public function Header() {
+            // Logo path
+            $logo_path = __DIR__ . '/../../assets/logo.png';
+            
+            // Add logo if file exists
+            if (file_exists($logo_path)) {
+                $this->Image($logo_path, 15, 10, 15, 0, 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+            }
+            
+            // Set font
+            $this->SetFont('helvetica', 'B', 18);
+            $this->SetTextColor(0, 0, 0);
+            
+            // Title with logo space
+            $this->SetY(10);
+            $this->Cell(0, 15, 'ClassLink', 0, 1, 'C');
+            
+            // Draw a line
+            $this->SetLineStyle(array('width' => 0.5, 'color' => array(200, 200, 200)));
+            $this->Line(15, 28, $this->getPageWidth() - 15, 28);
+        }
+        
+        public function Footer() {
+            // Position at 15 mm from bottom
+            $this->SetY(-15);
+            // Set font
+            $this->SetFont('helvetica', 'I', 9);
+            $this->SetTextColor(128, 128, 128);
+            // Print date and time
+            $this->Cell(0, 10, 'Impresso em: ' . $this->print_datetime, 0, 0, 'R');
+        }
+    }
+    
     // Create PDF
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf = new PDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    
+    // Set the print datetime
+    $data_hora_impressao = date('d/m/Y') . ' às ' . date('H:i:s');
+    $pdf->setPrintDateTime($data_hora_impressao);
     
     // Set document information
     $pdf->SetCreator('ClassLink');
@@ -98,20 +143,17 @@ if (isset($_POST['gerar_pdf'])) {
     $pdf->SetTitle('Relatório de Utilização de Salas - ' . date('d/m/Y', strtotime($data_selecionada)));
     $pdf->SetSubject('Relatório Diário');
     
-    // Remove default header/footer
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    
-    // Set margins
-    $pdf->SetMargins(15, 15, 15);
-    $pdf->SetAutoPageBreak(TRUE, 25);
+    // Set margins (top margin increased for header)
+    $pdf->SetMargins(15, 32, 15);
+    $pdf->SetAutoPageBreak(TRUE, 20);
     
     // Add page
     $pdf->AddPage();
     
-    // Set font
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Relatório de Utilização de Salas', 0, 1, 'C');
+    // Set font for report title
+    $pdf->SetFont('helvetica', 'B', 14);
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->Cell(0, 8, 'Relatório de Utilização de Salas', 0, 1, 'C');
     
     $pdf->SetFont('helvetica', '', 11);
     $dia_semana_map = [
@@ -178,14 +220,6 @@ if (isset($_POST['gerar_pdf'])) {
         
         $pdf->Ln(3);
     }
-    
-    // Add footer with print date and time at the bottom of the last page
-    $pdf->SetY(-20);
-    $pdf->SetFont('helvetica', 'I', 9);
-    $pdf->SetTextColor(128, 128, 128);
-    
-    $data_hora_impressao = date('d/m/Y') . ' às ' . date('H:i:s');
-    $pdf->Cell(0, 10, 'Impresso em: ' . $data_hora_impressao, 0, 1, 'R');
     
     // Log the action
     $sala_log = ($sala_id && $sala_id !== 'todas') ? " (Sala específica)" : " (Todas as salas)";
