@@ -1,0 +1,190 @@
+@import url('theme.css');
+
+/* ── Docs Layout ─────────────────────────────────────────────────────────── */
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Navbar */
+.docs-navbar {
+    background-color: var(--bg-color);
+    border-color: var(--border-color) !important;
+}
+
+.docs-navbar .navbar-brand span {
+    color: var(--text-color);
+}
+
+.docs-navbar .nav-link {
+    color: var(--link-color);
+    transition: 0.3s;
+}
+
+.docs-navbar .nav-link:hover {
+    background: var(--link-hover-bg);
+    color: var(--text-inverse);
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 4px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+
+.docs-sidebar {
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    min-height: calc(100vh - 60px);
+    padding-top: 1rem;
+}
+
+.docs-sidebar .sidebar-heading {
+    color: var(--heading-color);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+}
+
+.docs-sidebar .nav-link {
+    color: var(--link-color);
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.docs-sidebar .nav-link:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.docs-sidebar .nav-link.active {
+    background: var(--gradient-secondary);
+    color: var(--text-inverse);
+    font-weight: 600;
+}
+
+/* ── Main Content ─────────────────────────────────────────────────────────── */
+
+.docs-main {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+/* ── Rendered Markdown ────────────────────────────────────────────────────── */
+
+.docs-content {
+    max-width: 900px;
+}
+
+.docs-content h1,
+.docs-content h2,
+.docs-content h3,
+.docs-content h4,
+.docs-content h5,
+.docs-content h6 {
+    color: var(--heading-color);
+    margin-top: 1.8rem;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+}
+
+.docs-content h1 {
+    font-size: 2rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.docs-content h2 {
+    font-size: 1.6rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.docs-content p {
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.docs-content a {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.docs-content a:hover {
+    color: var(--secondary-color);
+}
+
+/* Tables (Bootstrap classes are added by parse_markdown()) */
+.docs-content .table {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+/* Code blocks */
+.docs-content code {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 0.15em 0.4em;
+    font-size: 0.88em;
+    color: var(--text-color);
+}
+
+.docs-content pre {
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    font-size: 0.88rem;
+}
+
+.docs-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* Blockquotes */
+.docs-content blockquote {
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+}
+
+/* Images */
+.docs-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 1rem 0;
+}
+
+/* Lists */
+.docs-content ul,
+.docs-content ol {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.docs-content li {
+    margin-bottom: 0.3rem;
+    line-height: 1.7;
+}
+
+/* Task lists (GFM) */
+.docs-content .task-list-item {
+    list-style: none;
+    margin-left: -1.5rem;
+}
+
+.docs-content .task-list-item input[type="checkbox"] {
+    margin-right: 0.4rem;
+}
+
+/* Horizontal rule */
+.docs-content hr {
+    border-color: var(--border-color);
+    margin: 2rem 0;
+}
