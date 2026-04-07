@@ -197,7 +197,6 @@ All located in `admin/api/`:
 - **salas_search.php** - Room search/autocomplete
 - **users_search.php** - User search/autocomplete
 - **tempos_search.php** - Time slot search
-- **version_check.php** - Version checking
 
 ## Reservation Workflow
 1. User selects room(s) and time slot(s) on `/reservar`
