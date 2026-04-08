@@ -21,11 +21,11 @@
         'servidor' => 'smtp.gmail.com',
         'porta' => 465,
         'autenticacao' => true,
-        // Tipo de Segurança: Explicação:
-        /// caso a autenticação seja por starttls, usar PHPMailer::ENCRYPTION_STARTTLS
-        /// caso a autenticação seja por ssl, usar PHPMailer::ENCRYPTION_SMTPS
-        /// caso não seja necessário autenticação, por false na opção autenticacao, e não importar-se para os outros
-        'tipodeseguranca' => 'PHPMailer::ENCRYPTION_STARTTLS ou PHPMailer::ENCRYPTION_SMTPS',
+        // Tipo de Segurança:
+        // - Para STARTTLS (normalmente porta 587), usar \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS
+        // - Para SMTPS/SSL (normalmente porta 465), usar \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+        // - Se não for necessária autenticação, definir 'autenticacao' => false e ajustar esta opção conforme necessário
+        'tipodeseguranca' => \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
         'username' => '',
         'fromname' => 'Reserva de Salas',
         'mailfrom' => '',
