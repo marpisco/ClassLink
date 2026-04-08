@@ -18,19 +18,18 @@
         'password' => ''
     );
 
-    // Database configuration (MySQL/MariaDB)
-    // SECURITY: Use strong passwords and restrict database user permissions
+    // Configuração da DB
     $db = array(
-        'tipo' => 'mysql',
+        'tipo' => 'mysql', // deixar assim
         'servidor' => 'localhost',
         'user' => 'reservasalas',
-        'password' => 'salaspass',  // CHANGE THIS to a strong password
+        'password' => 'salaspass',  // USAR SEMPRE PASSWORDS FORTES
         'db' => 'reservasalas',
         'porta' => 3306
     );
 
-    // OAuth 2.0 configuration
-    // SECURITY: Keep clientId and clientSecret confidential
+    // Configuração do fornecedor OAuth2
+    $authProvider = 'Microsoft';
     $provider = new GenericProvider([
         'urlAuthorize'            => 'https://authentik.devenv.marcopisco.com/application/o/authorize/',
         'urlAccessToken'          => 'https://authentik.devenv.marcopisco.com/application/o/token/',
