@@ -11,9 +11,9 @@ Plataforma Digital para a Reserva de Salas e Respetivos Materiais. PAP (Prova de
 
 ## Dependências
 
-- PHP 8.4
+- PHP 8.4 (versão recomendada/testada; usar versão compatível com as dependências do Composer)
 - Servidor Web (recomendo o Caddy)
-- MariaDB ou MySQL (oficialmente recomendo o MariaDB)
+- MariaDB ou MySQL (oficialmente recomendo o MariaDB) — é necessário criar o utilizador e a base de dados antes de instalar (consultar o Manual do Técnico para instruções detalhadas)
 - Composer (para o Windows, descarregar [esta versão](https://getcomposer.org/Composer-Setup.exe))
 - Com o composer, fazer `composer install` através de um terminal, para instalar as dependências.
 

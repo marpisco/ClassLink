@@ -34,12 +34,15 @@
     );
 
     // Configuração do Fornecedor de Autenticação (OAuth 2.0)
+    // IMPORTANTE: Manter o clientSecret confidencial e nunca o expor publicamente.
+    // O redirectUri deve ser um URL estático/configurado explicitamente — não use $_SERVER['HTTP_HOST']
+    // diretamente pois pode ser manipulado (Host Header Injection).
     $provider = new GenericProvider([
-        'urlAuthorize'            => 'https://authentik.devenv.marcopisco.com/application/o/authorize/',
-        'urlAccessToken'          => 'https://authentik.devenv.marcopisco.com/application/o/token/',
-        'urlResourceOwnerDetails' => 'https://authentik.devenv.marcopisco.com/application/o/userinfo/',
-        'clientId'     => 'clientid',
-        'clientSecret' => 'clientsecret',
-        'redirectUri'  => 'https://' . $_SERVER['HTTP_HOST'] . '/login'
+        'urlAuthorize'            => 'https://exemplo.dominio.pt/application/o/authorize/',
+        'urlAccessToken'          => 'https://exemplo.dominio.pt/application/o/token/',
+        'urlResourceOwnerDetails' => 'https://exemplo.dominio.pt/application/o/userinfo/',
+        'clientId'     => '',
+        'clientSecret' => '',
+        'redirectUri'  => 'https://exemplo.dominio.pt/login'
     ]);
 ?>
