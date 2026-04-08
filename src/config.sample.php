@@ -10,7 +10,8 @@
         'tipo' => 'mysql',         // Apenas há suporte a MYSQL (mysql = mariadb) por enquanto
         'servidor' => 'localhost',
         'user' => 'reservasalas',
-        'password' => 'salaspass', 
+        // Defina uma password forte antes de usar em produção e restrinja as permissões deste utilizador da DB ao mínimo necessário.
+        'password' => '',
         'db' => 'reservasalas',
         'porta' => 3306
     );
