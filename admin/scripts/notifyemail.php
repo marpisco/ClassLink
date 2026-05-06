@@ -739,6 +739,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 
                 $mailer->setFrom($mail['mailfrom'], $mail['fromname']);
                 
+                if ($identifySender && !empty($_SESSION['email'])) {
+                    $mailer->addReplyTo($_SESSION['email'], $_SESSION['nome']);
+                }
+                
                 // Add all recipients as BCC
                 foreach ($recipients as $recipient) {
                     $mailer->addBCC($recipient['email']);
