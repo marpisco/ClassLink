@@ -29,7 +29,6 @@
     );
 
     // Configuração do fornecedor OAuth2
-    $authProvider = 'Microsoft';
     $provider = new GenericProvider([
         'urlAuthorize'            => 'https://authentik.devenv.marcopisco.com/application/o/authorize/',
         'urlAccessToken'          => 'https://authentik.devenv.marcopisco.com/application/o/token/',

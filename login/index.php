@@ -551,7 +551,8 @@
         echo "<h1>Iniciar Sessão no ClassLink</h1>";
         echo "<p class=\"small\">Para aceder à plataforma, deve autenticar-se com a sua conta institucional.</p>";
         echo "<a href=\"/login?redirecttoflow=1\" class=\"login-btn\">";
-        if (isset($authProvider) && $authProvider === 'Microsoft') {
+        $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/');
+        if ($isMicrosoft) {
             echo "<svg class=\"ms-logo\" width=\"21\" height=\"21\" viewBox=\"0 0 21 21\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vertical-align: middle; margin-right: 8px;\">";
             echo "<rect class=\"ms-rect1\" x=\"1\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
             echo "<rect class=\"ms-rect2\" x=\"11\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
@@ -560,11 +561,10 @@
             echo "</svg>";
             echo "Iniciar Sessão com Microsoft";
         } else {
-            $providerName = isset($authProvider) ? htmlspecialchars($authProvider, ENT_QUOTES, 'UTF-8') : 'OAuth';
-            echo "Iniciar Sessão com Fornecedor de Identidade " . $providerName;
+            echo "Iniciar Sessão com Fornecedor de Identidade";
         }
         echo "</a>";
-        if (isset($authProvider) && $authProvider === 'Microsoft') {
+        if ($isMicrosoft) {
             echo "<style>";
             echo ".login-btn:hover .ms-rect1 { fill: #f25022; }";
             echo ".login-btn:hover .ms-rect2 { fill: #7fba00; }";
