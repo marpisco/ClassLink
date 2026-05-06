@@ -9,12 +9,13 @@
 
 Plataforma Digital para a Reserva de Salas e Respetivos Materiais. PAP (Prova de Aptidão Profissional) - Marco Pisco - Curso de Técnico de Informática - Sistemas 12ºAno
 
-## Instalação (o básico)
+## Dependências
 
-- Necessário um servidor com PHP e uma DB MariaDB
+- PHP 8.4 (versão recomendada/testada; usar versão compatível com as dependências do Composer)
+- Servidor Web (recomendo o Caddy)
+- MariaDB ou MySQL (oficialmente recomendo o MariaDB) — é necessário criar o utilizador e a base de dados antes de instalar (consultar o Manual do Técnico para instruções detalhadas)
 - Composer (para o Windows, descarregar [esta versão](https://getcomposer.org/Composer-Setup.exe))
 - Com o composer, fazer `composer install` através de um terminal, para instalar as dependências.
-- Montar o utilizador usando as instruções [na wiki](https://github.com/marpisco/ClassLink/wiki/Configura%C3%A7%C3%A3o-MYSQL) (brevemente haverá mais documentação na Wiki)
 
 Informações específicas (e mais bem explicadas) estarão no Manual do Técnico.
 

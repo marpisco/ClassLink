@@ -295,8 +295,7 @@ use PHPMailer\PHPMailer\Exception;
         renderWeekCalendar();
         toggleWeekCalendar();
         
-        // Submit form to update recipients
-        document.getElementById('filterForm').submit();
+        // Do not auto-submit; wait for user to press submit
     }
     
     function initWeekSelector() {
@@ -315,13 +314,19 @@ use PHPMailer\PHPMailer\Exception;
             sunday.setDate(sunday.getDate() + 6);
             document.getElementById('weekSelectorBtn').textContent = `Semana: ${formatDateForDisplay(selectedWeekStart)} - ${formatDateForDisplay(sunday)}`;
         } else {
-            const today = new Date();
-            selectedWeekStart = getMonday(today);
-            currentCalendarDate = new Date(today);
-            const sunday = new Date(selectedWeekStart);
-            sunday.setDate(sunday.getDate() + 6);
-            document.getElementById('weekSelectorBtn').textContent = `Semana: ${formatDateForDisplay(selectedWeekStart)} - ${formatDateForDisplay(sunday)}`;
+            // No week selected by default
+            selectedWeekStart = null;
+            currentCalendarDate = new Date();
+            document.getElementById('weekSelectorBtn').textContent = 'Selecionar Semana';
         }
+    }
+
+    function clearWeekSelection() {
+        const weekInput = document.getElementById('weekInput');
+        weekInput.value = '';
+        selectedWeekStart = null;
+        document.getElementById('weekSelectorBtn').textContent = 'Selecionar Semana';
+        // Do not auto-submit; wait for user to press submit
     }
     
     // Close calendar when clicking outside
@@ -333,56 +338,83 @@ use PHPMailer\PHPMailer\Exception;
         }
     });
     
-    function showPreview() {
+    async function showPreview() {
         const subject = document.getElementById('subject').value;
         const message = document.getElementById('message').value;
         const identifySender = document.getElementById('identify_sender').checked;
         const senderName = document.getElementById('senderName').value;
+        const mode = document.getElementById('email_mode').value;
+        const week = document.getElementById('weekInput').value;
+        const classroom = document.getElementById('classroom') ? document.getElementById('classroom').value : '';
         
         if (!subject || !message) {
             alert('Por favor, preencha o assunto e a mensagem antes de visualizar.');
             return;
         }
-        
-        // Build preview HTML
-        let previewHTML = '<div class="preview-box">';
-        previewHTML += '<h4>Pré-visualização do Email</h4>';
-        previewHTML += '<hr>';
-        
-        // Show recipients
-        const recipientCount = document.getElementById('recipientCount').value;
-        const recipientList = document.getElementById('recipientListData').value;
-        previewHTML += '<div class="mb-3">';
-        previewHTML += '<strong>Destinatários (BCC):</strong> ' + recipientCount + ' utilizador(es)';
-        if (recipientList) {
-            previewHTML += '<div class="recipient-list mt-2">';
-            const recipients = recipientList.split(',');
-            recipients.forEach(recipient => {
-                if (recipient.trim()) {
-                    previewHTML += '<div class="recipient-item">' + escapeHtml(recipient.trim()) + '</div>';
-                }
-            });
-            previewHTML += '</div>';
+        if (!mode) {
+            alert('Por favor, selecione o tipo de destinatários.');
+            return;
         }
-        previewHTML += '</div>';
-        previewHTML += '<hr>';
         
-        // Email preview
-        previewHTML += '<div class="email-preview">';
-        previewHTML += '<p><strong>Assunto:</strong> ' + escapeHtml(subject) + '</p>';
-        previewHTML += '<hr>';
-        previewHTML += '<div style="white-space: pre-wrap;">' + escapeHtml(message) + '</div>';
-        
-        if (identifySender && senderName) {
+        const btn = document.querySelector('button[onclick="showPreview()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'A carregar...';
+        btn.disabled = true;
+
+        try {
+            const url = `../api/recipients_preview.php?email_mode=${encodeURIComponent(mode)}&week=${encodeURIComponent(week)}&classroom=${encodeURIComponent(classroom)}`;
+            const response = await fetch(url);
+
+            if (!response.ok) throw new Error('Erro na resposta da API');
+            
+            const data = await response.json();
+            
+            // Build preview HTML
+            let previewHTML = '<div class="preview-box">';
+            previewHTML += '<h4>Pré-visualização do Email</h4>';
             previewHTML += '<hr>';
-            previewHTML += '<p><em>Enviado por: ' + escapeHtml(senderName) + '</em></p>';
+            
+            previewHTML += '<div class="mb-3">';
+            if (data.count === 0) {
+                previewHTML += '<strong>Destinatários (BCC):</strong> 0 utilizador(es) (Nenhum destinatário encontrado com os filtros atuais)';
+            } else {
+                previewHTML += '<strong>Destinatários (BCC):</strong> ' + data.count + ' utilizador(es)';
+                
+                if (data.recipients && data.recipients.length > 0) {
+                    previewHTML += '<ul class="list-group mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.9em;">';
+                    data.recipients.forEach(recipient => {
+                        previewHTML += '<li class="list-group-item py-1">' + escapeHtml(recipient) + '</li>';
+                    });
+                    previewHTML += '</ul>';
+                }
+            }
+            previewHTML += '</div>';
+            previewHTML += '<hr>';
+            
+            // Email preview
+            previewHTML += '<div class="email-preview">';
+            previewHTML += '<p><strong>Assunto:</strong> ' + escapeHtml(subject) + '</p>';
+            previewHTML += '<hr>';
+            previewHTML += '<div style="white-space: pre-wrap;">' + escapeHtml(message) + '</div>';
+            
+            if (identifySender && senderName) {
+                previewHTML += '<hr>';
+                previewHTML += '<p><em>Enviado por: ' + escapeHtml(senderName) + '</em></p>';
+            }
+            previewHTML += '</div>';
+            
+            previewHTML += '</div>';
+            
+            document.getElementById('previewContainer').innerHTML = previewHTML;
+            document.getElementById('previewContainer').style.display = 'block';
+
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Não foi possível obter a lista de destinatários. Por favor, tente novamente.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
-        previewHTML += '</div>';
-        
-        previewHTML += '</div>';
-        
-        document.getElementById('previewContainer').innerHTML = previewHTML;
-        document.getElementById('previewContainer').style.display = 'block';
     }
     
     function escapeHtml(text) {
@@ -427,160 +459,138 @@ while ($sala = $salasResult->fetch_assoc()) {
     $salas[] = $sala;
 }
 
-// Determine the week to check
-$selectedWeek = isset($_POST['week']) ? $_POST['week'] : date('Y-\WW');
+// Determine the week to check (optional)
+$selectedWeek = isset($_POST['week']) ? trim($_POST['week']) : '';
 $selectedClassroom = isset($_POST['classroom']) ? $_POST['classroom'] : '';
+$emailMode = isset($_POST['email_mode']) ? $_POST['email_mode'] : ''; // no default mode in backend
 
-// Calculate start and end of selected week
-$weekParts = explode('-W', $selectedWeek);
-$year = $weekParts[0];
-$week = $weekParts[1];
-$startOfWeek = date('Y-m-d', strtotime($year . 'W' . $week . '1')); // Monday
-$endOfWeek = date('Y-m-d', strtotime($year . 'W' . $week . '7')); // Sunday
-
-// Build query based on classroom filter
-if (!empty($selectedClassroom)) {
-    $query = "SELECT DISTINCT c.id, c.nome, c.email 
-              FROM cache c
-              INNER JOIN reservas r ON c.id = r.requisitor
-              WHERE r.data >= ? AND r.data <= ? AND r.sala = ?
-              ORDER BY c.nome ASC";
-    
-    $stmt = $db->prepare($query);
-    $stmt->bind_param("sss", $startOfWeek, $endOfWeek, $selectedClassroom);
-} else {
-    $query = "SELECT DISTINCT c.id, c.nome, c.email 
-              FROM cache c
-              INNER JOIN reservas r ON c.id = r.requisitor
-              WHERE r.data >= ? AND r.data <= ?
-              ORDER BY c.nome ASC";
-    
-    $stmt = $db->prepare($query);
-    $stmt->bind_param("ss", $startOfWeek, $endOfWeek);
-}
-
-$stmt->execute();
-$result = $stmt->get_result();
-
-$recipients = [];
-$recipientListData = [];
-while ($row = $result->fetch_assoc()) {
-    $recipients[] = $row;
-    $recipientListData[] = $row['nome'] . ' (' . $row['email'] . ')';
-}
-$stmt->close();
-
-$recipientCount = count($recipients);
-$recipientListString = implode(', ', $recipientListData);
-
-// Get classroom name for display
-$classroomName = 'todas as salas';
-if (!empty($selectedClassroom)) {
-    foreach ($salas as $sala) {
-        if ($sala['id'] == $selectedClassroom) {
-            $classroomName = $sala['nome'];
-            break;
-        }
-    }
-}
 ?>
 
 <form action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" method="POST" class="mt-4" id="filterForm">
-    <input type="hidden" id="recipientCount" value="<?php echo $recipientCount; ?>">
-    <input type="hidden" id="recipientListData" value="<?php echo htmlspecialchars($recipientListString, ENT_QUOTES, 'UTF-8'); ?>">
     <input type="hidden" id="senderName" value="<?php echo htmlspecialchars($_SESSION['nome'], ENT_QUOTES, 'UTF-8'); ?>">
     <input type="hidden" id="weekInput" name="week" value="<?php echo htmlspecialchars($selectedWeek, ENT_QUOTES, 'UTF-8'); ?>">
     
     <div class="row mb-3">
-        <div class="col-md-6">
-            <label class="form-label">Selecionar Semana</label>
-            <div style="position: relative;">
-                <button type="button" class="btn btn-outline-secondary week-selector-btn" id="weekSelectorBtn" onclick="toggleWeekCalendar()">
-                    Semana Atual
-                </button>
-                <div id="weekCalendar" class="week-calendar" style="display: none;">
-                    <div class="week-calendar-header">
-                        <button type="button" class="week-calendar-nav" onclick="changeMonth(-1)">◀</button>
-                        <strong id="calendarMonthYear"></strong>
-                        <button type="button" class="week-calendar-nav" onclick="changeMonth(1)">▶</button>
+        <div class="col-md-12">
+            <div class="form-floating">
+                <select class="form-select" id="email_mode" name="email_mode" onchange="toggleEmailMode()" required>
+                    <option value="" disabled <?php echo empty($emailMode) ? 'selected' : ''; ?>>Selecione o modo...</option>
+                    <option value="reservations" <?php echo ($emailMode === 'reservations') ? 'selected' : ''; ?>>Email a reservadores</option>
+                    <option value="admins" <?php echo ($emailMode === 'admins') ? 'selected' : ''; ?>>Email a administradores</option>
+                </select>
+                <label for="email_mode">Tipo de Destinatários</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section (Only for reservations mode) -->
+    <div id="reservationsFilters" style="display: none;">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Selecionar Semana</label>
+                <div style="position: relative;">
+                    <button type="button" class="btn btn-outline-secondary week-selector-btn" id="weekSelectorBtn" onclick="toggleWeekCalendar()">
+                        Selecionar Semana
+                    </button>
+                    <div id="weekCalendar" class="week-calendar" style="display: none;">
+                        <div class="week-calendar-header">
+                            <button type="button" class="week-calendar-nav" onclick="changeMonth(-1)">◀</button>
+                            <strong id="calendarMonthYear"></strong>
+                            <div>
+                                <button type="button" class="week-calendar-nav" onclick="changeMonth(1)">▶</button>
+                                <button type="button" class="week-calendar-nav" onclick="clearWeekSelection()">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="week-calendar-body" id="weekCalendarBody"></div>
                     </div>
-                    <div class="week-calendar-body" id="weekCalendarBody"></div>
+                </div>
+                <small class="text-muted">Clique para abrir o calendário e selecionar uma semana.</small>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-2">
+                    <select class="form-select" id="classroom" name="classroom">
+                        <option value="">Todas as Salas</option>
+                        <?php foreach ($salas as $sala): ?>
+                            <option value="<?php echo htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8'); ?>" 
+                                    <?php echo ($selectedClassroom == $sala['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <label for="classroom">Filtrar por Sala</label>
+                </div>
+                <small class="text-muted">Deixe em branco para enviar notificações de todas as salas.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Common Email Composer Section -->
+    <div id="emailComposer" style="display: none;">
+        
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="subject" name="subject" placeholder="Assunto" value="<?php echo isset($_POST['subject']) ? htmlspecialchars($_POST['subject'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+                    <label for="subject">Assunto do Email</label>
                 </div>
             </div>
-            <small class="text-muted">Clique para abrir o calendário e selecionar uma semana.</small>
         </div>
-        <div class="col-md-6">
-            <div class="form-floating">
-                <select class="form-select" id="classroom" name="classroom" onchange="this.form.submit()">
-                    <option value="">Todas as Salas</option>
-                    <?php foreach ($salas as $sala): ?>
-                        <option value="<?php echo htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                <?php echo ($selectedClassroom == $sala['id']) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8'); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <label for="classroom">Filtrar por Sala</label>
-            </div>
-            <small class="text-muted">Deixe em branco para enviar a todos.</small>
-        </div>
-    </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', initWeekSelector);
-    </script>
-    
-    <div class="alert alert-info">
-        <strong>Informação:</strong> Foram encontrados <strong><?php echo $recipientCount; ?></strong> utilizador(es) com reservas<?php echo !empty($selectedClassroom) ? ' na sala <strong>' . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . '</strong>' : ''; ?> para a semana de <strong><?php echo date('d/m/Y', strtotime($startOfWeek)); ?> - <?php echo date('d/m/Y', strtotime($endOfWeek)); ?></strong>.
-    </div>
-    
-    <?php if ($recipientCount == 0): ?>
-        <div class="alert alert-warning">
-            <strong>Aviso:</strong> Não existem utilizadores com reservas para esta semana. Não é possível enviar emails.
-        </div>
-    <?php else: ?>
-    
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="form-floating">
-                <input type="text" class="form-control" id="subject" name="subject" placeholder="Assunto" value="<?php echo isset($_POST['subject']) ? htmlspecialchars($_POST['subject'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
-                <label for="subject">Assunto do Email</label>
-            </div>
-        </div>
-    </div>
 
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="form-floating">
-                <textarea class="form-control" id="message" name="message" placeholder="Mensagem" style="height: 200px;" required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
-                <label for="message">Mensagem do Email</label>
-            </div>
-            <small class="text-muted">Digite a mensagem que deseja enviar para todos os utilizadores com reservas<?php echo !empty($selectedClassroom) ? ' na sala selecionada' : ''; ?> nesta semana.</small>
-        </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="identify_sender" name="identify_sender" value="1" <?php echo (isset($_POST['identify_sender']) && $_POST['identify_sender'] == '1') ? 'checked' : ''; ?>>
-                <label class="form-check-label" for="identify_sender">
-                    Identificar-me como remetente (o seu nome será adicionado no final da mensagem)
-                </label>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="form-floating">
+                    <textarea class="form-control" id="message" name="message" placeholder="Mensagem" style="height: 200px;" required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                    <label for="message">Mensagem do Email</label>
+                </div>
             </div>
         </div>
-    </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="identify_sender" name="identify_sender" value="1" <?php echo (isset($_POST['identify_sender']) && $_POST['identify_sender'] == '1') ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="identify_sender">
+                        Identificar-me como remetente (o seu nome será adicionado no final da mensagem)
+                    </label>
+                </div>
+            </div>
+        </div>
 
-    <div class="d-grid gap-2">
-        <button type="button" class="btn btn-info btn-lg" onclick="showPreview()">
-            Pré-visualizar Email
-        </button>
-        <button type="submit" class="btn btn-primary btn-lg">
-            Enviar Email
-        </button>
+        <div class="d-grid gap-2">
+            <button type="button" class="btn btn-info btn-lg" onclick="showPreview()">
+                Pré-visualizar Email
+            </button>
+            <button type="submit" class="btn btn-primary btn-lg">
+                Enviar Email
+            </button>
+        </div>
     </div>
-    
-    <?php endif; ?>
 </form>
+
+<script>
+    function toggleEmailMode() {
+        const mode = document.getElementById('email_mode').value;
+        const filtersSection = document.getElementById('reservationsFilters');
+        const composerSection = document.getElementById('emailComposer');
+
+        if (mode === 'reservations') {
+            filtersSection.style.display = 'block';
+            composerSection.style.display = 'block';
+        } else if (mode === 'admins') {
+            filtersSection.style.display = 'none';
+            composerSection.style.display = 'block';
+        } else {
+            filtersSection.style.display = 'none';
+            composerSection.style.display = 'none';
+        }
+    }
+    
+    // Initialize state on load
+    document.addEventListener('DOMContentLoaded', function() {
+        initWeekSelector();
+        toggleEmailMode();
+    });
+</script>
 
 <div id="previewContainer" style="display: none; margin-top: 30px;"></div>
 
@@ -591,21 +601,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
     $messageBody = $_POST['message'];
     $identifySender = isset($_POST['identify_sender']) && $_POST['identify_sender'] == '1';
     
-    if (empty($subject) || empty($messageBody)) {
+    // Determine the week to check (optional)
+    $selectedWeek = isset($_POST['week']) ? trim($_POST['week']) : '';
+    $selectedClassroom = isset($_POST['classroom']) ? $_POST['classroom'] : '';
+    $emailMode = isset($_POST['email_mode']) ? $_POST['email_mode'] : '';
+
+    if (empty($subject) || empty($messageBody) || empty($emailMode)) {
         echo "<div class='mt-3 alert alert-danger fade show' role='alert'>
-            <strong>Erro:</strong> O assunto e a mensagem são obrigatórios.
-        </div>";
-    } elseif ($recipientCount == 0) {
-        echo "<div class='mt-3 alert alert-danger fade show' role='alert'>
-            <strong>Erro:</strong> Não existem destinatários para enviar o email.
+            <strong>Erro:</strong> O modo, assunto e a mensagem são obrigatórios.
         </div>";
     } else {
-        // Build the email body
-        $bodyContent = '<p>' . nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8')) . '</p>';
+        // Build DB query to get recipients
+        $startOfWeek = null;
+        $endOfWeek = null;
+        if (!empty($selectedWeek)) {
+            $weekParts = explode('-W', $selectedWeek);
+            if (count($weekParts) === 2) {
+                $year = $weekParts[0];
+                $week = $weekParts[1];
+                $startOfWeek = date('Y-m-d', strtotime($year . 'W' . $week . '1'));
+                $endOfWeek = date('Y-m-d', strtotime($year . 'W' . $week . '7'));
+            }
+        }
+
+        $result = null;
+        if ($emailMode === 'admins') {
+            // Admin-only emails: select from cache table regardless of reservations
+            $query = "SELECT id, nome, email FROM cache WHERE admin = 1 ORDER BY nome ASC";
+            $stmt = $db->prepare($query);
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+            }
+        } else {
+            // Users with reservations (apply optional date and classroom filters)
+            $where = "1=1";
+            $params = array();
+            $types = "";
+
+            if (!empty($startOfWeek) && !empty($endOfWeek)) {
+                $where .= " AND r.data >= ? AND r.data <= ?";
+                $params[] = $startOfWeek;
+                $params[] = $endOfWeek;
+                $types .= "ss";
+            }
+
+            if (!empty($selectedClassroom)) {
+                $where .= " AND r.sala = ?";
+                $params[] = $selectedClassroom;
+                $types .= "s";
+            }
+
+            $query = "SELECT DISTINCT c.id, c.nome, c.email 
+                      FROM cache c
+                      INNER JOIN reservas r ON c.id = r.requisitor
+                      WHERE $where
+                      ORDER BY c.nome ASC";
+
+            $stmt = $db->prepare($query);
+            if ($stmt) {
+                if (count($params) > 0) {
+                    $bind_names = array();
+                    $bind_names[] = $types;
+                    for ($i = 0; $i < count($params); $i++) {
+                        $bind_name = 'bind' . $i;
+                        $$bind_name = $params[$i];
+                        $bind_names[] = &$$bind_name;
+                    }
+                    call_user_func_array(array($stmt, 'bind_param'), $bind_names);
+                }
+
+                $stmt->execute();
+                $result = $stmt->get_result();
+            }
+        }
+
+        $recipients = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $recipients[] = $row;
+            }
+            if (isset($stmt)) $stmt->close();
+        }
+
+        $recipientCount = count($recipients);
+
+        if ($recipientCount == 0) {
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'>
+                <strong>Erro:</strong> Não existem destinatários para enviar o email usando os filtros que selecionou.
+            </div>";
+        } else {
+            // Build the email body
+            $bodyContent = '<p>' . nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8')) . '</p>';
         
         if ($identifySender) {
             $bodyContent .= '<hr>';
             $bodyContent .= '<p><em>Enviado por: ' . htmlspecialchars($_SESSION['nome'], ENT_QUOTES, 'UTF-8') . '</em></p>';
+        }
+
+        // Get classroom name for display and logging
+        $classroomName = 'todas as salas';
+        if (!empty($selectedClassroom)) {
+            foreach ($salas as $sala) {
+                if ($sala['id'] == $selectedClassroom) {
+                    $classroomName = $sala['nome'];
+                    break;
+                }
+            }
+        }
+        
+        // Prepare week summary for logs
+        $weekSummaryPlain = 'todas as datas';
+        if (!empty($startOfWeek) && !empty($endOfWeek)) {
+            $weekSummaryPlain = date('d/m/Y', strtotime($startOfWeek)) . ' - ' . date('d/m/Y', strtotime($endOfWeek));
         }
         
         // Send email to all recipients in BCC
@@ -639,6 +747,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 $mailer->isHTML(true);
                 $mailer->Subject = $subject;
                 
+                // Build footer sentence depending on mode and week selection
+                $footerSentence = "";
+                $plainWeekSentence = "";
+                if (isset($emailMode) && $emailMode === 'admins') {
+                    $footerSentence = "Recebeu este email porque é administrador do sistema ClassLink.";
+                    $plainWeekSentence = "Recebeu este email porque é administrador do sistema ClassLink.";
+                } else {
+                    if (!empty($startOfWeek) && !empty($endOfWeek)) {
+                        $footerSentence = "Recebeu este email porque tem uma reserva para a semana de <strong>" . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek)) . "</strong>" . (!empty($selectedClassroom) ? " na sala <strong>" . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "</strong>" : "") . ".";
+                        $plainWeekSentence = "Recebeu este email porque tem uma reserva para a semana de " . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek)) . (!empty($selectedClassroom) ? " na sala " . $classroomName : "") . ".";
+                    } else {
+                        $footerSentence = "Recebeu este email porque tem uma reserva (todas as datas)" . (!empty($selectedClassroom) ? " na sala <strong>" . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "</strong>" : "") . ".";
+                        $plainWeekSentence = "Recebeu este email porque tem uma reserva (todas as datas)" . (!empty($selectedClassroom) ? " na sala " . $classroomName : "") . ".";
+                    }
+                }
+
                 // Build full HTML email
                 $htmlBody = "
 <!DOCTYPE html>
@@ -669,7 +793,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                     <tr>
                         <td style='background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;'>
                             <p style='margin: 0 0 10px 0; color: #6c757d; font-size: 14px;'>
-                                Recebeu este email porque tem uma reserva para a semana de <strong>" . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek)) . "</strong>" . (!empty($selectedClassroom) ? " na sala <strong>" . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "</strong>" : "") . ".
+                                " . $footerSentence . "
                             </p>
                             <p style='margin: 0 0 10px 0; color: #6c757d; font-size: 14px;'>
                                 Este email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.
@@ -688,17 +812,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
 </html>";
                 
                 $mailer->Body = $htmlBody;
-                
+
                 // Plain text alternative
                 $plainBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $bodyContent));
-                $plainBody .= "\n\n---\nRecebeu este email porque tem uma reserva para a semana de " . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek)) . (!empty($selectedClassroom) ? " na sala " . $classroomName : "") . ".\nEste email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.\nAgrupamento de Escolas Joaquim Inácio da Cruz Sobral";
+                $plainBody .= "\n\n---\n" . $plainWeekSentence . "\nEste email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.\nAgrupamento de Escolas Joaquim Inácio da Cruz Sobral";
                 $mailer->AltBody = $plainBody;
                 
                 $mailer->send();
                 
                 // Log the action
                 require_once(__DIR__ . '/../../func/logaction.php');
-                $logMessage = "Email enviado para {$recipientCount} utilizadores com reservas para a semana de " . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek));
+                if (isset($emailMode) && $emailMode === 'admins') {
+                    $logMessage = "Email enviado para {$recipientCount} administrador(es)";
+                } else {
+                    $logMessage = "Email enviado para {$recipientCount} utilizadores com reservas: {$weekSummaryPlain}";
+                }
                 if (!empty($selectedClassroom)) {
                     $logMessage .= " (Sala: {$classroomName})";
                 }
@@ -712,16 +840,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 echo "<div class='mt-3 alert alert-info fade show' role='alert'>
                     <strong>Resumo:</strong><br>
                     - Assunto: " . htmlspecialchars($subject, ENT_QUOTES, 'UTF-8') . "<br>
-                    - Destinatários: {$recipientCount}<br>
-                    - Semana: " . date('d/m/Y', strtotime($startOfWeek)) . " - " . date('d/m/Y', strtotime($endOfWeek)) . "<br>" 
-                    . (!empty($selectedClassroom) ? "- Sala: " . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "<br>" : "")
-                    . "- Remetente identificado: " . ($identifySender ? 'Sim' : 'Não') . "
+                    - Destinatários: {$recipientCount}<br>";
+                if (isset($emailMode) && $emailMode === 'admins') {
+                    echo "                    - Tipo: Administradores<br>";
+                } else {
+                    echo "                    - Semana: " . htmlspecialchars($weekSummaryPlain, ENT_QUOTES, 'UTF-8') . "<br>";
+                }
+                echo (!empty($selectedClassroom) ? "                    - Sala: " . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "<br>" : "")
+                    . "                    - Remetente identificado: " . ($identifySender ? 'Sim' : 'Não') . "
                 </div>";
             }
         } catch (Exception $e) {
             echo "<div class='mt-3 alert alert-danger fade show' role='alert'>
                 <strong>Erro ao enviar email:</strong> " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . "
             </div>";
+        }
         }
     }
 }
