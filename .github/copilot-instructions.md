@@ -229,3 +229,4 @@ All located in `admin/api/`:
 10. **Email Disabled Check**: Always check `$mail['ativado']` before sending emails
 11. **XSS Prevention**: Use `htmlspecialchars($var, ENT_QUOTES, 'UTF-8')` for all user output
 12. **Host Header Injection**: Validate `$_SERVER['HTTP_HOST']` format in URL generation
+13. **Validation Check**: Before finishing something or considering it complete, you should always validate to see if you have any parsing errors via a shell command (e.g. `php -l`).
