@@ -91,8 +91,8 @@ function preprocess_colspan_markers(string $markdown): string {
         }
 
         $lines[$index] = preg_replace_callback('/(?<!\\\\)\|{2,}/', function ($matches) {
-            $pipes = strlen($matches[0]);
-            return '|' . str_repeat(' __CLASSLINK_COLSPAN__ |', $pipes - 1);
+            $pipe_count = strlen($matches[0]);
+            return '|' . str_repeat(' __CLASSLINK_COLSPAN__ |', $pipe_count - 1);
         }, $line);
     }
 
