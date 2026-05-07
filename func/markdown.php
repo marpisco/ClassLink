@@ -66,17 +66,31 @@ function parse_markdown(string $markdown): string {
  * @return string Markdown with explicit merge marker sentinels
  */
 function preprocess_colspan_markers(string $markdown): string {
+    if (strpos($markdown, '||') === false) {
+        return $markdown;
+    }
+
     $lines = preg_split("/\r\n|\n|\r/", $markdown);
     if ($lines === false) {
         return $markdown;
     }
 
+    $inside_fence = false;
     foreach ($lines as $index => $line) {
+        if (preg_match('/^\s*(```|~~~)/', $line)) {
+            $inside_fence = !$inside_fence;
+            continue;
+        }
+
+        if ($inside_fence) {
+            continue;
+        }
+
         if (!preg_match('/^\s*\|.*\|\s*$/', $line)) {
             continue;
         }
 
-        $lines[$index] = preg_replace_callback('/\|{2,}/', function ($matches) {
+        $lines[$index] = preg_replace_callback('/(?<!\\\\)\|{2,}/', function ($matches) {
             $pipes = strlen($matches[0]);
             return '|' . str_repeat(' __CLASSLINK_COLSPAN__ |', $pipes - 1);
         }, $line);
@@ -98,12 +112,12 @@ function apply_cell_merging(string $html): string {
     }
 
     $dom = new DOMDocument();
-    $libxml_previous_state = libxml_use_internal_errors(true);
+    $previous_libxml_errors = libxml_use_internal_errors(true);
     $dom->loadHTML(
         '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>'
     );
     libxml_clear_errors();
-    libxml_use_internal_errors($libxml_previous_state);
+    libxml_use_internal_errors($previous_libxml_errors);
 
     foreach ($dom->getElementsByTagName('tr') as $row) {
         $cells = [];
