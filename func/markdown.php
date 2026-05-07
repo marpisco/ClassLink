@@ -19,6 +19,8 @@ use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\MarkdownConverter;
 
+const CLASSLINK_COLSPAN_SENTINEL = '__CLASSLINK_COLSPAN__';
+
 /**
  * Parses a Markdown string and returns safe HTML with Bootstrap classes applied.
  * Supports merged table cells via the || column-span syntax.
@@ -92,7 +94,7 @@ function preprocess_colspan_markers(string $markdown): string {
 
         $lines[$index] = preg_replace_callback('/(?<!\\\\)\|{2,}/', function ($matches) {
             $pipe_count = strlen($matches[0]);
-            return '|' . str_repeat(' __CLASSLINK_COLSPAN__ |', $pipe_count - 1);
+            return '|' . str_repeat(' ' . CLASSLINK_COLSPAN_SENTINEL . ' |', $pipe_count - 1);
         }, $line);
     }
 
@@ -131,7 +133,7 @@ function apply_cell_merging(string $html): string {
         $prev = null;
         $to_remove = [];
         foreach ($cells as $cell) {
-            if (trim($cell->textContent) === '__CLASSLINK_COLSPAN__' && $prev !== null) {
+            if (trim($cell->textContent) === CLASSLINK_COLSPAN_SENTINEL && $prev !== null) {
                 // Explicit merge marker: absorb into the previous cell's colspan
                 $current_span = (int) $prev->getAttribute('colspan') ?: 1;
                 $prev->setAttribute('colspan', (string) ($current_span + 1));
