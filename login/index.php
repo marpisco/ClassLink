@@ -551,20 +551,27 @@
         echo "<h1>Iniciar Sessão no ClassLink</h1>";
         echo "<p class=\"small\">Para aceder à plataforma, deve autenticar-se com a sua conta institucional.</p>";
         echo "<a href=\"/login?redirecttoflow=1\" class=\"login-btn\">";
-        echo "<svg class=\"ms-logo\" width=\"21\" height=\"21\" viewBox=\"0 0 21 21\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vertical-align: middle; margin-right: 8px;\">";
-        echo "<rect class=\"ms-rect1\" x=\"1\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
-        echo "<rect class=\"ms-rect2\" x=\"11\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
-        echo "<rect class=\"ms-rect3\" x=\"1\" y=\"11\" width=\"9\" height=\"9\" fill=\"white\"/>";
-        echo "<rect class=\"ms-rect4\" x=\"11\" y=\"11\" width=\"9\" height=\"9\" fill=\"white\"/>";
-        echo "</svg>";
-        echo "Login com Microsoft";
+        $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/');
+        if ($isMicrosoft) {
+            echo "<svg class=\"ms-logo\" width=\"21\" height=\"21\" viewBox=\"0 0 21 21\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vertical-align: middle; margin-right: 8px;\">";
+            echo "<rect class=\"ms-rect1\" x=\"1\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
+            echo "<rect class=\"ms-rect2\" x=\"11\" y=\"1\" width=\"9\" height=\"9\" fill=\"white\"/>";
+            echo "<rect class=\"ms-rect3\" x=\"1\" y=\"11\" width=\"9\" height=\"9\" fill=\"white\"/>";
+            echo "<rect class=\"ms-rect4\" x=\"11\" y=\"11\" width=\"9\" height=\"9\" fill=\"white\"/>";
+            echo "</svg>";
+            echo "Iniciar Sessão com Microsoft";
+        } else {
+            echo "Iniciar Sessão com Fornecedor de Identidade";
+        }
         echo "</a>";
-        echo "<style>";
-        echo ".login-btn:hover .ms-rect1 { fill: #f25022; }";
-        echo ".login-btn:hover .ms-rect2 { fill: #7fba00; }";
-        echo ".login-btn:hover .ms-rect3 { fill: #00a4ef; }";
-        echo ".login-btn:hover .ms-rect4 { fill: #ffb900; }";
-        echo "</style></a>";
+        if ($isMicrosoft) {
+            echo "<style>";
+            echo ".login-btn:hover .ms-rect1 { fill: #f25022; }";
+            echo ".login-btn:hover .ms-rect2 { fill: #7fba00; }";
+            echo ".login-btn:hover .ms-rect3 { fill: #00a4ef; }";
+            echo ".login-btn:hover .ms-rect4 { fill: #ffb900; }";
+            echo "</style>";
+        }
         echo "</div>";
         echo "";
         echo "<div class=\"notice\">";
