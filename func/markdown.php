@@ -28,6 +28,7 @@ use League\CommonMark\MarkdownConverter;
  */
 function parse_markdown(string $markdown): string {
     require_once __DIR__ . '/../vendor/autoload.php';
+    $markdown = preprocess_colspan_markers($markdown);
 
     $environment = new Environment([
         'html_input'         => 'strip',
@@ -58,6 +59,33 @@ function parse_markdown(string $markdown): string {
 }
 
 /**
+ * Replaces || merge markers in Markdown table rows with a sentinel value so
+ * only explicit merge markers are collapsed later (normal empty cells stay).
+ *
+ * @param string $markdown Raw Markdown content
+ * @return string Markdown with explicit merge marker sentinels
+ */
+function preprocess_colspan_markers(string $markdown): string {
+    $lines = preg_split("/\r\n|\n|\r/", $markdown);
+    if ($lines === false) {
+        return $markdown;
+    }
+
+    foreach ($lines as $index => $line) {
+        if (!preg_match('/^\s*\|.*\|\s*$/', $line)) {
+            continue;
+        }
+
+        $lines[$index] = preg_replace_callback('/\|{2,}/', function ($matches) {
+            $pipes = strlen($matches[0]);
+            return '|' . str_repeat(' __CLASSLINK_COLSPAN__ |', $pipes - 1);
+        }, $line);
+    }
+
+    return implode("\n", $lines);
+}
+
+/**
  * Post-processes rendered HTML tables to merge empty cells (produced by the ||
  * column-span syntax) into their predecessor's colspan attribute.
  *
@@ -70,11 +98,12 @@ function apply_cell_merging(string $html): string {
     }
 
     $dom = new DOMDocument();
-    libxml_use_internal_errors(true);
+    $libxml_previous_state = libxml_use_internal_errors(true);
     $dom->loadHTML(
         '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>'
     );
     libxml_clear_errors();
+    libxml_use_internal_errors($libxml_previous_state);
 
     foreach ($dom->getElementsByTagName('tr') as $row) {
         $cells = [];
@@ -88,8 +117,8 @@ function apply_cell_merging(string $html): string {
         $prev = null;
         $to_remove = [];
         foreach ($cells as $cell) {
-            if (trim($cell->textContent) === '' && $prev !== null) {
-                // Empty cell: absorb into the previous cell's colspan
+            if (trim($cell->textContent) === '__CLASSLINK_COLSPAN__' && $prev !== null) {
+                // Explicit merge marker: absorb into the previous cell's colspan
                 $current_span = (int) $prev->getAttribute('colspan') ?: 1;
                 $prev->setAttribute('colspan', (string) ($current_span + 1));
                 $to_remove[] = $cell;
@@ -116,4 +145,3 @@ function apply_cell_merging(string $html): string {
     return $result;
 }
 ?>
-

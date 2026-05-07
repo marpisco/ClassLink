@@ -1,9 +1,9 @@
 <?php
+    require_once(__DIR__ . '/../func/session_config.php');
     session_start();
     if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
-        http_response_code(403);
-        header("Location: /login");
-        die("A reencaminhar para iniciar sessão...");
+        header("Location: /login", true, 302);
+        exit;
     } else {
         if ($_SESSION['validity'] - time() < 900) {
             $_SESSION['validity'] = time() + 3600;

@@ -1,5 +1,6 @@
 {
     "require": {
+        "php": ">=8.2",
         "phpmailer/phpmailer": "^7.0",
         "league/oauth2-client": "^2.8",
         "league/commonmark": "^2.8",

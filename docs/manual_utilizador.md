@@ -60,7 +60,7 @@ Após o login, é apresentado o dashboard principal com as seguintes opções:
 | Tipo | Descrição | Aprovação |
 |------|-----------|-----------|
 | **Aprovação necessária** | A reserva fica pendente até um administrador aprovar | Manual |
-| **Reserva autónoma** | A reserva é aprovada imediatamente || Automática |
+| **Reserva autónoma** | A reserva é aprovada imediatamente | Automática |
 
 ### Salas Bloqueadas
 

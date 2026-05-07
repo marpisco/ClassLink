@@ -28,6 +28,12 @@ Order Allow,Deny
 Deny from all
 </FilesMatch>
 
+# Block direct access to markdown files (served only via authenticated viewer)
+<FilesMatch "\.md$">
+Order Allow,Deny
+Deny from all
+</FilesMatch>
+
 # Protect config
 <Files config.json>
 Order Allow,Deny
