@@ -86,7 +86,9 @@ The `src/db.php` file handles all table creation with automatic migration:
 {
     "require": {
         "phpmailer/phpmailer": "^7.0",
-        "league/oauth2-client": "^2.8"
+        "league/oauth2-client": "^2.8",
+        "league/commonmark": "^2.8",
+        "tecnickcom/tcpdf": "^6.7"
     }
 }
 ```
