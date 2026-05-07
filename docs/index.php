@@ -1,5 +1,4 @@
 <?php
-    require_once(__DIR__ . '/../func/session_config.php');
     session_start();
     if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
         http_response_code(403);
