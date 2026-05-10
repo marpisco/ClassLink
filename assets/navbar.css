@@ -1,18 +1,16 @@
 nav {
     display: flex;
-    padding:  2% 6%;
+    padding: 15px 4%;
     position: relative;
     justify-content: space-between;
     align-items: center;
 }
 
 .logo {
-    z-index: 2;
-    width: 8%;
-    min-width: 100px;
-    padding-left: 15px;
+    height: 45px;
+    width: auto;
     display: block;
-    transition: .5s ease;
+    transition: .3s ease;
 }
 
 .list {
@@ -22,24 +20,25 @@ nav {
 
 .list ul {
     margin-bottom: 0;
+    padding-left: 0;
 }
 
 .list ul li {
-    position: relative;
     list-style: none;
-    padding: 8px 12px;
     display: inline-block;
+    margin-left: 5px;
 }
 
 .list ul li a {
     color: var(--link-color);
     text-decoration: none;
-    transition: 0.5s;
+    transition: 0.2s;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.95rem;
 }
 
 .list ul li a:hover {
     background: var(--link-hover-bg);
     color: var(--text-inverse);
-    padding: 8px 12px;
-    border-radius: 4px;
 }
