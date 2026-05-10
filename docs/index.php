@@ -55,30 +55,26 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="/assets/theme.css">
+    <link rel="stylesheet" href="/assets/navbar.css">
     <link rel="stylesheet" href="/assets/docs.css">
     <link rel='icon' href='/assets/logo.png'>
     <script src="/assets/theme-switcher.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg border-bottom docs-navbar">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-                <img src="/assets/logo.png" alt="ClassLink" height="32">
-                <span class="fw-semibold">ClassLink</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#docsNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="docsNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/reservar">Reservar</a></li>
-                    <?php if (!empty($_SESSION['admin'])): ?>
-                    <li class="nav-item"><a class="nav-link" href="/admin/">Administração</a></li>
-                    <?php endif; ?>
-                    <li class="nav-item"><a class="nav-link" href="/login/?action=logout">Terminar sessão</a></li>
-                </ul>
-            </div>
+    <nav>
+        <a href="/"><img src="/assets/logo.png" class="logo"></a>
+        <div class="list">
+            <ul>
+                <li><a href="/reservas">As minhas reservas</a></li>
+                <li><a href="/reservar">Reservar sala</a></li>
+                <li><a href="/docs/">Documentação</a></li>
+                <?php
+                if (!empty($_SESSION['admin'])) {
+                    echo "<li><a href='/admin/'>Painel Administrativo</a></li>";
+                }
+                ?>
+                <li><a href="/login/?action=logout">Terminar sessão</a></li>
+            </ul>
         </div>
     </nav>
 

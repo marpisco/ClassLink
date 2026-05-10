@@ -80,6 +80,7 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
             <ul>
                 <li><a href="/reservas">As minhas reservas</a></li>
                 <li><a href="/reservar">Reservar sala</a></li>
+                <li><a href="/docs/">Documentação</a></li>
                 <?php
                 if ($_SESSION['admin']) {
                     echo "<li><a href='/admin'>Painel Administrativo</a></li>";

@@ -6,11 +6,6 @@ body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-/* Navbar */
-.docs-navbar {
-    background-color: var(--bg-color);
-    border-color: var(--border-color) !important;
-}
 
 .docs-navbar .navbar-brand span {
     color: var(--text-color);
@@ -21,13 +16,6 @@ body {
     transition: 0.3s;
 }
 
-.docs-navbar .nav-link:hover {
-    background: var(--link-hover-bg);
-    color: var(--text-inverse);
-    padding-left: 8px;
-    padding-right: 8px;
-    border-radius: 4px;
-}
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 

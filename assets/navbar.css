@@ -1,0 +1,48 @@
+nav {
+    display: flex;
+    padding:  2% 6%;
+    position: relative;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    position: absolute;
+    z-index: 2;
+    width: 8%;
+    top:0px;
+    padding-left: 15px;
+    display: block;
+    gap: 10px;
+    transition: .5s ease;
+    transform: translate(0px, 20px);
+}
+
+.list {
+    flex: 1;
+    text-align: right;
+}
+
+.list ul {
+    margin-bottom: 0;
+}
+
+.list ul li {
+    position: relative;
+    list-style: none;
+    padding: 8px 12px;
+    display: inline-block;
+}
+
+.list ul li a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: 0.5s;
+}
+
+.list ul li a:hover {
+    background: var(--link-hover-bg);
+    color: var(--text-inverse);
+    padding: 8px 12px;
+    border-radius: 4px;
+}
