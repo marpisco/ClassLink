@@ -17,6 +17,7 @@
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\MarkdownConverter;
 
 const CLASSLINK_COLSPAN_SENTINEL = '__CLASSLINK_COLSPAN__';
@@ -36,10 +37,14 @@ function parse_markdown(string $markdown): string {
         'html_input'         => 'strip',
         'allow_unsafe_links' => false,
         'max_nesting_level'  => 100,
+        'heading_permalink' => [
+            'insert' => 'none', // We only want the id attribute, not an actual icon inserted
+        ],
     ]);
 
     $environment->addExtension(new CommonMarkCoreExtension());
     $environment->addExtension(new GithubFlavoredMarkdownExtension());
+    $environment->addExtension(new HeadingPermalinkExtension());
 
     $converter = new MarkdownConverter($environment);
     $html = (string) $converter->convert($markdown);
