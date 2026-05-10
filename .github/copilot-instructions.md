@@ -231,3 +231,9 @@ All located in `admin/api/`:
 11. **XSS Prevention**: Use `htmlspecialchars($var, ENT_QUOTES, 'UTF-8')` for all user output
 12. **Host Header Injection**: Validate `$_SERVER['HTTP_HOST']` format in URL generation
 13. **Validation Check**: Before finishing something or considering it complete, you should always validate to see if you have any parsing errors via a shell command (e.g. `php -l`).
+
+## Progresso Atual (WIP: Add Markdown parser and web documentation viewer)
+- Implementado o novo visualizador de Markdown (`/docs/index.php`) e configurado o parser Markdown (`func/markdown.php`) com suporte para tabelas fundidas via GFM (`||`).
+- Adicionado plugin `HeadingPermalinkExtension` para que links com âncoras (ex: `#as-minhas-reservas`) funcionem perfeitamente.
+- O componente da _navbar_ foi recriado e desanexado para um só ficheiro (`func/navbar.php`) incluído como `require_once` em todas as vistas principais.
+- **Próximos passos (A Rever)**: A reestruturação da navbar em duas linhas ou o layout comprimido não ficou com boa aparência (apesar da cor de fundo da documentação ter sido ajustada e margens editadas). Amanhã será necessário redesenhar a navbar global do site para não parecer tão "bloated" nem desmanchar a interface.
