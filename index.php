@@ -28,22 +28,7 @@
     <link rel='icon' href='/assets/logo.png'>
 </head>
 <body>
-    <nav>
-        <a href=""><img src="/assets/logo.png" class="logo"></a>
-        <div class="list">
-            <ul>
-                <li><a href="/reservas">As minhas reservas</a></li>
-                <li><a href="/reservar">Reservar sala</a></li>
-                <li><a href="/docs/">Documentação</a></li>
-                <?php
-                    if ($_SESSION['admin']) {
-                    echo "<li><a href='/admin/'>Painel Administrativo</a></li>";
-                    }
-                ?>
-                <li><a href="/login/?action=logout">Terminar sessão</a></li>
-            </ul> 
-        </div>
-    </nav>
+    <?php require_once(__DIR__ . '/func/navbar.php'); ?>
     <div class="text">
         <h3>Seja bem vindo, <?php echo htmlspecialchars($_SESSION['nome'], ENT_QUOTES, 'UTF-8'); ?>, ao <br> <span>ClassLink</span> </h3>
         <p>O que é que vamos fazer hoje?</p>

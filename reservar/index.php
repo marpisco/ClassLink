@@ -115,22 +115,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
 </head>
 
 <body>
-    <nav>
-        <a href="/"><img src="/assets/logo.png" class="logo"></a>
-        <div class="list">
-            <ul>
-                <li><a href="/reservas">As minhas reservas</a></li>
-                <li><a href="/reservar">Reservar sala</a></li>
-                <li><a href="/docs/">Documentação</a></li>
-                <?php
-                if ($_SESSION['admin']) {
-                    echo "<li><a href='/admin'>Painel Administrativo</a></li>";
-                }
-                ?>
-                <li><a href="/login/?action=logout">Terminar sessão</a></li>
-            </ul>
-        </div>
-    </nav>
+    <?php require_once(__DIR__ . '/../func/navbar.php'); ?>
     <div class="d-flex align-items-center justify-content-center flex-column">
         <p class="h2 fw-light">Reservar uma Sala</p>
         <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="POST" class="d-flex align-items-center">
