@@ -63,41 +63,51 @@
 <body>
     <?php require_once(__DIR__ . '/../func/navbar.php'); ?>
 
-    <div class="container-fluid">
+    <div class="container-fluid docs-content-container">
         <div class="row">
             <!-- Sidebar with document list -->
-            <nav class="col-md-3 col-lg-2 d-md-block docs-sidebar">
-                <div class="position-sticky pt-3">
-                    <h6 class="sidebar-heading px-3 mt-2 mb-1 text-uppercase fw-semibold">
+            <nav class="col-md-3 col-lg-2 docs-sidebar">
+                <div class="d-flex justify-content-between align-items-center d-md-none mt-2 mb-2 px-3">
+                    <h6 class="sidebar-heading m-0 text-uppercase fw-semibold" style="color: var(--heading-color);">
                         <i class="fa fa-book me-1"></i> Documentação
                     </h6>
-                    <ul class="nav flex-column mb-3">
-                        <?php foreach ($allowed_files as $file): ?>
-                        <?php
-                            $label = pathinfo($file, PATHINFO_FILENAME);
-                            $label = str_replace(['_', '-'], ' ', $label);
-                            $label = ucwords($label);
-                            $is_active = ($file === $current_file);
-                        ?>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo $is_active ? 'active' : ''; ?>"
-                               href="/docs/?doc=<?php echo urlencode($file); ?>">
-                                <i class="fa fa-file-text-o me-1"></i>
-                                <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
-                            </a>
-                        </li>
-                        <?php endforeach; ?>
-                        <?php if (empty($allowed_files)): ?>
-                        <li class="nav-item">
-                            <span class="nav-link text-muted fst-italic">Sem documentos.</span>
-                        </li>
-                        <?php endif; ?>
-                    </ul>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#docsMenuCollapse" aria-expanded="false" aria-controls="docsMenuCollapse">
+                        <i class="fa fa-bars"></i> Ver Lista
+                    </button>
+                </div>
+                <div class="collapse d-md-block" id="docsMenuCollapse">
+                    <div class="position-sticky pt-md-3">
+                        <h6 class="sidebar-heading px-3 mt-2 mb-1 text-uppercase fw-semibold d-none d-md-block">
+                            <i class="fa fa-book me-1"></i> Documentação
+                        </h6>
+                        <ul class="nav flex-column mb-3">
+                            <?php foreach ($allowed_files as $file): ?>
+                            <?php
+                                $label = pathinfo($file, PATHINFO_FILENAME);
+                                $label = str_replace(['_', '-'], ' ', $label);
+                                $label = ucwords($label);
+                                $is_active = ($file === $current_file);
+                            ?>
+                            <li class="nav-item">
+                                <a class="nav-link <?php echo $is_active ? 'active' : ''; ?>"
+                                   href="/docs/?doc=<?php echo urlencode($file); ?>">
+                                    <i class="fa fa-file-text-o me-1"></i>
+                                    <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                            <?php if (empty($allowed_files)): ?>
+                            <li class="nav-item">
+                                <span class="nav-link text-muted fst-italic">Sem documentos.</span>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
                 </div>
             </nav>
 
             <!-- Main content area -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 docs-main">
+            <main class="col-md-9 col-lg-10 px-md-4 docs-main">
                 <?php if ($content_html): ?>
                 <div class="docs-content">
                     <?php echo $content_html; ?>

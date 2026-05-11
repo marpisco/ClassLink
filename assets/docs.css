@@ -6,6 +6,10 @@ body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+.docs-content-container {
+    padding-left: 4%;
+    padding-right: 4%;
+}
 
 .docs-navbar .navbar-brand span {
     color: var(--text-color);
@@ -21,9 +25,23 @@ body {
 
 .docs-sidebar {
     background-color: transparent;
-    border-right: 1px solid var(--border-color);
-    min-height: calc(100vh - 80px);
     padding-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .docs-sidebar {
+        border-right: 1px solid var(--border-color);
+        min-height: calc(100vh - 80px);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .docs-sidebar {
+        padding-top: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
 }
 
 .docs-sidebar .sidebar-heading {
@@ -64,7 +82,7 @@ body {
 /* ── Rendered Markdown ────────────────────────────────────────────────────── */
 
 .docs-content {
-    max-width: 900px;
+    max-width: 100%;
 }
 
 .docs-content h1,
