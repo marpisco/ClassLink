@@ -54,9 +54,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="/assets/theme.css">
-    <link rel="stylesheet" href="/assets/navbar.css">
-    <link rel="stylesheet" href="/assets/docs.css">
+    <link rel="stylesheet" href="/assets/theme.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="/assets/navbar.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="/assets/docs.css?v=<?php echo time(); ?>">
     <link rel='icon' href='/assets/logo.png'>
     <script src="/assets/theme-switcher.js"></script>
 </head>
@@ -66,7 +66,7 @@
     <div class="container-fluid docs-content-container">
         <div class="row">
             <!-- Sidebar with document list -->
-            <nav class="col-md-3 col-lg-2 docs-sidebar">
+            <aside class="col-md-3 col-lg-2 docs-sidebar">
                 <div class="d-flex justify-content-between align-items-center d-md-none mt-2 mb-2 px-3">
                     <h6 class="sidebar-heading m-0 text-uppercase fw-semibold" style="color: var(--heading-color);">
                         <i class="fa fa-book me-1"></i> Documentação
@@ -104,7 +104,7 @@
                         </ul>
                     </div>
                 </div>
-            </nav>
+            </aside>
 
             <!-- Main content area -->
             <main class="col-md-9 col-lg-10 px-md-4 docs-main">
