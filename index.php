@@ -5,9 +5,9 @@
         header("Location: /login");
         die("A reencaminhar para iniciar sessão...");
     } else {
-        // A validade da sessão está quase a expirir. Extender a sessão por mais 1h.
+        // A validade da sessão está quase a expirar. Extender por mais 30 minutos.
         if ($_SESSION['validity'] - time() < 900) {
-            $_SESSION['validity'] = time() + 3600;
+            $_SESSION['validity'] = time() + 1800;
         }
     }
     
@@ -32,16 +32,8 @@
     <div class="text">
         <h3>Seja bem vindo, <?php echo htmlspecialchars($_SESSION['nome'], ENT_QUOTES, 'UTF-8'); ?>, ao <br> <span>ClassLink</span> </h3>
         <p>O que é que vamos fazer hoje?</p>
-        <a href="/reservar">
-            <button class="btn">
-                Reservar uma Sala
-            </button>
-        </a>
-        <a href="/docs/">
-            <button class="btn btn-secondary">
-                Documentação
-            </button>
-        </a>
+        <a href="/reservar" class="btn">Reservar uma Sala</a>
+        <a href="/docs/" class="btn btn-secondary">Documentação</a>
         <div class="bottom" style="position: fixed; bottom: 0; width:100%; margin-bottom: 10px;">
             <img src="/assets/poch.png" alt="Pessoas 2030 | Portugal 2030 | Cofinanciado pela União Europeia" style="max-width: 15%">
             <img src="/assets/rep_edu.png" alt="República Portuguesa Educação Ciência e Inovação" style="max-width: 6%">

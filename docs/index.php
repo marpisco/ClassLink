@@ -6,7 +6,7 @@
         exit;
     } else {
         if ($_SESSION['validity'] - time() < 900) {
-            $_SESSION['validity'] = time() + 3600;
+            $_SESSION['validity'] = time() + 1800;
         }
     }
 
@@ -14,11 +14,23 @@
 
     // Allowed documentation files (whitelist – prevents directory traversal)
     $docs_dir = __DIR__;
+    $docs_dir_real = realpath($docs_dir);
     $allowed_files = [];
-    foreach (glob($docs_dir . '/*.md') as $filepath) {
-        $allowed_files[] = basename($filepath);
+    if ($docs_dir_real !== false) {
+        foreach (glob($docs_dir . '/*.md') as $filepath) {
+            if (!is_file($filepath) || is_link($filepath)) {
+                continue;
+            }
+
+            $real_path = realpath($filepath);
+            if ($real_path === false || !str_starts_with($real_path, $docs_dir_real . DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+
+            $allowed_files[basename($filepath)] = $real_path;
+        }
     }
-    sort($allowed_files);
+    ksort($allowed_files);
 
     // Determine which file to show
     $requested = isset($_GET['doc']) ? basename($_GET['doc']) : null;
@@ -26,10 +38,10 @@
     $content_html = '';
     $doc_title = '';
 
-    if ($requested !== null && in_array($requested, $allowed_files, true)) {
-        $full_path = $docs_dir . '/' . $requested;
-        $raw = file_get_contents($full_path);
+    if ($requested !== null && array_key_exists($requested, $allowed_files)) {
+        $raw = file_get_contents($allowed_files[$requested]);
         if ($raw === false) {
+            http_response_code(500);
             $content_html = '<div class="alert alert-danger">Erro ao ler o ficheiro de documentação.</div>';
         } else {
             $content_html = parse_markdown($raw);
@@ -38,11 +50,13 @@
         $doc_title = htmlspecialchars(pathinfo($requested, PATHINFO_FILENAME), ENT_QUOTES, 'UTF-8');
         $doc_title = str_replace(['_', '-'], ' ', $doc_title);
         $doc_title = ucwords($doc_title);
-    } elseif (!empty($allowed_files)) {
+    } elseif ($requested === null && !empty($allowed_files)) {
         // Default: show the first file
-        $current_file = $allowed_files[0];
+        $current_file = array_key_first($allowed_files);
         header("Location: /docs/?doc=" . urlencode($current_file));
         exit;
+    } elseif ($requested !== null) {
+        http_response_code(404);
     }
 ?>
 <!DOCTYPE html>
@@ -81,7 +95,7 @@
                             <i class="fa fa-book me-1"></i> Documentação
                         </h6>
                         <ul class="nav flex-column mb-3">
-                            <?php foreach ($allowed_files as $file): ?>
+                            <?php foreach (array_keys($allowed_files) as $file): ?>
                             <?php
                                 $label = pathinfo($file, PATHINFO_FILENAME);
                                 $label = str_replace(['_', '-'], ' ', $label);

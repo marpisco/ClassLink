@@ -1,4 +1,4 @@
-.navbar {
+.classlink-navbar {
     display: flex;
     padding: 15px 0;
     position: relative;
@@ -70,10 +70,10 @@
     }
 }
 
-.navbar-toggler {
+.classlink-navbar .navbar-toggler {
     border-color: var(--border-color) !important;
 }
 
-[data-bs-theme="dark"] .navbar-toggler-icon {
+[data-bs-theme="dark"] .classlink-navbar .navbar-toggler-icon {
     filter: invert(1);
 }

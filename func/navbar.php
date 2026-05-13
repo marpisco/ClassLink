@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg">
+<nav class="navbar navbar-expand-lg classlink-navbar">
     <div class="container-fluid" style="padding: 0 4%;">
         <a href="/" class="logo-link navbar-brand m-0 p-0">
             <img src="/assets/logo.png" class="logo" alt="ClassLink">
@@ -21,5 +21,4 @@
             </ul>
         </div>
     </div>
-</nav>
 </nav>
