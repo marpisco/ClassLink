@@ -168,8 +168,9 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
                             $requisitorEmail = $emailResult['email'] ?? '';
                         }
                         
-                        // Check if user has an internal @aejics.org email
-                        $isInternalUser = str_ends_with(strtolower($requisitorEmail), '@aejics.org');
+                        // Check if user has an internal email for autonomous reservations
+                        $internalDomain = get_app_config('internal_email_domain', '');
+                        $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
                         
                         // Auto-approve if tipo_sala is 2 (autonomous) AND user is internal, otherwise set to 0 (pending)
                         $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
@@ -329,8 +330,9 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
                         $requisitorEmail = $emailResult['email'] ?? '';
                     }
                     
-                    // Check if user has an internal @aejics.org email
-                    $isInternalUser = str_ends_with(strtolower($requisitorEmail), '@aejics.org');
+                    // Check if user has an internal email for autonomous reservations
+                    $internalDomain = get_app_config('internal_email_domain', '');
+                    $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
                     
                     // Auto-approve if tipo_sala is 2 (autonomous) AND user is internal, otherwise set to 0 (pending)
                     $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
@@ -479,8 +481,9 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
                                 echo "<div class='alert alert-warning mb-3'><strong>Sala Bloqueada:</strong> Esta sala está bloqueada.</div>";
                             }
                             
-                            // Check if user has an internal @aejics.org email for autonomous reservations
-                            $isInternalUser = str_ends_with(strtolower($_SESSION['email']), '@aejics.org');
+                            // Check if user has an internal email for autonomous reservations
+                            $internalDomain = get_app_config('internal_email_domain', '');
+                            $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($_SESSION['email']), '@' . $internalDomain);
                             
                             if ($isAutonomous) {
                                 if ($isInternalUser) {

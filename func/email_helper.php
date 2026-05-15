@@ -115,7 +115,7 @@ function sendStyledEmail($to, $subject, $heading, $bodyContent, $type = 'info', 
                                 Este email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.
                             </p>
                             <p style='margin: 0; color: #6c757d; font-size: 12px;'>
-                                Agrupamento de Escolas Joaquim Inácio da Cruz Sobral
+                                <?php echo get_app_config('brand_name', 'ClassLink'); ?>
                             </p>
                         </td>
                     </tr>
@@ -132,7 +132,8 @@ function sendStyledEmail($to, $subject, $heading, $bodyContent, $type = 'info', 
     if ($buttonUrl) {
         $plainBody .= "\n\nAceder: {$buttonUrl}";
     }
-    $plainBody .= "\n\n---\nEste email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.\nAgrupamento de Escolas Joaquim Inácio da Cruz Sobral";
+    $brandName = get_app_config('brand_name', 'ClassLink');
+    $plainBody .= "\n\n---\nEste email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.\n" . $brandName;
 
     try {
         $mailer = new PHPMailer(true);

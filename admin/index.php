@@ -59,6 +59,7 @@
     sidebarLink('/admin/materiais.php', 'Materiais');
     sidebarLink('/admin/salas_postreserva.php', 'Pós-Reserva');
     sidebarLink('/admin/users.php', 'Utilizadores');
+    sidebarLink('/admin/config.php', 'Configurações');
     sidebarLink('/admin/registos.php', 'Registos');
     echo "<li class='nav-item dropdown'>
             <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>

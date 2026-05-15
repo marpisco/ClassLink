@@ -10,6 +10,7 @@
     --link-hover-bg: linear-gradient(-90deg, rgb(0, 238, 255) 0%, rgb(13, 4, 66) 100%);
     --bg-color: #fff;
     --bg-secondary: rgb(243, 243, 243);
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-primary: linear-gradient(-90deg, rgb(0, 238, 255) 0%, rgb(13, 4, 66) 85%);
     --gradient-secondary: linear-gradient(-90deg, rgb(18, 0, 97) 0%, rgb(0, 238, 255) 100%);
     --gradient-login-bg: linear-gradient(45deg, rgb(13, 4, 66) 0%, rgb(0, 195, 255) 30%, rgb(255, 255, 255) 85%);

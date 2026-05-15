@@ -10,6 +10,20 @@
     // Criar bases de dados. Todas.
     $db->query("CREATE TABLE IF NOT EXISTS cache (id VARCHAR(99) UNIQUE, nome VARCHAR(99), email VARCHAR(99), admin BOOL, PRIMARY KEY (id));");
     
+    // Add TOTP and OTP columns to cache table for existing installations
+    $result = $db->query("SHOW COLUMNS FROM cache LIKE 'totp_secret'");
+    if ($result && $result->num_rows == 0) {
+        $db->query("ALTER TABLE cache ADD COLUMN totp_secret VARCHAR(255);");
+    }
+    $result = $db->query("SHOW COLUMNS FROM cache LIKE 'otp_code_hash'");
+    if ($result && $result->num_rows == 0) {
+        $db->query("ALTER TABLE cache ADD COLUMN otp_code_hash VARCHAR(255);");
+    }
+    $result = $db->query("SHOW COLUMNS FROM cache LIKE 'otp_expires'");
+    if ($result && $result->num_rows == 0) {
+        $db->query("ALTER TABLE cache ADD COLUMN otp_expires DATETIME;");
+    }
+    
     // Create salas table with post_reservation_content, tipo_sala, and bloqueado columns for new installations
     // tipo_sala: 1 = normal (requires approval), 2 = autonomous (auto-approved)
     // bloqueado: 0 = not locked (default), 1 = locked (only admins can create reservations)
@@ -50,6 +64,35 @@
     
     // Create junction table for reservations and materials
     $db->query("CREATE TABLE IF NOT EXISTS reservas_materiais (reserva_sala VARCHAR(99) NOT NULL, reserva_tempo VARCHAR(99) NOT NULL, reserva_data DATE NOT NULL, material_id VARCHAR(99) NOT NULL, PRIMARY KEY (reserva_sala, reserva_tempo, reserva_data, material_id), FOREIGN KEY (reserva_sala, reserva_tempo, reserva_data) REFERENCES reservas(sala, tempo, data) ON DELETE CASCADE, FOREIGN KEY (material_id) REFERENCES materiais(id) ON DELETE CASCADE);");
+
+    // Create config table for application settings
+    $db->query("CREATE TABLE IF NOT EXISTS config (config_key VARCHAR(99) UNIQUE, config_value TEXT, PRIMARY KEY (config_key));");
+    
+    // Insert default config values if not exist
+    $defaultConfigs = [
+        'brand_name' => 'ClassLink',
+        'internal_email_domain' => '',
+        'admin_requires_totp' => 'true',
+        'blocked_emails_regex' => '/^a\d+@.+$/i',
+        'email_account_name' => 'ClassLink',
+        'initial_setup_complete' => 'false'
+    ];
+    
+    foreach ($defaultConfigs as $key => $value) {
+        $stmt = $db->prepare("INSERT IGNORE INTO config (config_key, config_value) VALUES (?, ?)");
+        if ($stmt) {
+            $stmt->bind_param("ss", $key, $value);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+    
+    // Check if this is first run (no users in cache)
+    $userCountResult = $db->query("SELECT COUNT(*) as count FROM cache");
+    $userCount = $userCountResult->fetch_assoc()['count'];
+    
+    // Store whether this is first run in a constant for use elsewhere
+    define('IS_FIRST_RUN', $userCount == 0);
     
     // Constant for pre-registered user ID prefix
     define('PRE_REGISTERED_PREFIX', 'pre_');
