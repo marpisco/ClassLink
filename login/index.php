@@ -36,30 +36,21 @@
     }
 
     // --- Login Page Template Helper ---
-    function render_login_template($title, $content, $options = []) {
-        $options = array_merge([
-            'show_notice' => true,
-            'show_footer' => true
-        ], $options);
-        
+    function render_login_template($title, $content) {
         $particlesConfig = json_encode([
             "particles" => ["number" => ["value" => 60, "density" => ["enable" => true, "value_area" => 800]], "color" => ["value" => "#00e5ff"], "shape" => ["type" => "circle"], "opacity" => ["value" => 0.5, "random" => false], "size" => ["value" => 3, "random" => true], "line_linked" => ["enable" => true, "distance" => 150, "color" => "#00e5ff", "opacity" => 0.3, "width" => 1], "move" => ["enable" => true, "speed" => 2, "direction" => "none", "random" => false, "straight" => false, "out_mode" => "out", "bounce" => false]],
             "interactivity" => ["detect_on" => "canvas", "events" => ["onhover" => ["enable" => true, "mode" => "grab"], "onclick" => ["enable" => true, "mode" => "push"], "resize" => true], "modes" => ["grab" => ["distance" => 140, "line_linked" => ["opacity" => 1]], "push" => ["particles_nb" => 4]]],
             "retina_detect" => true
         ]);
         
-        $notice = '';
-        $footer = '';
+        $appName = get_app_config("brand_name", "ClassLink");
         
-        if ($options['show_notice']) {
-            $notice = '<div class="notice"><span class="tooltip">Como é que sei?<span class="tooltip-text"></span></span></div>';
+        // Add app name inside login-box if not already present
+        if (strpos($content, 'app-name-footer') === false) {
+            $content = str_replace('</div>', '<div class="app-name-footer">' . htmlspecialchars($appName) . '</div></div>', $content);
         }
         
-        if ($options['show_footer']) {
-            $footer = '<div style="text-align:center;margin-top:1rem;color:var(--text-color);opacity:0.6;font-size:0.8rem;">' . get_app_config("brand_name", "ClassLink") . '</div>';
-        }
-        
-        echo '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . $title . ' - ClassLink</title><link rel="stylesheet" href="/assets/theme.css"><script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script><style>body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; } #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; } .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); } .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); } .login-box .small { color: var(--text-color); } .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; } .login-btn:hover { opacity: 0.9; } .form-group { margin-bottom: 1rem; } input { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); width: 100%; box-sizing: border-box; } button { background-color: #24a1da; color: white; border: none; padding: 0.8rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; } button:hover { opacity: 0.9; } .divider { display: flex; align-items: center; margin: 1.5rem 0; color: var(--text-color); opacity: 0.6; } .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid currentColor; } .divider:not(:empty)::before { margin-right: .5em; } .divider:not(:empty)::after { margin-left: .5em; } .info-msg { color: var(--text-color); background: rgba(255,255,255,0.1); padding: 0.75rem; margin-bottom: 1rem; border-radius: 8px; text-align: left; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.2); } .error-msg { color: #ff3333; font-size: 0.9rem; margin-bottom: 1rem; background: rgba(255,50,50,0.1); padding: 0.5rem; border-radius: 5px; } .ms-logo { vertical-align: middle; margin-right: 8px; } .notice { position: absolute; bottom: 20px; background: var(--white-overlay-light); padding: 1rem 1.5rem; border-radius: 10px; font-size: 0.9rem; box-shadow: 0 2px 8px var(--shadow-color); text-align: center; max-width: 400px; line-height: 1.4; color: var(--text-color); } .notice strong { display: block; margin-bottom: 4px; } .tooltip { position: relative; display: inline-block; cursor: help; color: var(--input-focus-color); text-decoration: underline; } .tooltip .tooltip-text { visibility: hidden; opacity: 0; width: 280px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 0.6rem; position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); transition: opacity 0.3s; font-size: 0.85rem; line-height: 1.3; z-index: 10; } .tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #333 transparent transparent transparent; } .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }</style></head><body><div id="particles-js"></div>' . $content . $notice . $footer . '<script>particlesJS("particles-js", ' . $particlesConfig . ');</script></body></html>';
+        echo '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . $title . ' - ClassLink</title><link rel="stylesheet" href="/assets/theme.css"><script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script><style>body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; } #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; } .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); } .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); } .login-box .small { color: var(--text-color); } .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; } .login-btn:hover { opacity: 0.9; } .form-group { margin-bottom: 1rem; } input { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); width: 100%; box-sizing: border-box; } button { background-color: #24a1da; color: white; border: none; padding: 0.8rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; } button:hover { opacity: 0.9; } .divider { display: flex; align-items: center; margin: 1.5rem 0; color: var(--text-color); opacity: 0.6; } .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid currentColor; } .divider:not(:empty)::before { margin-right: .5em; } .divider:not(:empty)::after { margin-left: .5em; } .info-msg { color: var(--text-color); background: rgba(255,255,255,0.1); padding: 0.75rem; margin-bottom: 1rem; border-radius: 8px; text-align: left; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.2); } .error-msg { color: #ff3333; font-size: 0.9rem; margin-bottom: 1rem; background: rgba(255,50,50,0.1); padding: 0.5rem; border-radius: 5px; } .ms-logo { vertical-align: middle; margin-right: 8px; } .notice { position: absolute; bottom: 20px; background: var(--white-overlay-light); padding: 1rem 1.5rem; border-radius: 10px; font-size: 0.9rem; box-shadow: 0 2px 8px var(--shadow-color); text-align: center; max-width: 400px; line-height: 1.4; color: var(--text-color); } .notice strong { display: block; margin-bottom: 4px; } .tooltip { position: relative; display: inline-block; cursor: help; color: var(--input-focus-color); text-decoration: underline; } .tooltip .tooltip-text { visibility: hidden; opacity: 0; width: 280px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 0.6rem; position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); transition: opacity 0.3s; font-size: 0.85rem; line-height: 1.3; z-index: 10; } .tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #333 transparent transparent transparent; } .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; } .app-name-footer { margin-top: 1.5rem; color: var(--text-color); opacity: 0.6; font-size: 0.85rem; }</style></head><body><div id="particles-js"></div>' . $content . '<script>particlesJS("particles-js", ' . $particlesConfig . ');</script></body></html>';
     }
 
     // Note: Email domain restrictions are now handled via blocked_emails_regex
@@ -241,7 +232,7 @@
                         if (preg_match($alunoRegex, $_SESSION['email'])) {
                             session_destroy();
                             $content = '<div class="login-box"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
-                            render_login_template('Acesso Bloqueado', $content, ['show_notice' => false, 'show_footer' => false]);
+                            render_login_template('Acesso Bloqueado', $content);
                             die();
                         }
                     }
@@ -670,7 +661,7 @@
         
         $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Terminou sessão</h1><p class="small">Caso pretenda voltar a iniciar sessão, carregue no botão em baixo.</p><a href="/login" class="login-btn">Iniciar Sessão</a></div>';
         
-        render_login_template('Iniciar Sessão', $content, ['show_notice' => true, 'show_footer' => true]);
+        render_login_template('Iniciar Sessão', $content);
         die();
     } else if (isset($_GET['error'])) {
 	?>
@@ -795,7 +786,7 @@
                     echo "<title>Iniciar Sessão - ClassLink</title>";
                     $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Sem permissão</h1><p class="small">Não tem autorização para entrar nesta página.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
                     
-                    render_login_template('Iniciar Sessão', $content, ['show_notice' => true, 'show_footer' => false]);
+                    render_login_template('Iniciar Sessão', $content);
                     die();
                     echo "";
                     echo ".tooltip .tooltip-text {";
