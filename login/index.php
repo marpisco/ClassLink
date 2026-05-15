@@ -213,7 +213,7 @@
                         $alunoRegex = get_app_config('blocked_emails_regex', '');
                         if (preg_match($alunoRegex, $_SESSION['email'])) {
                             session_destroy();
-                            echo "<!DOCTYPE html><html lang=\"pt\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Acesso Bloqueado - ClassLink</title><link rel=\"stylesheet\" href=\"/assets/theme.css\"></head><body style=\"display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;color:var(--text-color);background-color: #0b132b; position: relative;\"><div style=\"background:var(--white-overlay);padding:2rem;border-radius:16px;text-align:center;\"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href=\"/login\" style=\"background:#24a1da;color:white;padding:0.8rem 1.2rem;border-radius:8px;text-decoration:none;\">Voltar atrás</a></div></body></html>";
+                            echo "<!DOCTYPE html><html lang=\"pt\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Acesso Bloqueado - ClassLink</title><link rel=\"stylesheet\" href=\"/assets/theme.css\"><script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script><style>body { margin: 0; height: 100vh; font-family: \"Segoe UI\", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; } #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; } .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); } .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); } .login-box p { color: var(--text-color); } .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; } .login-btn:hover { opacity: 0.9; }</style></head><body><div id=\"particles-js\"></div><div class=\"login-box\"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href=\"/login\" class=\"login-btn\">Voltar atrás</a></div><script>particlesJS(\"particles-js\", {\"particles\": { \"number\": { \"value\": 60, \"density\": { \"enable\": true, \"value_area\": 800 } }, \"color\": { \"value\": \"#00e5ff\" }, \"shape\": { \"type\": \"circle\" }, \"opacity\": { \"value\": 0.5, \"random\": false }, \"size\": { \"value\": 3, \"random\": true }, \"line_linked\": { \"enable\": true, \"distance\": 150, \"color\": \"#00e5ff\", \"opacity\": 0.3, \"width\": 1 }, \"move\": { \"enable\": true, \"speed\": 2, \"direction\": \"none\", \"random\": false, \"straight\": false, \"out_mode\": \"out\", \"bounce\": false } }, \"interactivity\": { \"detect_on\": \"canvas\", \"events\": { \"onhover\": { \"enable\": true, \"mode\": \"grab\" }, \"onclick\": { \"enable\": true, \"mode\": \"push\" }, \"resize\": true }, \"modes\": { \"grab\": { \"distance\": 140, \"line_linked\": { \"opacity\": 1 } }, \"push\": { \"particles_nb\": 4 } } }, \"retina_detect\": true });</script></body></html>";
                             die();
                         }
                     }
@@ -383,9 +383,13 @@
             <link rel="stylesheet" href="/assets/theme.css">
             <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
             <style>
-                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background-color: #0b132b; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
+                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
                 #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; }
                 .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); }
+                .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); }
+                .login-box .small { color: var(--text-color); }
+                .login-btn { display: inline-block; background-color: #2F2F2F; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; }
+                .login-btn:hover { background-color: #1b1b1b; }
                 .form-group { margin-bottom: 1rem; }
                 input { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); width: 100%; box-sizing: border-box; }
                 button { background-color: #24a1da; color: white; border: none; padding: 0.8rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; }
@@ -456,9 +460,13 @@
             <link rel="stylesheet" href="/assets/theme.css">
             <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
             <style>
-                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background-color: #0b132b; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
+                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
                 #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; }
                 .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); }
+                .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); }
+                .login-box .small { color: var(--text-color); }
+                .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; }
+                .login-btn:hover { opacity: 0.9; }
                 .qr-container { margin: 1rem auto; display: inline-block; }
                 .qr-container img { border: 8px solid white; border-radius: 8px; }
                 .form-group { margin-bottom: 1rem; }
@@ -521,9 +529,13 @@
             <link rel="stylesheet" href="/assets/theme.css">
             <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
             <style>
-                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background-color: #0b132b; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
+                body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; }
                 #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; }
                 .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); }
+                .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); }
+                .login-box .small { color: var(--text-color); }
+                .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; }
+                .login-btn:hover { opacity: 0.9; }
                 .form-group { margin-bottom: 1rem; }
                 input { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); width: 100%; box-sizing: border-box; }
                 button { background-color: #24a1da; color: white; border: none; padding: 0.8rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 0.5rem; }
@@ -1005,13 +1017,15 @@
                     echo "opacity: 1;";
                     echo "}";
                     echo "</style>";
+                    echo "<script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>";
                     echo "</head>";
                     echo "<body>";
                     echo "";
+                    echo "<div id=\"particles-js\"></div>";
                     echo "<div class=\"login-box\">";
                     echo "<img src=\"/assets/logo.png\" alt=\"Logotipo ClassLink\" style=\"max-width:25%;\">";
                     echo "<h1>Sem permissão</h1>";
-                    echo "<p class=\"small\">Iniciou sessão com uma conta de aluno (detectado automaticamente por um filtro). Contacte o administrador do sistema.</p>";
+                    echo "<p class=\"small\">Não tem autorização para entrar nesta página.</p>";
                     echo "<a href=\"/login\" class=\"login-btn\">Voltar atrás</a>";
                     echo "</div>";
                     echo "";
@@ -1023,6 +1037,14 @@
                     echo "</span>";
                     echo "</span>";
                     echo "</div>";
+                    echo "";
+                    echo "<script>";
+                    echo "particlesJS(\"particles-js\", {";
+                    echo "\"particles\": { \"number\": { \"value\": 60, \"density\": { \"enable\": true, \"value_area\": 800 } }, \"color\": { \"value\": \"#00e5ff\" }, \"shape\": { \"type\": \"circle\" }, \"opacity\": { \"value\": 0.5, \"random\": false }, \"size\": { \"value\": 3, \"random\": true }, \"line_linked\": { \"enable\": true, \"distance\": 150, \"color\": \"#00e5ff\", \"opacity\": 0.3, \"width\": 1 }, \"move\": { \"enable\": true, \"speed\": 2, \"direction\": \"none\", \"random\": false, \"straight\": false, \"out_mode\": \"out\", \"bounce\": false } }, ";
+                    echo "\"interactivity\": { \"detect_on\": \"canvas\", \"events\": { \"onhover\": { \"enable\": true, \"mode\": \"grab\" }, \"onclick\": { \"enable\": true, \"mode\": \"push\" }, \"resize\": true }, \"modes\": { \"grab\": { \"distance\": 140, \"line_linked\": { \"opacity\": 1 } }, \"push\": { \"particles_nb\": 4 } } }, ";
+                    echo "\"retina_detect\": true";
+                    echo "});";
+                    echo "</script>";
                     echo "";
                     echo "</body>";
                     echo "</html>";
