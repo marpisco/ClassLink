@@ -1,6 +1,6 @@
 <?php
 require_once(__DIR__ . '/../src/db.php');
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
     http_response_code(403);
     header("Location: /login");

@@ -1,5 +1,5 @@
 <?php
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
     // Handle database selection
     if (isset($_POST['action']) && $_POST['action'] === 'select_db') {
