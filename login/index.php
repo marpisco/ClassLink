@@ -13,13 +13,16 @@
 
     // Include config and db normally
     require_once(__DIR__ . '/../src/config.php');
+    
+    // Store db config before it's overwritten by mysqli
+    $dbConfig = $db['db'];
+    $showDbPicker = is_array($dbConfig) && count($dbConfig) > 1;
+    $dbOptions = is_array($dbConfig) ? $dbConfig : [];
+    
     require_once(__DIR__ . '/../src/db.php');
     require_once(__DIR__ . '/../func/get_config.php');
     require_once(__DIR__ . '/../func/logaction.php');
     require_once(__DIR__ . '/../func/email_helper.php');
-
-    // Check if we should show DB picker (after DB connection)
-    $showDbPicker = should_show_db_picker();
 
     $localAuthError = null;
     $localAuthInfo = null;
@@ -551,12 +554,11 @@
                     <select name="db_selection" onchange="this.form.submit()" class="form-select" style="max-width: 200px; margin: 0 auto;">
                         <option value="">Selecionar Base de Dados...</option>
                         <?php
-                        $dbConfigs = get_app_config('db_configs', []);
-                        foreach ($dbConfigs as $key => $config):
-                            $selected = ($_SESSION['selected_db'] ?? '') === ($config['db'] ?? $key) ? 'selected' : '';
+                        foreach ($dbOptions as $key => $dbName):
+                            $selected = ($_SESSION['selected_db'] ?? '') === $dbName ? 'selected' : '';
                         ?>
-                        <option value="<?= htmlspecialchars($config['db'] ?? $key) ?>" <?= $selected ?>>
-                            <?= htmlspecialchars($config['name'] ?? $key) ?>
+                        <option value="<?= htmlspecialchars($dbName) ?>" <?= $selected ?>>
+                            <?= htmlspecialchars(ucfirst($key)) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
