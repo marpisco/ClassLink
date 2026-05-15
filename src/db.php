@@ -7,9 +7,16 @@
         session_start();
     }
     
-    // Check if user has selected a different database in this session
-    $selectedDb = $_SESSION['selected_db'] ?? $db['db'];
-    $db = new mysqli($db['servidor'], $db['user'], $db['password'], $selectedDb, $db['porta']);
+    // Determine which database to use
+    $dbName = $db['db'];
+    
+    // If db is an array (multiple databases configured), check session for selection
+    if (is_array($dbName) && !empty($dbName)) {
+        $selectedDbKey = $_SESSION['selected_db'] ?? array_keys($dbName)[0];
+        $dbName = $dbName[$selectedDbKey] ?? $dbName[array_keys($dbName)[0]];
+    }
+    
+    $db = new mysqli($db['servidor'], $db['user'], $db['password'], $dbName, $db['porta']);
     if ($db->connect_error) {
         die("Ligação ao servidor falhou: " . $db->connect_error);
     }
