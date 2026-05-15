@@ -1,11 +1,25 @@
 <?php
+    session_start();
+
+    // Handle database selection
+    if (isset($_POST['action']) && $_POST['action'] === 'select_db') {
+        $selectedDb = $_POST['db_selection'] ?? null;
+        if ($selectedDb) {
+            $_SESSION['selected_db'] = $selectedDb;
+        }
+        header('Location: /login');
+        exit();
+    }
+
+    // Include config and db normally
     require_once(__DIR__ . '/../src/config.php');
     require_once(__DIR__ . '/../src/db.php');
     require_once(__DIR__ . '/../func/get_config.php');
     require_once(__DIR__ . '/../func/logaction.php');
     require_once(__DIR__ . '/../func/email_helper.php');
 
-    session_start();
+    // Check if we should show DB picker (after DB connection)
+    $showDbPicker = should_show_db_picker();
 
     $localAuthError = null;
     $localAuthInfo = null;
@@ -531,6 +545,23 @@
             <div class="login-box">
                 <img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:35%; margin-bottom:1rem;">
                 <h1>Iniciar Sessão no ClassLink</h1>
+                <?php if ($showDbPicker): ?>
+                <form method="POST" action="/login/index.php" style="margin-bottom: 1rem;">
+                    <input type="hidden" name="action" value="select_db">
+                    <select name="db_selection" onchange="this.form.submit()" class="form-select" style="max-width: 200px; margin: 0 auto;">
+                        <option value="">Selecionar Base de Dados...</option>
+                        <?php
+                        $dbConfigs = get_app_config('db_configs', []);
+                        foreach ($dbConfigs as $key => $config):
+                            $selected = ($_SESSION['selected_db'] ?? '') === ($config['db'] ?? $key) ? 'selected' : '';
+                        ?>
+                        <option value="<?= htmlspecialchars($config['db'] ?? $key) ?>" <?= $selected ?>>
+                            <?= htmlspecialchars($config['name'] ?? $key) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                <?php endif; ?>
                 <p class="small">Para aceder à plataforma, deve autenticar-se com a sua conta institucional.</p>
                 <?php if (!empty($localAuthError)): ?>
                     <div class="error-msg"><?= htmlspecialchars($localAuthError) ?></div>

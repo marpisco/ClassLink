@@ -49,4 +49,50 @@ if (!function_exists('is_development_mode')) {
         return $mode === 'development';
     }
 }
+
+if (!function_exists('get_available_databases')) {
+    function get_available_databases() {
+        $dbConfigs = get_app_config('db_configs', []);
+        
+        // If db_configs is a string, use it directly
+        if (is_string($dbConfigs) && !empty($dbConfigs)) {
+            return [$dbConfigs];
+        }
+        
+        // If db_configs is an array with named entries (new format)
+        if (is_array($dbConfigs) && !empty($dbConfigs)) {
+            // Check if it's the new format with name/db keys
+            $first = reset($dbConfigs);
+            if (is_array($first) && isset($first['db'])) {
+                return array_keys($dbConfigs); // Return keys as database identifiers
+            }
+            // Old format: array of database names
+            return array_keys($dbConfigs);
+        }
+        
+        return [];
+    }
+}
+
+if (!function_exists('should_show_db_picker')) {
+    function should_show_db_picker() {
+        $dbConfigs = get_app_config('db_configs', []);
+        
+        // If db_configs is empty or a single string, no picker needed
+        if (empty($dbConfigs)) {
+            return false;
+        }
+        
+        if (is_string($dbConfigs)) {
+            return false; // Single DB, no picker
+        }
+        
+        // If array has more than one entry, show picker
+        if (is_array($dbConfigs) && count($dbConfigs) > 1) {
+            return true;
+        }
+        
+        return false;
+    }
+}
 ?>
