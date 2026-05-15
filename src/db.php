@@ -1,7 +1,15 @@
 <?php
     require_once(__DIR__ . '/../vendor/autoload.php');
     require_once(__DIR__ . '/config.php');
-    $db = new mysqli($db['servidor'], $db['user'], $db['password'], $db['db'], $db['porta']);
+    
+    // Start session to check if user has selected a different database
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Check if user has selected a different database in this session
+    $selectedDb = $_SESSION['selected_db'] ?? $db['db'];
+    $db = new mysqli($db['servidor'], $db['user'], $db['password'], $selectedDb, $db['porta']);
     if ($db->connect_error) {
         die("Ligação ao servidor falhou: " . $db->connect_error);
     }
