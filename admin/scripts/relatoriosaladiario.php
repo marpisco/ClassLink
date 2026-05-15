@@ -6,7 +6,7 @@ require_once(__DIR__ . '/../../vendor/autoload.php');
 // Handle PDF generation
 if (isset($_POST['gerar_pdf'])) {
     // chamar coisas da sessão do index.php que é chamado caso não for gerar pdf
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
     if (!$_SESSION['admin']) {
         http_response_code(403);
         die("<div class='alert alert-danger text-center'>Não pode entrar no Painel Administrativo. <a href='/'>Voltar para a página inicial</a></div>");
