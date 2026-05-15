@@ -4,7 +4,7 @@ $isDevMode = is_development_mode();
 ?>
 
 <?php if ($isDevMode): ?>
-<div class="dev-mode-banner-top">
+<div class="dev-mode-banner-top" style="background-color: #dc3545 !important; color: white !important; padding: 4px !important; font-size: 12px !important; font-weight: bold !important; text-align: center !important;">
     ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
 </div>
 <?php endif; ?>
@@ -35,7 +35,7 @@ $isDevMode = is_development_mode();
 </nav>
 
 <?php if ($isDevMode): ?>
-<div class="dev-mode-banner-bottom">
+<div class="dev-mode-banner-bottom" style="background-color: #dc3545 !important; color: white !important; padding: 4px !important; font-size: 12px !important; font-weight: bold !important; text-align: center !important; position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important;">
     ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
 </div>
 <?php endif; ?>
