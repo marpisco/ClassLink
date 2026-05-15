@@ -316,6 +316,11 @@
             </style>
         </head>
         <body>
+            <?php if (is_development_mode()): ?>
+            <div style="background-color: #dc3545; color: white; padding: 4px; font-size: 12px; font-weight: bold; text-align: center;">
+                ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
+            </div>
+            <?php endif; ?>
             <div id="particles-js"></div>
             <div class="login-box">
                 <h1>Verificação de Segurança</h1>
