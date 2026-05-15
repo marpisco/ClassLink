@@ -69,7 +69,6 @@ ClassLink/
 
 ## Important Constants & Configuration
 - `PRE_REGISTERED_PREFIX = 'pre_'` - For pre-registered users
-- Session name: `CLASSLINK_SESSION`
 - Session ID length: 48 characters
 - Session ID bits per character: 6
 - GC max lifetime: 1800 seconds (30 minutes)
@@ -85,8 +84,10 @@ The `src/db.php` file handles all table creation with automatic migration:
 ```json
 {
     "require": {
+        "php": ">=8.2",
         "phpmailer/phpmailer": "^7.0",
-        "league/oauth2-client": "^2.8"
+        "league/oauth2-client": "^2.8",
+        "tecnickcom/tcpdf": "^6.7"
     }
 }
 ```

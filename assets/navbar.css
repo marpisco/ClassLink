@@ -1,0 +1,79 @@
+.classlink-navbar {
+    display: flex;
+    padding: 15px 0;
+    position: relative;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-decoration: none;
+}
+
+.logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: var(--gradient-secondary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding-bottom: 2px;
+}
+
+.logo {
+    height: 45px;
+    width: auto;
+    display: block;
+    transition: .3s ease;
+}
+
+.list {
+    flex: 1;
+    text-align: right;
+}
+
+.list ul {
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+.list ul li {
+    list-style: none;
+    margin-left: 5px;
+}
+
+.list ul li a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: 0.2s;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.list ul li a:hover {
+    background: var(--link-hover-bg);
+    color: var(--text-inverse);
+}
+
+@media (max-width: 991.98px) {
+    .list ul li {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+    .list {
+        text-align: center;
+        margin-top: 15px;
+    }
+}
+
+.classlink-navbar .navbar-toggler {
+    border-color: var(--border-color) !important;
+}
+
+[data-bs-theme="dark"] .classlink-navbar .navbar-toggler-icon {
+    filter: invert(1);
+}

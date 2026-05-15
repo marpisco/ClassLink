@@ -23,9 +23,9 @@
         header("Location: /login");
         die("A reencaminhar para iniciar sessão...");
     } else {
-        // A validade da sessão está quase a expirir. Extender a sessão por mais 1h.
+        // A validade da sessão está quase a expirar. Extender por mais 30 minutos.
         if ($_SESSION['validity'] - time() < 900) {
-            $_SESSION['validity'] = time() + 3600;
+            $_SESSION['validity'] = time() + 1800;
         }
     }
 ?>

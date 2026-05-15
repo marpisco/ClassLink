@@ -149,21 +149,7 @@ $stmt->close();
 </head>
 
 <body>
-    <nav>
-        <a href="/"><img src="/assets/logo.png" class="logo"></a>
-        <div class="list">
-            <ul>
-                <li><a href="/reservas">As minhas reservas</a></li>
-                <li><a href="/reservar">Reservar sala</a></li>
-                <?php
-                if ($_SESSION['admin']) {
-                    echo "<li><a href='/admin'>Painel Administrativo</a></li>";
-                }
-                ?>
-                <li><a href="/login/?action=logout">Terminar sessão</a></li>
-            </ul>
-        </div>
-    </nav>
+    <?php require_once(__DIR__ . '/../func/navbar.php'); ?>
     
     <div class="reservations-container fade-in">
         <div class="row mb-4">

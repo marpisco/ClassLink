@@ -36,6 +36,6 @@ ini_set('session.sid_bits_per_character', 6);
 // Set session timeout (30 minutes of inactivity)
 ini_set('session.gc_maxlifetime', 1800);
 
-// Session name (change this to something unique)
-session_name('CLASSLINK_SESSION');
+// Keep PHP's default session name for compatibility with existing pages.
+// Most of the app currently calls session_start() directly without this file.
 ?>
