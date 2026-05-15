@@ -2,22 +2,6 @@
 require_once(__DIR__ . '/../../func/logaction.php');
 require_once(__DIR__ . '/../../src/db.php');
 require_once(__DIR__ . '/../../vendor/autoload.php');
-    session_start();
-    if (!$_SESSION['admin']) {
-        http_response_code(403);
-        die("<div class='alert alert-danger text-center'>Não pode entrar no Painel Administrativo. <a href='/'>Voltar para a página inicial</a></div>");
-    }
-    if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
-        http_response_code(403);
-        header("Location: /login");
-        die("A reencaminhar para iniciar sessão...");
-    } else {
-        // A validade da sessão está quase a expirar. Extender por mais 30 minutos.
-        if ($_SESSION['validity'] - time() < 900) {
-            $_SESSION['validity'] = time() + 1800;
-        }
-    }
-use TCPDF;
 
 // Handle PDF generation
 if (isset($_POST['gerar_pdf'])) {
