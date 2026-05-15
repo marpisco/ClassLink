@@ -1,4 +1,15 @@
-<nav class="navbar navbar-expand-lg classlink-navbar">
+<?php
+require_once(__DIR__ . '/get_config.php');
+$isDevMode = is_development_mode();
+?>
+
+<?php if ($isDevMode): ?>
+<div class="dev-mode-banner-top">
+    ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
+</div>
+<?php endif; ?>
+
+<nav class="navbar navbar-expand-lg classlink-navbar<?php echo $isDevMode ? ' dev-mode-nav' : ''; ?>">
     <div class="container-fluid" style="padding: 0 4%;">
         <a href="/" class="logo-link navbar-brand m-0 p-0">
             <img src="/assets/logo.png" class="logo" alt="ClassLink">
@@ -22,3 +33,9 @@
         </div>
     </div>
 </nav>
+
+<?php if ($isDevMode): ?>
+<div class="dev-mode-banner-bottom">
+    ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
+</div>
+<?php endif; ?>
