@@ -1,5 +1,6 @@
 <?php require 'index.php'; ?>
 <?php require_once(__DIR__ . '/../func/genuuid.php'); ?>
+<?php require_once(__DIR__ . '/../func/get_config.php'); ?>
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
 <h3>Gestão de Utilizadores</h3>
 <?php
