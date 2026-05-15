@@ -167,8 +167,9 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
             }
         }
         
-        // Check if user has an internal @aejics.org email for autonomous reservations
-        $isInternalUser = str_ends_with(strtolower($_SESSION['email']), '@aejics.org');
+        // Check if user has an internal email for autonomous reservations
+        $internalDomain = get_app_config('internal_email_domain', '');
+        $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($_SESSION['email']), '@' . $internalDomain);
         
         // Display autonomous reservation message if applicable
         if ($isAutonomous) {

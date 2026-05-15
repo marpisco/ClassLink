@@ -57,12 +57,44 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             echo "<div class='alert alert-danger fade show' role='alert'>Dados inválidos.</div>";
             break;
         }
+        
+        // Get current admin status before update
+        $checkStmt = $db->prepare("SELECT admin, totp_secret FROM cache WHERE id = ?");
+        $checkStmt->bind_param("s", $_GET['id']);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result()->fetch_assoc();
+        $checkStmt->close();
+        
+        $wasAdmin = $checkResult['admin'] ?? 0;
         $adminValue = isset($_POST["administrador"]) ? 1 : 0;
-        $stmt = $db->prepare("UPDATE cache SET nome = ?, email = ?, admin = ? WHERE id = ?");
-        $stmt->bind_param("ssis", $_POST['nome'], $_POST['email'], $adminValue, $_GET['id']);
+        
+        // If demoting from admin to non-admin, remove TOTP
+        if ($wasAdmin == 1 && $adminValue == 0 && !empty($checkResult['totp_secret'])) {
+            $stmt = $db->prepare("UPDATE cache SET nome = ?, email = ?, admin = ?, totp_secret = NULL WHERE id = ?");
+            $stmt->bind_param("sssi", $_POST['nome'], $_POST['email'], $adminValue, $_GET['id']);
+            $stmt->execute();
+            $stmt->close();
+            acaoexecutada("Atualização de Utilizador - Removido TOTP por perda de privilégios admin");
+        } else {
+            $stmt = $db->prepare("UPDATE cache SET nome = ?, email = ?, admin = ? WHERE id = ?");
+            $stmt->bind_param("sssi", $_POST['nome'], $_POST['email'], $adminValue, $_GET['id']);
+            $stmt->execute();
+            $stmt->close();
+            acaoexecutada("Atualização de Utilizador");
+        }
+        break;
+    // caso execute a ação remover TOTP:
+    case "removetotp":
+        if (!isset($_GET['id'])) {
+            echo "<div class='alert alert-danger fade show' role='alert'>ID inválido.</div>";
+            break;
+        }
+        $stmt = $db->prepare("UPDATE cache SET totp_secret = NULL WHERE id = ?");
+        $stmt->bind_param("s", $_GET['id']);
         $stmt->execute();
         $stmt->close();
-        acaoexecutada("Atualização de Utilizador");
+        acaoexecutada("Remoção de TOTP de utilizador");
+        echo "<div class='alert alert-success fade show' role='alert'>TOTP removido com sucesso.</div>";
         break;
     // caso execute a ação pré-adicionar:
     case "preadd":
@@ -143,8 +175,14 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                 $adminStatus = $row['admin'] ? "<span class='badge bg-success'>Admin</span>" : "<span class='badge bg-secondary'>Utilizador</span>";
                 $isPreRegistered = str_starts_with($row['id'], PRE_REGISTERED_PREFIX);
                 $preRegBadge = $isPreRegistered ? " <span class='badge bg-warning text-dark'>Pré-registado</span>" : "";
-                $isExternal = !str_ends_with($row['email'], '@aejics.org');
-                $externalBadge = $isExternal ? " <span class='badge bg-info'>Externo</span>" : "";
+                $internalDomain = get_app_config('internal_email_domain', '');
+                $isExternal = !empty($internalDomain) && !str_ends_with($row['email'], '@' . $internalDomain);
+                $externalBadge = !empty($internalDomain) && $isExternal ? " <span class='badge bg-info'>Externo</span>" : "";
+                
+                // TOTP status
+                $hasTotp = !empty($row['totp_secret']);
+                $totpStatus = $hasTotp ? "<span class='badge bg-success'>TOTP Ativado</span>" : "<span class='badge bg-secondary'>Sem TOTP</span>";
+                
                 $userName = htmlspecialchars($row['nome'], ENT_QUOTES, 'UTF-8');
                 $userEmail = htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8');
             ?>
@@ -154,9 +192,13 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                             <h5 class="card-title"><?php echo $userName; ?></h5>
                             <p class="card-text text-muted"><?php echo $userEmail; ?></p>
                             <p class="card-text"><?php echo $adminStatus . $preRegBadge . $externalBadge; ?></p>
+                            <p class="card-text"><?php echo $totpStatus; ?></p>
                         </div>
                         <div class="card-footer bg-transparent">
                             <a href='/admin/users.php?action=edit&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-primary'>EDITAR</a>
+                            <?php if ($hasTotp): ?>
+                                <a href='/admin/users.php?action=removetotp&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-warning' onclick='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>Remover TOTP</a>
+                            <?php endif; ?>
                             <a href='/admin/users.php?action=apagar&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-danger' onclick='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>APAGAR</a>
                         </div>
                     </div>
@@ -195,8 +237,9 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
         const preRegBadge = user.isPreRegistered 
             ? " <span class='badge bg-warning text-dark'>Pré-registado</span>" 
             : "";
-        const isExternal = !user.email.endsWith('@aejics.org');
-        const externalBadge = isExternal 
+        const internalDomain = '<?php echo addslashes(get_app_config("internal_email_domain", "")); ?>';
+        const isExternal = internalDomain && !user.email.endsWith('@' + internalDomain);
+        const externalBadge = internalDomain && isExternal 
             ? " <span class='badge bg-info'>Externo</span>" 
             : "";
         const idEnc = encodeURIComponent(user.id);
