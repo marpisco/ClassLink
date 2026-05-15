@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'internal_email_domain', 
             'admin_requires_totp',
             'blocked_emails_regex',
-            'email_account_name'
+            'email_account_name',
+            'app_mode'
         ];
         
         $successCount = 0;
@@ -48,6 +49,11 @@ $internalDomain = get_app_config('internal_email_domain', '');
 $adminRequiresTotp = get_app_config('admin_requires_totp', 'true');
 $blockedEmailsRegex = get_app_config('blocked_emails_regex', '/^a\d+@.+$/i');
 $emailAccountName = get_app_config('email_account_name', 'ClassLink');
+$appMode = get_app_config('app_mode', 'production');
+$dbConfigs = get_app_config('db_configs', [
+    'production' => ['name' => 'Produção', 'db' => 'reservasalas', 'user' => 'reservasalas'],
+    'development' => ['name' => 'Desenvolvimento', 'db' => 'reservasalas_dev', 'user' => 'reservasalas']
+]);
 ?>
 
     <form method="POST" action="/admin/config.php">
@@ -106,6 +112,24 @@ $emailAccountName = get_app_config('email_account_name', 'ClassLink');
                             </label>
                             <div class="form-text">Se ativado, todos os administradores devem configurar e usar TOTP (autenticador) para iniciar sessão.</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Modo da Aplicação</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="app_mode" class="form-label">Modo de Funcionamento</label>
+                        <select class="form-select" id="app_mode" name="app_mode">
+                            <option value="production" <?= $appMode === 'production' ? 'selected' : '' ?>>Produção</option>
+                            <option value="development" <?= $appMode === 'development' ? 'selected' : '' ?>>Desenvolvimento</option>
+                        </select>
+                        <div class="form-text">Em modo desenvolvimento, será mostrado um banner de aviso em toda a aplicação.</div>
                     </div>
                 </div>
             </div>

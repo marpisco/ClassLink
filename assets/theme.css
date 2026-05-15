@@ -68,3 +68,31 @@ body:not(.admin-panel) {
 .text h2, .text h3 {
     color: var(--text-color);
 }
+
+/* Development Mode Banners */
+.dev-mode-banner-top,
+.dev-mode-banner-bottom {
+    background-color: #dc3545;
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    position: sticky;
+    z-index: 9999;
+}
+
+.dev-mode-banner-top {
+    top: 0;
+}
+
+.dev-mode-banner-bottom {
+    bottom: 0;
+    position: fixed;
+    left: 0;
+    right: 0;
+}
+
+.dev-mode-nav {
+    margin-top: 0;
+}

@@ -42,4 +42,11 @@ if (!function_exists('get_app_config')) {
         return $default;
     }
 }
+
+if (!function_exists('is_development_mode')) {
+    function is_development_mode() {
+        $mode = get_app_config('app_mode', 'production');
+        return $mode === 'development';
+    }
+}
 ?>
