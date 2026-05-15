@@ -13,17 +13,17 @@
 <?php
     require_once(__DIR__ . '/../src/db.php');
     require_once(__DIR__ . '/../func/genuuid.php');
-    require_once(__DIR__ . '/../func/get_config.php');
     session_start();
     
+    require_once(__DIR__ . '/../func/get_config.php');
     $isDevMode = is_development_mode();
-?>
-
-<?php if ($isDevMode): ?>
-<div style="background-color: #dc3545; color: white; padding: 4px; font-size: 12px; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 9999;">
-    ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
-</div>
-<?php endif; ?>
+    
+    if ($isDevMode) {
+        echo '<div style="background-color: #dc3545; color: white; padding: 4px; font-size: 12px; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 9999;">';
+        echo '⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento';
+        echo '</div>';
+    }
+    
     if (!$_SESSION['admin']) {
         http_response_code(403);
         die("<div class='alert alert-danger text-center'>Não pode entrar no Painel Administrativo. <a href='/'>Voltar para a página inicial</a></div>");
@@ -53,7 +53,8 @@
     }
 
     // Criação da Navbar no HTML
-    echo "<nav class='navbar navbar-expand-lg border-bottom sticky-top' id='admin-navbar' style='position: sticky; top: " . ($isDevMode ? "28px" : "0") . "; z-index: 1000;'>
+    $stickyOffset = $isDevMode ? '28px' : '0';
+    echo "<nav class='navbar navbar-expand-lg border-bottom' id='admin-navbar' style='position: sticky; top: {$stickyOffset}; z-index: 1000;'>
     <div class='container-fluid'>
         <span class='navbar-brand mb-0 h1'>Dashboard de Administração</span>
         <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav' aria-controls='navbarNav' aria-expanded='false' aria-label='Toggle navigation'>
@@ -246,7 +247,7 @@
 
 <?php if ($isDevMode): ?>
 <div style="background-color: #dc3545; color: white; padding: 4px; font-size: 12px; font-weight: bold; text-align: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;">
-    ⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
+⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento
 </div>
 <?php endif; ?>
 
