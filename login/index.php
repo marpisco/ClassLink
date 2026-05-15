@@ -35,6 +35,33 @@
         return filter_var(get_app_config('admin_requires_totp', true), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
     }
 
+    // --- Login Page Template Helper ---
+    function render_login_template($title, $content, $options = []) {
+        $options = array_merge([
+            'show_notice' => true,
+            'show_footer' => true
+        ], $options);
+        
+        $particlesConfig = json_encode([
+            "particles" => ["number" => ["value" => 60, "density" => ["enable" => true, "value_area" => 800]], "color" => ["value" => "#00e5ff"], "shape" => ["type" => "circle"], "opacity" => ["value" => 0.5, "random" => false], "size" => ["value" => 3, "random" => true], "line_linked" => ["enable" => true, "distance" => 150, "color" => "#00e5ff", "opacity" => 0.3, "width" => 1], "move" => ["enable" => true, "speed" => 2, "direction" => "none", "random" => false, "straight" => false, "out_mode" => "out", "bounce" => false]],
+            "interactivity" => ["detect_on" => "canvas", "events" => ["onhover" => ["enable" => true, "mode" => "grab"], "onclick" => ["enable" => true, "mode" => "push"], "resize" => true], "modes" => ["grab" => ["distance" => 140, "line_linked" => ["opacity" => 1]], "push" => ["particles_nb" => 4]]],
+            "retina_detect" => true
+        ]);
+        
+        $notice = '';
+        $footer = '';
+        
+        if ($options['show_notice']) {
+            $notice = '<div class="notice"><span class="tooltip">Como é que sei?<span class="tooltip-text"></span></span></div>';
+        }
+        
+        if ($options['show_footer']) {
+            $footer = '<div style="text-align:center;margin-top:1rem;color:var(--text-color);opacity:0.6;font-size:0.8rem;">' . get_app_config("brand_name", "ClassLink") . '</div>';
+        }
+        
+        echo '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . $title . ' - ClassLink</title><link rel="stylesheet" href="/assets/theme.css"><script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script><style>body { margin: 0; height: 100vh; font-family: "Segoe UI", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; } #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; } .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); } .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); } .login-box .small { color: var(--text-color); } .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; } .login-btn:hover { opacity: 0.9; } .form-group { margin-bottom: 1rem; } input { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); width: 100%; box-sizing: border-box; } button { background-color: #24a1da; color: white; border: none; padding: 0.8rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; } button:hover { opacity: 0.9; } .divider { display: flex; align-items: center; margin: 1.5rem 0; color: var(--text-color); opacity: 0.6; } .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid currentColor; } .divider:not(:empty)::before { margin-right: .5em; } .divider:not(:empty)::after { margin-left: .5em; } .info-msg { color: var(--text-color); background: rgba(255,255,255,0.1); padding: 0.75rem; margin-bottom: 1rem; border-radius: 8px; text-align: left; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.2); } .error-msg { color: #ff3333; font-size: 0.9rem; margin-bottom: 1rem; background: rgba(255,50,50,0.1); padding: 0.5rem; border-radius: 5px; } .ms-logo { vertical-align: middle; margin-right: 8px; } .notice { position: absolute; bottom: 20px; background: var(--white-overlay-light); padding: 1rem 1.5rem; border-radius: 10px; font-size: 0.9rem; box-shadow: 0 2px 8px var(--shadow-color); text-align: center; max-width: 400px; line-height: 1.4; color: var(--text-color); } .notice strong { display: block; margin-bottom: 4px; } .tooltip { position: relative; display: inline-block; cursor: help; color: var(--input-focus-color); text-decoration: underline; } .tooltip .tooltip-text { visibility: hidden; opacity: 0; width: 280px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 0.6rem; position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); transition: opacity 0.3s; font-size: 0.85rem; line-height: 1.3; z-index: 10; } .tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #333 transparent transparent transparent; } .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }</style></head><body><div id="particles-js"></div>' . $content . $notice . $footer . '<script>particlesJS("particles-js", ' . $particlesConfig . ');</script></body></html>';
+    }
+
     // Note: Email domain restrictions are now handled via blocked_emails_regex
 
     function get_user_by_email($email) {
@@ -213,7 +240,8 @@
                         $alunoRegex = get_app_config('blocked_emails_regex', '');
                         if (preg_match($alunoRegex, $_SESSION['email'])) {
                             session_destroy();
-                            echo "<!DOCTYPE html><html lang=\"pt\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Acesso Bloqueado - ClassLink</title><link rel=\"stylesheet\" href=\"/assets/theme.css\"><script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script><style>body { margin: 0; height: 100vh; font-family: \"Segoe UI\", sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--text-color); overflow: hidden; position: relative; } #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; } .login-box { background: var(--white-overlay); padding: 2rem 3rem; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow-color); text-align: center; max-width: 350px; width: 100%; z-index: 2; position: relative; backdrop-filter: blur(10px); } .login-box h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--text-color); } .login-box p { color: var(--text-color); } .login-btn { display: inline-block; background-color: #24a1da; color: white; text-decoration: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.2s; } .login-btn:hover { opacity: 0.9; }</style></head><body><div id=\"particles-js\"></div><div class=\"login-box\"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href=\"/login\" class=\"login-btn\">Voltar atrás</a></div><script>particlesJS(\"particles-js\", {\"particles\": { \"number\": { \"value\": 60, \"density\": { \"enable\": true, \"value_area\": 800 } }, \"color\": { \"value\": \"#00e5ff\" }, \"shape\": { \"type\": \"circle\" }, \"opacity\": { \"value\": 0.5, \"random\": false }, \"size\": { \"value\": 3, \"random\": true }, \"line_linked\": { \"enable\": true, \"distance\": 150, \"color\": \"#00e5ff\", \"opacity\": 0.3, \"width\": 1 }, \"move\": { \"enable\": true, \"speed\": 2, \"direction\": \"none\", \"random\": false, \"straight\": false, \"out_mode\": \"out\", \"bounce\": false } }, \"interactivity\": { \"detect_on\": \"canvas\", \"events\": { \"onhover\": { \"enable\": true, \"mode\": \"grab\" }, \"onclick\": { \"enable\": true, \"mode\": \"push\" }, \"resize\": true }, \"modes\": { \"grab\": { \"distance\": 140, \"line_linked\": { \"opacity\": 1 } }, \"push\": { \"particles_nb\": 4 } } }, \"retina_detect\": true });</script></body></html>";
+                            $content = '<div class="login-box"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
+                            render_login_template('Acesso Bloqueado', $content, ['show_notice' => false, 'show_footer' => false]);
                             die();
                         }
                     }
@@ -639,150 +667,10 @@
 
     if (isset($_GET['action']) && $_GET['action'] == "logout"){
         session_destroy();
-        // Devolver página de Login ClassLink
-        echo "<!DOCTYPE html>";
-        echo "<html lang=\"pt\">";
-        echo "<head>";
-        echo "<meta charset=\"UTF-8\">";
-        echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-        echo "<title>Iniciar Sessão - ClassLink</title>";
-        echo "<link rel=\"stylesheet\" href=\"/assets/theme.css\">";
-        echo "<style>";
-        echo "body {";
-        echo "margin: 0;";
-        echo "height: 100vh;";
-        echo "font-family: \"Segoe UI\", sans-serif;";
-        echo "background: var(--bg-gradient);";
-        echo "display: flex;";
-        echo "justify-content: center;";
-        echo "align-items: center;";
-        echo "flex-direction: column;";
-        echo "color: var(--text-color);";
-        echo "}";
-        echo "";
-        echo ".login-box {";
-        echo "background: var(--white-overlay);";
-        echo "padding: 2rem 3rem;";
-        echo "border-radius: 16px;";
-        echo "box-shadow: 0 4px 20px var(--shadow-color);";
-        echo "text-align: center;";
-        echo "max-width: 350px;";
-        echo "width: 100%;";
-        echo "}";
-        echo "";
-        echo ".login-box h1 {";
-        echo "font-size: 1.4rem;";
-        echo "margin-bottom: 1.5rem;";
-        echo "color: var(--text-color);";
-        echo "}";
-        echo "";
-        echo ".login-box .small {";
-        echo "color: var(--text-color);";
-        echo "}";
-        echo "";
-        echo ".login-btn {";
-        echo "display: inline-block;";
-        echo "background-color: #2F2F2F;";
-        echo "color: white;";
-        echo "text-decoration: none;";
-        echo "padding: 0.8rem 1.2rem;";
-        echo "border-radius: 8px;";
-        echo "font-size: 1rem;";
-        echo "font-weight: 500;";
-        echo "transition: background 0.2s;";
-        echo "}";
-        echo "";
-        echo ".login-btn:hover {";
-        echo "background-color: #1b1b1b;";
-        echo "}";
-        echo "";
-        echo ".notice {";
-        echo "position: absolute;";
-        echo "bottom: 20px;";
-        echo "background: var(--white-overlay-light);";
-        echo "padding: 1rem 1.5rem;";
-        echo "border-radius: 10px;";
-        echo "font-size: 0.9rem;";
-        echo "box-shadow: 0 2px 8px var(--shadow-color);";
-        echo "text-align: center;";
-        echo "max-width: 400px;";
-        echo "line-height: 1.4;";
-        echo "color: var(--text-color);";
-        echo "}";
-        echo "";
-        echo ".notice strong {";
-        echo "display: block;";
-        echo "margin-bottom: 4px;";
-        echo "}";
-        echo "";
-        echo ".tooltip {";
-        echo "position: relative;";
-        echo "display: inline-block;";
-        echo "cursor: help;";
-        echo "color: var(--input-focus-color);";
-        echo "text-decoration: underline;";
-        echo "}";
-        echo "";
-        echo ".tooltip .tooltip-text {";
-        echo "visibility: hidden;";
-        echo "opacity: 0;";
-        echo "width: 280px;";
-        echo "background-color: #333;";
-        echo "color: #fff;";
-        echo "text-align: center;";
-        echo "border-radius: 8px;";
-        echo "padding: 0.6rem;";
-        echo "position: absolute;";
-        echo "bottom: 125%;";
-        echo "left: 50%;";
-        echo "transform: translateX(-50%);";
-        echo "transition: opacity 0.3s;";
-        echo "font-size: 0.85rem;";
-        echo "line-height: 1.3;";
-        echo "z-index: 10;";
-        echo "}";
-        echo "";
-        echo ".tooltip .tooltip-text::after {";
-        echo "content: \"\";";
-        echo "position: absolute;";
-        echo "top: 100%;";
-        echo "left: 50%;";
-        echo "margin-left: -5px;";
-        echo "border-width: 5px;";
-        echo "border-style: solid;";
-        echo "border-color: #333 transparent transparent transparent;";
-        echo "}";
-        echo "";
-        echo ".tooltip:hover .tooltip-text {";
-        echo "visibility: visible;";
-        echo "opacity: 1;";
-        echo "}";
-        echo "</style>";
-        echo "</head>";
-        echo "<body>";
-        echo "";
-        echo "<div class=\"login-box\">";
-        echo "<img src=\"/assets/logo.png\" alt=\"Logotipo ClassLink\" style=\"max-width:25%;\">";
-        echo "<h1>Terminou sessão</h1>";
-        echo "<p class=\"small\">Caso pretenda voltar a iniciar sessão, carregue no botão em baixo.</p>";
-        echo "<a href=\"/login\" class=\"login-btn\">Iniciar Sessão</a>";
-        echo "</div>";
-        echo "";
         
-        echo "<span class=\"tooltip\">Como é que sei?";
-        echo "<span class=\"tooltip-text\">";
-        echo "";
-        echo "</span>";
-        echo "</span>";
-        echo "</div>";
-        echo "";
-        echo "<div style=\"text-align:center;margin-top:1rem;color:var(--text-color);opacity:0.6;font-size:0.8rem;\">";
-        echo get_app_config("brand_name", "ClassLink");
-        echo "</div>";
-        echo "";
-        echo "</body>";
-        echo "</html>";
-        echo "";
+        $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Terminou sessão</h1><p class="small">Caso pretenda voltar a iniciar sessão, carregue no botão em baixo.</p><a href="/login" class="login-btn">Iniciar Sessão</a></div>';
+        
+        render_login_template('Iniciar Sessão', $content, ['show_notice' => true, 'show_footer' => true]);
         die();
     } else if (isset($_GET['error'])) {
 	?>
@@ -905,82 +793,10 @@
                     echo "<meta charset=\"UTF-8\">";
                     echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
                     echo "<title>Iniciar Sessão - ClassLink</title>";
-                    echo "<link rel=\"stylesheet\" href=\"/assets/theme.css\">";
-                    echo "<style>";
-                    echo "body {";
-                    echo "margin: 0;";
-                    echo "height: 100vh;";
-                    echo "font-family: \"Segoe UI\", sans-serif;";
-                    echo "background: var(--bg-gradient);";
-                    echo "display: flex;";
-                    echo "justify-content: center;";
-                    echo "align-items: center;";
-                    echo "flex-direction: column;";
-                    echo "color: var(--text-color);";
-                    echo "}";
-                    echo "";
-                    echo ".login-box {";
-                    echo "background: var(--white-overlay);";
-                    echo "padding: 2rem 3rem;";
-                    echo "border-radius: 16px;";
-                    echo "box-shadow: 0 4px 20px var(--shadow-color);";
-                    echo "text-align: center;";
-                    echo "max-width: 350px;";
-                    echo "width: 100%;";
-                    echo "}";
-                    echo "";
-                    echo ".login-box h1 {";
-                    echo "font-size: 1.4rem;";
-                    echo "margin-bottom: 1.5rem;";
-                    echo "color: var(--text-color);";
-                    echo "}";
-                    echo "";
-                    echo ".login-box .small {";
-                    echo "color: var(--text-color);";
-                    echo "}";
-                    echo "";
-                    echo ".login-btn {";
-                    echo "display: inline-block;";
-                    echo "background-color: #2F2F2F;";
-                    echo "color: white;";
-                    echo "text-decoration: none;";
-                    echo "padding: 0.8rem 1.2rem;";
-                    echo "border-radius: 8px;";
-                    echo "font-size: 1rem;";
-                    echo "font-weight: 500;";
-                    echo "transition: background 0.2s;";
-                    echo "}";
-                    echo "";
-                    echo ".login-btn:hover {";
-                    echo "background-color: #1b1b1b;";
-                    echo "}";
-                    echo "";
-                    echo ".notice {";
-                    echo "position: absolute;";
-                    echo "bottom: 20px;";
-                    echo "background: var(--white-overlay-light);";
-                    echo "padding: 1rem 1.5rem;";
-                    echo "border-radius: 10px;";
-                    echo "font-size: 0.9rem;";
-                    echo "box-shadow: 0 2px 8px var(--shadow-color);";
-                    echo "text-align: center;";
-                    echo "max-width: 400px;";
-                    echo "line-height: 1.4;";
-                    echo "color: var(--text-color);";
-                    echo "}";
-                    echo "";
-                    echo ".notice strong {";
-                    echo "display: block;";
-                    echo "margin-bottom: 4px;";
-                    echo "}";
-                    echo "";
-                    echo ".tooltip {";
-                    echo "position: relative;";
-                    echo "display: inline-block;";
-                    echo "cursor: help;";
-                    echo "color: var(--input-focus-color);";
-                    echo "text-decoration: underline;";
-                    echo "}";
+                    $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Sem permissão</h1><p class="small">Não tem autorização para entrar nesta página.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
+                    
+                    render_login_template('Iniciar Sessão', $content, ['show_notice' => true, 'show_footer' => false]);
+                    die();
                     echo "";
                     echo ".tooltip .tooltip-text {";
                     echo "visibility: hidden;";
