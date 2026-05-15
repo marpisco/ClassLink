@@ -124,13 +124,13 @@
                         'admin' => 0,
                         'totp_secret' => null
                     ];
-                    $localAuthInfo = 'Conta não encontrada. Após validar o código, será solicitado o seu nome para criar a conta.';
+                    $localAuthInfo = 'Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.';
                 } else {
                     $localAuthError = 'Erro ao criar utilizador. Tente novamente.';
                     $localAuthStage = 'email';
                 }
             } else {
-                $localAuthInfo = 'Se esta conta existir no sistema, enviámos um código para o email fornecido.';
+                $localAuthInfo = 'Introduza o código que recebeu no email para validar-se.';
                 
                 if ($user && $localAuthStage === 'code') {
                     $code = generate_email_code();
@@ -749,10 +749,10 @@
             $_SESSION['email'] = $_SESSION['resourceOwner']['email'];
             $_SESSION['id'] = $_SESSION['resourceOwner']['sub'];
 
-            // Check if there's a pre-registered user with this email (id starts with PRE_REGISTERED_PREFIX)
-            $prePattern = PRE_REGISTERED_PREFIX . '%';
-            $stmt = $db->prepare("SELECT id FROM cache WHERE email = ? AND id LIKE ?");
-            $stmt->bind_param("ss", $_SESSION['email'], $prePattern);
+            // Check if there's any existing user with this email (pre_, pending_, admin_first_, etc.)
+            // Skip the current Microsoft ID since it was just created
+            $stmt = $db->prepare("SELECT id FROM cache WHERE email = ? AND id != ?");
+            $stmt->bind_param("ss", $_SESSION['email'], $_SESSION['id']);
             $stmt->execute();
             $preRegisteredUser = $stmt->get_result()->fetch_assoc();
             $stmt->close();
