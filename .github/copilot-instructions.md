@@ -1,282 +1,73 @@
 # ClassLink - Copilot Instructions
 
-## Project Overview
-- **Purpose**: Digital platform for room and material reservation (Portuguese: Reserva de Salas e Materiais)
-- **Language**: PHP with MariaDB database
-- **Framework**: Bootstrap 5.3.3 + Font Awesome 4.7.0
-- **Auth**: OAuth2 via League OAuth2 Client
-- **Email**: PHPMailer 7.0
-- **Main Developer**: Marco Pisco (PAP - Prova de Aptidão Profissional)
+Room & material reservation system (Reserva de Salas e Materiais). PHP 8.2+ / MariaDB, Bootstrap 5.3.3, Font Awesome 4.7. OAuth2 (league/oauth2-client), PHPMailer 7.0, TCPDF.
 
 ## Project Structure
 ```
-ClassLink/
-├── src/                    # Core files
-│   ├── db.php             # Database initialization & schema
-│   └── config.sample.php  # Configuration template
-├── func/                  # Helper functions
-│   ├── session_config.php # Secure session config (30min timeout)
-│   ├── validation.php     # Input validation
-│   ├── csrf.php          # CSRF protection
-│   ├── email_helper.php  # Email functionality
-│   ├── logaction.php     # Audit logging
-│   ├── genuuid.php       # UUID generation
-│   └── showbanner.php    # UI banner display
-├── login/                # Authentication
-├── reservar/             # Room reservation creation
-├── reservas/             # View/manage reservations
-├── admin/                # Admin panel
-│   ├── api/              # AJAX endpoints
-│   ├── users.php         # User management
-│   ├── salas.php         # Room management
-│   ├── materiais.php     # Material management
-│   ├── tempos.php        # Time slot management
-│   ├── pedidos.php       # Approval requests
-│   └── scripts/          # Batch/scheduled tasks
-├── assets/               # CSS, images, logos
-└── index.php             # Main dashboard
+src/              # Core: db.php (schema migration + connection), config.php
+func/             # Helpers: session_config, validation, csrf, email_helper, logaction, genuuid, showbanner
+login/            # Single-file auth (OAuth2 + OTP + TOTP + multi-DB selector)
+reservar/         # Create reservations (index.php, manage.php)
+reservas/         # View user's reservations
+admin/            # Dashboard, users, salas, materiais, tempos, pedidos, config, registos
+admin/api/        # AJAX: dashboard_stats, api_registos, salas_search, users_search, tempos_search, recipients_preview
+admin/scripts/    # Batch: relatoriosaladiario (PDF), notifyemail, semanasrepetidas
+assets/           # theme.css, navbar.css, index.css, reservar.css, docs.css, banner.css
 ```
 
-## Database Schema
+## DB Schema
+| Table | Key columns |
+|-------|-------------|
+| `cache` | id, nome, email, admin |
+| `salas` | tipo_sala (1=approval/2=auto), bloqueado (0/1), post_reservation_content |
+| `tempos` | id, horashumanos |
+| `reservas` | sala, tempo, data, requisitor, aprovado (NULL=pending/1=approved/0=rejected/-1=cancelled), motivo, extra |
+| `materiais` | id, nome, descricao, sala_id |
+| `reservas_materiais` | junction: reserva_id, material_id |
+| `logs` | loginfo, userid, ip_address, timestamp |
 
-| Table | Purpose |
-|-------|---------|
-| `cache` | User cache (id, nome, email, admin flag) |
-| `salas` | Rooms with columns: `tipo_sala` (1=approval, 2=autonomous), `bloqueado` (0/1 lock status), `post_reservation_content` |
-| `tempos` | Time slots (id, horashumanos) |
-| `reservas` | Reservations (sala, tempo, data, requisitor, aprovado status, motivo, extra) |
-| `materiais` | Materials (id, nome, descricao, sala_id) |
-| `reservas_materiais` | Junction table linking reservations to materials |
-| `logs` | Audit logs (loginfo, userid, ip_address, timestamp) |
+## Key Constants (src/db.php)
+- `PRE_REGISTERED_PREFIX = 'pre_'` — prefix for pre-registered user IDs
+- `IS_FIRST_RUN` — true when cache table empty (skip certain checks)
 
-## Key Features
-✅ Session management with secure headers (HttpOnly, SameSite=Lax, strong IDs)
-✅ User approval workflow for room reservations
-✅ Material inventory per room
-✅ Admin dashboard with search APIs
-✅ Audit logging with IP tracking
-✅ Pre-registered user support (prefix: `pre_`)
-✅ OAuth2 integration (likely for school/GIAE system)
-✅ Post-reservation customizable content per room
+## Session Variables
+- `$_SESSION['id']`, `['nome']`, `['email']`, `['admin']`, `['validity']` (expiry timestamp)
+- `$_SESSION['selected_db']` — multi-DB picker
+- `$_SESSION['pending_user_setup']`, `['pending_totp_user']`, `['pending_totp_secret']` — incomplete auth state
+- Session timeout: 30min (checked on every page: `$_SESSION['validity'] < time()` redirects to login)
 
-## Security Features
-- Session timeout: 30 minutes inactivity
-- CSRF protection implemented
-- XSS prevention (HTTPOnly cookies)
-- Secure session cookies (HTTPS detection)
-- Input validation functions
-- Audit trail with IP logging
-
-## Important Constants & Configuration
-- `PRE_REGISTERED_PREFIX = 'pre_'` - For pre-registered users
-- Session ID length: 48 characters
-- Session ID bits per character: 6
-- GC max lifetime: 1800 seconds (30 minutes)
-
-## Database Initialization
-The `src/db.php` file handles all table creation with automatic migration:
-- Creates tables if they don't exist
-- Adds new columns to existing tables for backward compatibility
-- Uses UTF-8MB4 charset
-- Enforces foreign key constraints with CASCADE delete
-
-## Dependencies (Composer)
-```json
-{
-    "require": {
-        "php": ">=8.2",
-        "phpmailer/phpmailer": "^7.0",
-        "league/oauth2-client": "^2.8",
-        "tecnickcom/tcpdf": "^6.7"
-    }
-}
-```
-
-## Deployment Requirements
-- PHP + MariaDB
-- Composer (for dependencies)
-- UTF-8 charset support (mb4)
-- HTTPS recommended (sets secure flag on cookies)
-
-## Contributing Guidelines
-See `CONTRIBUIDORES.md` for contribution guidelines:
-- External contributors: Fork > Branch > Pull Request
-- Internal contributors: Branch > Pull Request
-- Requires code review before merge
-- Credits tracked for PAP documentation
-
-## Helper Functions Available
-
-### Input Validation (`func/validation.php`)
-```php
-validate_uuid($uuid)              // Validates UUID v4 format
-validate_date($date)              // Validates Y-m-d format
-validate_action($action, $array)  // Whitelists action against array
-sanitize_input($input, $length)   // Sanitizes/truncates input to max length
-```
-
-### CSRF Protection (`func/csrf.php`)
-```php
-generate_csrf_token()   // Create/return session CSRF token
-verify_csrf_token($token) // Verify token matches session
-csrf_token_field()      // Returns HTML hidden input with token
-```
-
-### Logging (`func/logaction.php`)
-```php
-logaction($loginfo, $userid)  // Log action with IP tracking
-get_client_ip()               // Get client IP (handles proxies)
-```
-
-### UUID Generation (`func/genuuid.php`)
-```php
-uuid4()  // Generate UUID v4 cryptographically
-```
-
-### Email (`func/email_helper.php`)
-```php
-sendStyledEmail($to, $subject, $heading, $bodyContent, $type, $buttonUrl, $buttonText)
-// Types: 'success', 'warning', 'danger', 'info', 'primary'
-// Returns: ['success' => bool, 'error' => string|null]
-getBaseUrl()  // Get application base URL with HTTPS detection
-```
-
-## Configuration File (`src/config.sample.php`)
-
-Copy this to `src/config.php` and update with real values:
-
-### Email Configuration
-```php
-$mail = [
-    'ativado' => true,              // Enable/disable email
-    'servidor' => 'smtp.gmail.com', // SMTP server
-    'porta' => 465,                 // SMTP port (465 for SSL, 587 for STARTTLS)
-    'autenticacao' => true,         // Enable SMTP auth
-    'tipodeseguranca' => 'PHPMailer::ENCRYPTION_SMTPS', // or ENCRYPTION_STARTTLS
-    'username' => '',               // SMTP username (usually email)
-    'fromname' => 'Reserva de Salas', // From display name
-    'mailfrom' => '',               // From email address
-    'password' => ''                // SMTP password (use app-specific for Gmail)
-];
-```
-
-### Database Configuration
-```php
-$db = [
-    'tipo' => 'mysql',
-    'servidor' => 'localhost',
-    'user' => 'reservasalas',
-    'password' => '***',     // STRONG password required
-    'db' => 'reservasalas',
-    'porta' => 3306
-];
-```
-
-### OAuth 2.0 Configuration
-```php
-$provider = new GenericProvider([
-    'urlAuthorize'            => 'https://...',
-    'urlAccessToken'          => 'https://...',
-    'urlResourceOwnerDetails' => 'https://...',
-    'clientId'     => '***',      // From OAuth provider
-    'clientSecret' => '***',      // KEEP SECRET
-    'redirectUri'  => 'https://' . $_SERVER['HTTP_HOST'] . '/login'
-]);
-```
-
-## Stylesheets
-- `assets/theme.css` - Color scheme & theme variables (light/dark mode)
-- `assets/index.css` - Main dashboard styles
-- `assets/reservar.css` - Reservation page styles
-- `assets/banner.css` - Banner component styles
-
-## Admin API Endpoints
-
-All located in `admin/api/`:
-- **dashboard_stats.php** - Returns JSON stats (top reservers, reservations per room)
-- **api_registos.php** - Logs management API
-- **salas_search.php** - Room search/autocomplete
-- **users_search.php** - User search/autocomplete
-- **tempos_search.php** - Time slot search
+## Helper Functions
+| File | Functions |
+|------|-----------|
+| `func/validation.php` | `validate_uuid($uuid)`, `validate_date($date)`, `validate_action($action, $array)`, `sanitize_input($input, $length)` |
+| `func/csrf.php` | `generate_csrf_token()`, `verify_csrf_token($token)`, `csrf_token_field()` |
+| `func/logaction.php` | `logaction($loginfo, $userid)`, `get_client_ip()` |
+| `func/genuuid.php` | `uuid4()` |
+| `func/email_helper.php` | `sendStyledEmail($to, $subj, $heading, $body, $type, $btnUrl, $btnText)` — types: success/warning/danger/info/primary; `getBaseUrl()` |
+| `func/get_config.php` | Configuration loader |
 
 ## Reservation Workflow
-1. User selects room(s) and time slot(s) on `/reservar`
-2. If `tipo_sala=1`: Awaits admin approval (aprovado=NULL)
-3. If `tipo_sala=2`: Auto-approved (aprovado=1)
-4. If `bloqueado=1`: Only admins can create reservations
-5. Materials can be attached via `reservas_materiais` junction table
-6. Completion triggers email via `sendStyledEmail()`
+1. User selects room+time on `/reservar`
+2. `tipo_sala=1` → pending admin approval (aprovado=NULL); `tipo_sala=2` → auto-approved (aprovado=1)
+3. `bloqueado=1` → admin-only reservations
+4. Materials attached via `reservas_materiais` junction
+5. Email sent via `sendStyledEmail()` on completion
 
-## Admin Actions Checklist
-✅ Always use `logaction()` for auditable changes
-✅ Check `$_SESSION['admin']` before sensitive operations
-✅ Return JSON with `Content-Type: application/json` for APIs
-✅ Validate inputs with `sanitize_input()`, `validate_uuid()`, `validate_date()`
-✅ Use prepared statements (`$db->prepare()`) to prevent SQL injection
-✅ Include CSRF token in forms via `csrf_token_field()`
-✅ Handle exceptions and return appropriate HTTP status codes (403, 404, 500)
+## Dependencies
+```
+phpmailer/phpmailer: ^7.0, league/oauth2-client: ^2.8, tecnickcom/tcpdf: ^6.7, sonata-project/google-authenticator: ^2.3
+```
 
-## Important Notes for Future Development
-1. **Database Migrations**: Always add backwards-compatible column checks in `src/db.php`
-2. **Session Management**: Use `$_SESSION['validity']`, `$_SESSION['admin']`, `$_SESSION['nome']`
-3. **User Identification**: Check for `PRE_REGISTERED_PREFIX` when handling user IDs
-4. **Audit Logging**: All admin actions should use `logaction.php` - includes IP tracking
-5. **Room Types**: `tipo_sala=1` (approval required), `tipo_sala=2` (auto-approved)
-6. **Room Lock Status**: `bloqueado=0` (open), `bloqueado=1` (admin only)
-7. **Reservation Status**: `aprovado=NULL` (pending), `aprovado=1` (approved), `aprovado=0` (rejected), `aprovado=-1` (cancelled)
-8. **API Endpoints**: Located in `admin/api/` - return JSON for AJAX requests
-9. **Error Handling**: Check `$db->connect_error` and use HTTP status codes
-10. **Email Disabled Check**: Always check `$mail['ativado']` before sending emails
-11. **XSS Prevention**: Use `htmlspecialchars($var, ENT_QUOTES, 'UTF-8')` for all user output
-12. **Host Header Injection**: Validate `$_SERVER['HTTP_HOST']` format in URL generation
-13. **Validation Check**: Before finishing something or considering it complete, you should always validate to see if you have any parsing errors via a shell command (e.g. `php -l`).
-
-## Session Summary (2026-05-17)
-
-This file was updated to include a concise summary of the work performed during the active development session on 2026-05-17. The summary is intended to provide context for future AI assistants and contributors about recent changes and decisions.
-
-- **Login UI centralization**: Introduced `render_login_template()` in `login/index.php` and converted multiple login steps (`totp`, `setup`, `totp_setup`, logout) to use the shared template so all login-related pages share the same background, particles configuration, and styles.
-- **Particles and gradient**: Updated background gradient to start at `#2db2e1` and end at `#1c77b6`. Changed `particles.js` configuration to use white lines/particles for visibility over the new gradient.
-- **Session start fixes**: Guarded `session_start()` calls across the codebase (e.g., `src/db.php`, admin APIs) to avoid "session already active" warnings.
-- **DB picker and migration fixes**: Fixed an issue where `$db['db']` could be an array (database picker) causing MySQL connection problems; selection via `$_SESSION['selected_db']` implemented and handled.
-- **Footer/app name insertion**: Added `app-name-footer` into the `login` template; fixed insertion logic to ensure the footer is inserted exactly once per login box.
-- **TOTP flow updates**: Converted TOTP setup and verification pages to use the shared login template; enforced admin TOTP checks during OAuth login and local login flows.
-- **CKEditor handling (admin)**: Reverted a global `theme.css` change that caused admin pages to lose expected styling. Instead, applied a page-local fix in `admin/salas_postreserva.php` to remove the Bootstrap `form-control` class and make the CKEditor editable area transparent so the admin dark background shows through (no global theme changes).
-- **Admin navbar opacity**: Made the admin navbar opaque by adding `navbar-dark bg-dark` classes in `admin/index.php` to prevent page content showing through when scrolling.
-- **Reservation page guard**: Fixed `Undefined array key "before"` in `reservar/index.php` by adding a presence check before using the `before` GET parameter.
-- **Repository hygiene**: Several commits were made to the `dev` branch documenting these changes; small bug fixes and style cleanups were applied and pushed.
-
-Notes for future assistants and reviewers:
-
-- Prefer page-local fixes to global theme overrides when addressing admin-only UI issues (example: CKEditor), to avoid unintended site-wide side effects.
-- When centralizing UI (like login templates), ensure inline JS (e.g., `particlesJS(...)`) is removed from sub-pages and invoked once from the template.
-- Use `php -l` regularly after edits to verify there are no syntax errors in modified PHP files.
-- When changing session behavior, guard `session_start()` with `if (session_status() === PHP_SESSION_NONE)` to avoid warnings in included files like `src/db.php`.
-
-Files touched in the session (non-exhaustive):
-
-- `login/index.php` — added `render_login_template()`; converted login steps.
-- `src/db.php` — session guard and DB picker adjustments.
-- `assets/theme.css` — gradient/particles update (and a reverted CKEditor change during troubleshooting).
-- `admin/salas_postreserva.php` — CKEditor init updated to avoid white editor background on dark admin theme.
-- `admin/index.php` — navbar made opaque.
-- `reservar/index.php` — guard added for `before` GET key.
-
-If you need the exact commit hashes or a more detailed chronological changelog for audits, run `git log --oneline --decorate --graph` on the `dev` branch.
-
-## Session Summary (2026-05-17) - Copilot Append
-
-- **Brief summary**: Finalized login UI centralization, fixed TOTP flows, and added admin user TOTP management UX.
-- **Changes made**:
-    - Consolidated login rendering into `login/index.php::render_login_template()` and replaced large echoed HTML blocks.
-    - Updated `admin/api/users_search.php` to return `hasTotp` and `admin/users.php` JS to render TOTP badge and a "Remover TOTP" action for users.
-    - Removed tooltip CSS from the login template to permanently disable tooltips.
-- **Rationale / notes**: Centralizing the login template simplifies styling and reduces duplication; exposing `hasTotp` in the search API keeps the dynamic user-list UI consistent with the server-rendered initial page.
-- **Touched files**:
-    - login/index.php
-    - admin/api/users_search.php
-    - admin/users.php
-- **Verification**:
-    - Ran `php -l` on modified PHP files: `login/index.php`, `admin/users.php`, `admin/api/users_search.php` — no syntax errors.
-- **Git info**: branch `dev`, commit message used for code changes: "Add TOTP removal in user management" (commit aa47142); earlier commit "Refactor login page template rendering" (0395d62).
-
+## Coding Rules
+- Use `logaction()` for auditable admin actions (IP tracking built-in)
+- Check `$_SESSION['admin']` before sensitive ops; prepared statements (`$db->prepare()`) for all queries
+- Return JSON with `Content-Type: application/json` for API endpoints
+- Validate with `sanitize_input()`, `validate_uuid()`, `validate_date()`; CSRF via `csrf_token_field()`
+- XSS: `htmlspecialchars($var, ENT_QUOTES, 'UTF-8')` for all user output
+- Email: check `$mail['ativado']` before sending
+- DB migrations: add backwards-compatible `ALTER TABLE` checks in `src/db.php`
+- Guard `session_start()` with `if (session_status() === PHP_SESSION_NONE)`
+- Run `php -l` on modified PHP files before considering complete
+- Prefer page-local CSS/JS fixes over global theme overrides for admin-only UI issues
+- Validate `$_SERVER['HTTP_HOST']` format in URL generation to prevent host header injection
+- Error handling: check `$db->connect_error`, use HTTP status codes (403, 404, 500)
