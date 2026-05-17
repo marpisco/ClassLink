@@ -187,7 +187,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
         );
         $today = date("Y-m-d");
         for ($i = 0; $i < 7; $i++) {
-            if ($_GET['before']) {
+            if (!empty($_GET['before'])) {
                 $segunda = strtotime($_GET['before']);
             } else {
                 $segunda = strtotime("monday this week");
