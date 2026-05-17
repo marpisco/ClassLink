@@ -238,6 +238,9 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
         const preRegBadge = user.isPreRegistered 
             ? " <span class='badge bg-warning text-dark'>Pré-registado</span>" 
             : "";
+        const totpBadge = user.hasTotp
+            ? " <span class='badge bg-success'>TOTP Ativado</span>"
+            : " <span class='badge bg-secondary'>Sem TOTP</span>";
         const internalDomain = '<?php echo addslashes(get_app_config("internal_email_domain", "")); ?>';
         const isExternal = internalDomain && !user.email.endsWith('@' + internalDomain);
         const externalBadge = internalDomain && isExternal 
@@ -252,9 +255,11 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                         <h5 class="card-title">${escapeHtml(user.nome)}</h5>
                         <p class="card-text text-muted">${escapeHtml(user.email)}</p>
                         <p class="card-text">${adminBadge}${preRegBadge}${externalBadge}</p>
+                        <p class="card-text">${totpBadge}</p>
                     </div>
                     <div class="card-footer bg-transparent">
                         <a href='/admin/users.php?action=edit&id=${idEnc}' class='btn btn-sm btn-primary'>EDITAR</a>
+                        ${user.hasTotp ? `<a href='/admin/users.php?action=removetotp&id=${idEnc}' class='btn btn-sm btn-warning' onclick='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>Remover TOTP</a>` : ''}
                         <a href='/admin/users.php?action=apagar&id=${idEnc}' class='btn btn-sm btn-danger' onclick='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>APAGAR</a>
                     </div>
                 </div>
