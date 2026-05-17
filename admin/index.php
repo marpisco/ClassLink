@@ -73,6 +73,7 @@
     sidebarLink('/admin/users.php', 'Utilizadores');
     sidebarLink('/admin/config.php', 'Configurações');
     sidebarLink('/admin/registos.php', 'Registos');
+    sidebarLink('/admin/scripts/relatoriosaladiario.php', 'Relatórios');
     echo "<li class='nav-item dropdown'>
             <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
                 Extensibilidade
