@@ -20,6 +20,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
     <link rel="stylesheet" href="/assets/reservar.css">
     <link rel='icon' href='/assets/logo.png'>
     <script src="/assets/theme-switcher.js"></script>
+    <script src="/assets/disable-double-submit.js"></script>
     <style>
         @media (max-width: 1366px) {
             .table {
@@ -181,7 +182,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
         }
         
         echo (
-            "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk'>
+            "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );

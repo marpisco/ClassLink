@@ -34,6 +34,7 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
     <link rel="stylesheet" href="/assets/reservar.css">
     <link rel='icon' href='/assets/logo.png'>
     <script src="/assets/theme-switcher.js"></script>
+    <script src="/assets/disable-double-submit.js"></script>
     <script>
         // User selection modal functions for single reservations
         function filterUsers() {
@@ -499,7 +500,7 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
                             $materiaisResult = $materiaisStmt->get_result();
                             $materiaisStmt->close();
                             
-                            echo "<form action='/reservar/manage.php?subaction=reservar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' method='POST'>
+                            echo "<form action='/reservar/manage.php?subaction=reservar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' method='POST' data-prevent-double-submit>
                         <div class='form-floating mb-3'>
                         <input type='text' class='form-control' id='sala' name='sala' placeholder='Sala' value='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "' disabled>
                         <label for='sala'>Sala</label>
