@@ -54,7 +54,8 @@
 
     // Criação da Navbar no HTML
     $stickyOffset = $isDevMode ? '28px' : '0';
-    echo "<nav class='navbar navbar-expand-lg border-bottom' id='admin-navbar' style='position: sticky; top: {$stickyOffset}; z-index: 1000;'>
+        // Ensure navbar has an opaque background so page content doesn't show through when scrolling
+        echo "<nav class='navbar navbar-expand-lg border-bottom navbar-dark bg-dark' id='admin-navbar' style='position: sticky; top: {$stickyOffset}; z-index: 1000;'>
     <div class='container-fluid'>
         <span class='navbar-brand mb-0 h1'>Dashboard de Administração</span>
         <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav' aria-controls='navbarNav' aria-expanded='false' aria-label='Toggle navigation'>
