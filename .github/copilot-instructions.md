@@ -263,3 +263,20 @@ Files touched in the session (non-exhaustive):
 - `reservar/index.php` — guard added for `before` GET key.
 
 If you need the exact commit hashes or a more detailed chronological changelog for audits, run `git log --oneline --decorate --graph` on the `dev` branch.
+
+## Session Summary (2026-05-17) - Copilot Append
+
+- **Brief summary**: Finalized login UI centralization, fixed TOTP flows, and added admin user TOTP management UX.
+- **Changes made**:
+    - Consolidated login rendering into `login/index.php::render_login_template()` and replaced large echoed HTML blocks.
+    - Updated `admin/api/users_search.php` to return `hasTotp` and `admin/users.php` JS to render TOTP badge and a "Remover TOTP" action for users.
+    - Removed tooltip CSS from the login template to permanently disable tooltips.
+- **Rationale / notes**: Centralizing the login template simplifies styling and reduces duplication; exposing `hasTotp` in the search API keeps the dynamic user-list UI consistent with the server-rendered initial page.
+- **Touched files**:
+    - login/index.php
+    - admin/api/users_search.php
+    - admin/users.php
+- **Verification**:
+    - Ran `php -l` on modified PHP files: `login/index.php`, `admin/users.php`, `admin/api/users_search.php` — no syntax errors.
+- **Git info**: branch `dev`, commit message used for code changes: "Add TOTP removal in user management" (commit aa47142); earlier commit "Refactor login page template rendering" (0395d62).
+
