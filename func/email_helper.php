@@ -11,6 +11,7 @@ require_once(__DIR__ . '/../vendor/phpmailer/phpmailer/src/Exception.php');
 require_once(__DIR__ . '/../vendor/phpmailer/phpmailer/src/PHPMailer.php');
 require_once(__DIR__ . '/../vendor/phpmailer/phpmailer/src/SMTP.php');
 require_once(__DIR__ . '/../src/config.php');
+require_once(__DIR__ . '/get_config.php');
 
 /**
  * Get the safe base URL for the application
@@ -147,7 +148,9 @@ function sendStyledEmail($to, $subject, $heading, $bodyContent, $type = 'info', 
         $mailer->CharSet = 'UTF-8';
         $mailer->Encoding = 'base64';
         
-        $mailer->setFrom($mail['mailfrom'], $mail['fromname']);
+        // Prefer sender name from DB config ('email_account_name'), fall back to config.php value or default
+        $fromName = get_app_config('email_account_name', $mail['fromname'] ?? 'ClassLink');
+        $mailer->setFrom($mail['mailfrom'], $fromName);
         $mailer->addAddress($to);
         
         $mailer->isHTML(true);
