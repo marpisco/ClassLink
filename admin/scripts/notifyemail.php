@@ -765,6 +765,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                         $footerSentence = "Recebeu este email porque tem uma reserva (todas as datas)" . (!empty($selectedClassroom) ? " na sala <strong>" . htmlspecialchars($classroomName, ENT_QUOTES, 'UTF-8') . "</strong>" : "") . ".";
                         $plainWeekSentence = "Recebeu este email porque tem uma reserva (todas as datas)" . (!empty($selectedClassroom) ? " na sala " . $classroomName : "") . ".";
                     }
+                } 
+
+                // Decide reply/footer sentence depending on whether sender is identified
+                $replySentenceHtml = "Este email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.";
+                $plainReplySentence = "Este email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.";
+                if (!empty($identifySender) && $identifySender && !empty($_SESSION['nome'])) {
+                    $senderNameEsc = htmlspecialchars($_SESSION['nome'], ENT_QUOTES, 'UTF-8');
+                    $replySentenceHtml = "Pode responder a este email para entrar em contato com <strong>" . $senderNameEsc . "</strong>.";
+                    $plainReplySentence = "Pode responder a este email para entrar em contato com " . strip_tags($senderNameEsc) . ".";
                 }
 
                 // Build full HTML email
@@ -800,7 +809,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                                 " . $footerSentence . "
                             </p>
                             <p style='margin: 0 0 10px 0; color: #6c757d; font-size: 14px;'>
-                                Este email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.
+                                " . $replySentenceHtml . "
                             </p>
                             <p style='margin: 0; color: #6c757d; font-size: 12px;'>
                                 Agrupamento de Escolas Joaquim Inácio da Cruz Sobral
@@ -819,7 +828,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
 
                 // Plain text alternative
                 $plainBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $bodyContent));
-                $plainBody .= "\n\n---\n" . $plainWeekSentence . "\nEste email foi enviado automaticamente pelo sistema ClassLink. Não responda a este email.\nAgrupamento de Escolas Joaquim Inácio da Cruz Sobral";
+                $plainBody .= "\n\n---\n" . $plainWeekSentence . "\n" . $plainReplySentence . "\nAgrupamento de Escolas Joaquim Inácio da Cruz Sobral";
                 $mailer->AltBody = $plainBody;
                 
                 $mailer->send();
