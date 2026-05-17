@@ -1,0 +1,4 @@
+# Custom admin scripts (local to each installation)
+# Add custom PHP scripts here; they will not be committed to the repository.
+*
+!.gitignore
