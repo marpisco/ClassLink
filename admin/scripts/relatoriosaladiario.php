@@ -172,53 +172,71 @@ if (isset($_POST['gerar_pdf'])) {
     $pdf->Cell(0, 8, 'Data: ' . $dia_semana . ', ' . date('d/m/Y', strtotime($data_selecionada)), 0, 1, 'C');
     $pdf->Ln(5);
     
-    // Display rooms and reservations
+    // Display rooms and reservations using HTML table for proper wrapping
     foreach ($salas_data as $sala_nome => $tempos) {
         $pdf->SetFont('helvetica', 'B', 12);
         $pdf->SetFillColor(200, 220, 255);
         $pdf->Cell(0, 8, 'Sala: ' . $sala_nome, 0, 1, 'L', true);
-        
-        $pdf->SetFont('helvetica', '', 10);
-        
-        // Create table for room reservations
-        $pdf->SetFillColor(240, 240, 240);
-        $pdf->Cell(40, 7, 'Horário', 1, 0, 'C', true);
-        $pdf->Cell(50, 7, 'Requisitor', 1, 0, 'C', true);
-        $pdf->Cell(30, 7, 'Status', 1, 0, 'C', true);
-        $pdf->Cell(60, 7, 'Motivo', 1, 1, 'C', true);
-        
+
+        // Build HTML table to let TCPDF handle wrapping and cell heights
+        $html = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">';
+        $html .= '<thead style="background-color:#f0f0f0"><tr>';
+        $html .= '<th style="width:25%;text-align:center">Horário</th>';
+        $html .= '<th style="width:25%;text-align:center">Requisitor</th>';
+        $html .= '<th style="width:25%;text-align:center">Status</th>';
+        $html .= '<th style="width:25%;text-align:center">Motivo</th>';
+        $html .= '</tr></thead><tbody>';
+
         $has_reservation = false;
         foreach ($tempos as $tempo) {
             if ($tempo['requisitor']) {
                 $has_reservation = true;
                 $status_label = '';
-                $pdf->SetFillColor(255, 255, 255);
-                
+                $status_bg = '#FFFFFF';
+
                 if ($tempo['status'] === null) {
                     $status_label = 'Pendente';
-                    $pdf->SetFillColor(255, 255, 200);
+                    $status_bg = '#FFFFC8';
                 } elseif ($tempo['status'] == 1) {
                     $status_label = 'Aprovado';
-                    $pdf->SetFillColor(200, 255, 200);
+                    $status_bg = '#C8FFC8';
                 } elseif ($tempo['status'] == 0) {
                     $status_label = 'Rejeitado';
-                    $pdf->SetFillColor(255, 200, 200);
+                    $status_bg = '#FFC8C8';
                 } else {
                     $status_label = 'Cancelado';
-                    $pdf->SetFillColor(220, 220, 220);
+                    $status_bg = '#E0E0E0';
                 }
-                
-                $pdf->Cell(40, 7, $tempo['tempo'], 1, 0, 'L', true);
-                $pdf->Cell(50, 7, substr($tempo['requisitor'], 0, 25), 1, 0, 'L');
-                $pdf->Cell(30, 7, $status_label, 1, 0, 'C', true);
-                $pdf->Cell(60, 7, substr($tempo['motivo'] ?? '-', 0, 30), 1, 1, 'L');
+
+                $horario = htmlspecialchars($tempo['tempo'] ?? '-', ENT_QUOTES, 'UTF-8');
+                // Shorten requisitor to first and last name (e.g., "Marco Pisco") using same logic as reservar/index.php
+                $requisitor_full = $tempo['requisitor'] ?? '';
+                if ($requisitor_full && trim($requisitor_full) !== '') {
+                    $requisitor_short = preg_replace('/^(\S+).*?(\S+)$/u', '$1 $2', $requisitor_full);
+                    $requisitor = htmlspecialchars($requisitor_short, ENT_QUOTES, 'UTF-8');
+                } else {
+                    $requisitor = '-';
+                }
+                $motivo = htmlspecialchars($tempo['motivo'] ?? '-', ENT_QUOTES, 'UTF-8');
+
+                $html .= '<tr>';
+                $html .= '<td style="vertical-align:middle;text-align:center">' . $horario . '</td>';
+                $html .= '<td style="vertical-align:middle;text-align:left">' . $requisitor . '</td>';
+                $html .= '<td style="vertical-align:middle;text-align:center;background-color:' . $status_bg . '">' . $status_label . '</td>';
+                $html .= '<td style="vertical-align:middle;text-align:left">' . $motivo . '</td>';
+                $html .= '</tr>';
             }
         }
-        
+
         if (!$has_reservation) {
-            $pdf->Cell(180, 7, 'Sem reservas', 1, 1, 'C');
+            $html .= '<tr><td colspan="4" style="text-align:center">Sem reservas</td></tr>';
         }
-        
+
+        $html .= '</tbody></table>';
+
+        // Render HTML table
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->writeHTML($html, true, false, true, false, '');
         $pdf->Ln(3);
     }
     
@@ -229,8 +247,20 @@ if (isset($_POST['gerar_pdf'])) {
     // Clear any output buffer and output PDF
     ob_end_clean();
     
+    // Prepare filename (include sala short name when specific room selected)
+    $filename_base = 'Relatorio_Salas';
+    if ($sala_id && $sala_id !== 'todas') {
+        $keys = array_keys($salas_data);
+        $sala_forfile = $keys[0] ?? 'sala';
+        $sala_forfile = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $sala_forfile));
+        if ($sala_forfile) {
+            $filename_base .= '_' . $sala_forfile;
+        }
+    }
+    $filename = $filename_base . '_' . date('Ymd_His') . '.pdf';
+
     // Output PDF
-    $pdf->Output('Relatorio_Salas_' . date('Ymd_His') . '.pdf', 'D');
+    $pdf->Output($filename, 'D');
     exit;
 }
 require '../index.php';
