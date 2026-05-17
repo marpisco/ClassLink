@@ -96,25 +96,3 @@ body:not(.admin-panel) {
 .dev-mode-nav {
     margin-top: 0;
 }
-
-/* CKEditor5: make the editing area follow the site's theme variables
-   - Uses --white-overlay so light theme keeps a white editor, dark theme uses a dark overlay.
-   - Ensure text color follows --text-color. */
-.ck-editor__editable,
-.ck-editor__editable_inline,
-.ck-content {
-    background: var(--white-overlay) !important;
-    color: var(--text-color) !important;
-}
-
-/* Improve spacing inside the editor editable area */
-.ck-editor__editable_inline {
-    padding: 0.8rem 1rem !important;
-    border-radius: 6px !important;
-}
-
-/* Ensure toolbar icons remain visible in dark mode */
-.ck.ck-toolbar,
-.ck .ck-toolbar {
-    background: transparent !important;
-}
