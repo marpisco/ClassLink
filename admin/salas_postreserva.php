@@ -38,13 +38,35 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             <a href="salas_postreserva.php" class="btn btn-secondary">Voltar</a>
         </form>
         <script>
-            ClassicEditor
-                .create(document.querySelector('#post_reservation_content'), {
-                    toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'outdent', 'indent', '|', 'blockQuote', 'insertTable', 'undo', 'redo']
-                })
-                .catch(error => {
-                    console.error(error);
-                });
+            // Ensure bootstrap's .form-control doesn't force a white background
+            (function(){
+                const ta = document.querySelector('#post_reservation_content');
+                if (ta && ta.classList) ta.classList.remove('form-control');
+
+                ClassicEditor
+                    .create(ta, {
+                        toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'outdent', 'indent', '|', 'blockQuote', 'insertTable', 'undo', 'redo']
+                    })
+                    .then(editor => {
+                        try {
+                            const editable = editor.ui.view.editable.element;
+                            // Make the editor background transparent so the admin dark background shows through
+                            editable.style.background = 'transparent';
+                            // Keep text color as-inherited from the admin dashboard (so dark-theme white text remains)
+                            editable.style.color = 'inherit';
+                            // Add some minimum height for a comfortable editing area
+                            editable.style.minHeight = '200px';
+                            // Remove white background from the editor's wrapper if present
+                            const wrapper = editable.closest('.ck');
+                            if (wrapper) wrapper.style.background = 'transparent';
+                        } catch (e) {
+                            console.warn('Could not adjust editor styles', e);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+            })();
         </script>
         <?php
         break;
