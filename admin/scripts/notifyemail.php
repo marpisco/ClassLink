@@ -737,7 +737,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 $mailer->CharSet = 'UTF-8';
                 $mailer->Encoding = 'base64';
                 
-                $mailer->setFrom($mail['mailfrom'], $mail['fromname']);
+                // Prefer sender name from DB ('email_account_name'), fall back to config.php value or default
+                require_once(__DIR__ . '/../../func/get_config.php');
+                $fromName = get_app_config('email_account_name', $mail['fromname'] ?? 'ClassLink');
+                $mailer->setFrom($mail['mailfrom'], $fromName);
                 
                 if ($identifySender && !empty($_SESSION['email'])) {
                     $mailer->addReplyTo($_SESSION['email'], $_SESSION['nome']);

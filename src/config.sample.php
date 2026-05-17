@@ -28,7 +28,6 @@
         // - Se não for necessária autenticação, definir 'autenticacao' => false e ajustar esta opção conforme necessário
         'tipodeseguranca' => \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
         'username' => '',
-        'fromname' => 'Reserva de Salas',
         'mailfrom' => '',
         'password' => ''
     );
