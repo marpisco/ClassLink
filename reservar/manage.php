@@ -20,6 +20,190 @@ function saveReservationMaterials($db, $sala, $tempo, $data, $materiais) {
         }
     }
 }
+
+// Handle actions before any output so we can redirect when appropriate.
+$flash_html = '';
+$handled = false;
+$id = $_SESSION['id'] ?? null;
+$today = date("Y-m-d");
+
+// Bulk POST handling: show messages on page (no redirect)
+if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
+        $flash_html = "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+        $handled = false; // allow form to show
+    } elseif (!isset($_POST['slots']) || !is_array($_POST['slots']) || count($_POST['slots']) == 0) {
+        $flash_html = "<div class='alert alert-danger show' role='alert'>Nenhum tempo foi selecionado.</div>";
+        $handled = false;
+    } else {
+        $motivo = $_POST['motivo'];
+        $extra = $_POST['extra'] ?? '';
+        $successCount = 0;
+        $failedSlots = [];
+        $isAutonomous = false;
+        $bulkRequisitor = $id;
+        $lastSlotSala = null;
+
+        foreach ($_POST['slots'] as $slot) {
+            $parts = explode('|', $slot);
+            if (count($parts) !== 3) continue;
+            $slotTempo = urldecode($parts[0]);
+            $slotSala = urldecode($parts[1]);
+            $slotData = urldecode($parts[2]);
+
+            $checkStmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=? AND aprovado!=-1");
+            $checkStmt->bind_param("sss", $slotSala, $slotTempo, $slotData);
+            $checkStmt->execute();
+            $existing = $checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if ($existing) {
+                $failedSlots[] = htmlspecialchars($slotData, ENT_QUOTES, 'UTF-8') . " - " . htmlspecialchars($slotTempo, ENT_QUOTES, 'UTF-8') . " (já reservado)";
+                continue;
+            }
+
+            $salaStmt = $db->prepare("SELECT tipo_sala, bloqueado FROM salas WHERE id = ?");
+            $salaStmt->bind_param("s", $slotSala);
+            $salaStmt->execute();
+            $salaInfo = $salaStmt->get_result()->fetch_assoc();
+            $salaStmt->close();
+
+            if (!$salaInfo) {
+                $failedSlots[] = htmlspecialchars($slotData, ENT_QUOTES, 'UTF-8') . " - " . htmlspecialchars($slotTempo, ENT_QUOTES, 'UTF-8') . " (sala não encontrada)";
+                continue;
+            }
+            if ($salaInfo['bloqueado'] == 1 && !$_SESSION['admin']) {
+                $failedSlots[] = htmlspecialchars($slotData, ENT_QUOTES, 'UTF-8') . " - " . htmlspecialchars($slotTempo, ENT_QUOTES, 'UTF-8') . " (sala bloqueada)";
+                continue;
+            }
+            if ($slotData < $today && !$_SESSION['admin']) {
+                $failedSlots[] = htmlspecialchars($slotData, ENT_QUOTES, 'UTF-8') . " - " . htmlspecialchars($slotTempo, ENT_QUOTES, 'UTF-8') . " (data no passado)";
+                continue;
+            }
+
+            $requisitor = $id;
+            if ($_SESSION['admin'] && isset($_POST['requisitor_id']) && !empty($_POST['requisitor_id'])) {
+                $userCheckStmt = $db->prepare("SELECT id FROM cache WHERE id = ?");
+                $userCheckStmt->bind_param("s", $_POST['requisitor_id']);
+                $userCheckStmt->execute();
+                $userExists = $userCheckStmt->get_result()->fetch_assoc();
+                $userCheckStmt->close();
+                if ($userExists) $requisitor = $_POST['requisitor_id'];
+            }
+            $bulkRequisitor = $requisitor;
+            $lastSlotSala = $slotSala;
+
+            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($db->query("SELECT email FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['email'] ?? '');
+            $internalDomain = get_app_config('internal_email_domain', '');
+            $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
+            $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
+            if ($aprovado == 1) $isAutonomous = true;
+
+            $stmt = $db->prepare("INSERT INTO reservas (sala, tempo, requisitor, data, aprovado, motivo, extra) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssss", $slotSala, $slotTempo, $requisitor, $slotData, $aprovado, $motivo, $extra);
+            if ($stmt->execute()) {
+                $successCount++;
+                saveReservationMaterials($db, $slotSala, $slotTempo, $slotData, $_POST['materiais'] ?? null);
+                $salaNome = $db->query("SELECT nome FROM salas WHERE id='" . $db->real_escape_string($slotSala) . "'")->fetch_assoc()['nome'] ?? $slotSala;
+                $tempoNome = $db->query("SELECT horashumanos FROM tempos WHERE id='" . $db->real_escape_string($slotTempo) . "'")->fetch_assoc()['horashumanos'] ?? $slotTempo;
+                if ($_SESSION['admin'] && $requisitor != $id) {
+                    $userName = $db->query("SELECT nome FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['nome'] ?? 'Utilizador';
+                    logaction("Criou uma reserva para o utilizador '{$userName}': sala '{$salaNome}' no dia {$slotData} às {$tempoNome}", $_SESSION['id']);
+                } else {
+                    logaction("Criou uma reserva: sala '{$salaNome}' no dia {$slotData} às {$tempoNome}", $requisitor);
+                }
+            } else {
+                $failedSlots[] = htmlspecialchars($slotData, ENT_QUOTES, 'UTF-8') . " - " . htmlspecialchars($slotTempo, ENT_QUOTES, 'UTF-8');
+            }
+            $stmt->close();
+        }
+
+        if ($successCount > 0) sendBulkReservationsEmail($db, $bulkRequisitor, $successCount, count($failedSlots), $lastSlotSala, $isAutonomous);
+
+        // Build flash HTML
+        $out = "<div class='row justify-content-center'><div class='col-md-10 col-lg-8'>";
+        $out .= ($isAutonomous) ? "<div class='alert alert-success'><h4 class='alert-heading'>Reservas Aprovadas!</h4><p class='mb-0'>{$successCount} reserva(s) criada(s) com sucesso e aprovadas automaticamente.</p></div>" : "<div class='alert alert-success'><h4 class='alert-heading'>Reservas Submetidas!</h4><p class='mb-0'>{$successCount} reserva(s) criada(s) com sucesso e submetidas para aprovação.</p></div>";
+        if (count($failedSlots) > 0) $out .= "<div class='alert alert-warning'><strong>Algumas reservas falharam:</strong><br>" . implode('<br>', $failedSlots) . "</div>";
+        if ($successCount > 0 && isset($lastSlotSala)) {
+            $salaData = $db->query("SELECT nome, post_reservation_content FROM salas WHERE id='" . $db->real_escape_string($lastSlotSala) . "'")->fetch_assoc();
+            if (!empty($salaData['post_reservation_content'])) {
+                $out .= "<div class='card mb-3'><div class='card-body'><h5 class='card-title'>Informações Importantes - " . htmlspecialchars($salaData['nome'], ENT_QUOTES, 'UTF-8') . "</h5><div class='post-reservation-content'>" . $salaData['post_reservation_content'] . "</div></div></div>";
+            }
+        }
+        $out .= "<div class='d-grid gap-2 d-md-block'><a href='/reservar' class='btn btn-success me-md-2 mb-2 mb-md-0'>Voltar à página de reserva de salas</a> <a href='/reservas' class='btn btn-primary'>Ver as minhas reservas</a></div></div></div>";
+        $flash_html = $out;
+        $handled = false; // let page with form render and show flash
+    }
+}
+
+// Single reservar: if POST and successful redirect immediately; on validation error show page with flash
+if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
+    $tempo = $_GET['tempo'];
+    $data = $_GET['data'];
+    $sala = $_GET['sala'];
+    if (isset($_GET['subaction']) && $_GET['subaction'] === 'reservar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
+            $flash_html = "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+            $handled = false;
+        } else {
+            $motivo = $_POST['motivo'];
+            $extra = $_POST['extra'] ?? '';
+            $stmt = $db->prepare("SELECT tipo_sala, bloqueado FROM salas WHERE id = ?");
+            $stmt->bind_param("s", $sala);
+            $stmt->execute();
+            $salaInfo = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if (!$salaInfo) { http_response_code(404); die("Sala não encontrada."); }
+            if ($salaInfo['bloqueado'] == 1 && !$_SESSION['admin']) { http_response_code(403); die("Esta sala está bloqueada. Apenas os administradores podem criar reservas."); }
+            if ($data < $today && !$_SESSION['admin']) { http_response_code(403); die("Não é possível criar reservas no passado. Apenas os administradores podem criar reservas em datas passadas."); }
+
+            $requisitor = $id;
+            if ($_SESSION['admin'] && isset($_POST['requisitor_id']) && !empty($_POST['requisitor_id'])) {
+                $userCheckStmt = $db->prepare("SELECT id FROM cache WHERE id = ?");
+                $userCheckStmt->bind_param("s", $_POST['requisitor_id']);
+                $userCheckStmt->execute();
+                $userExists = $userCheckStmt->get_result()->fetch_assoc();
+                $userCheckStmt->close();
+                if ($userExists) $requisitor = $_POST['requisitor_id'];
+            }
+
+            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($db->query("SELECT email FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['email'] ?? '');
+            $internalDomain = get_app_config('internal_email_domain', '');
+            $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
+            $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
+
+            $stmt = $db->prepare("INSERT INTO reservas (sala, tempo, requisitor, data, aprovado, motivo, extra) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssss", $sala, $tempo, $requisitor, $data, $aprovado, $motivo, $extra);
+            if (!$stmt->execute()) { http_response_code(500); die("Houve um problema a reservar a sala. Contacte um administrador, ou tente novamente mais tarde."); }
+            $stmt->close();
+
+            saveReservationMaterials($db, $sala, $tempo, $data, $_POST['materiais'] ?? null);
+            sendReservationCreatedEmail($db, $requisitor, $sala, $tempo, $data, $motivo, ($aprovado==1));
+
+            // redirect to details immediately
+            header("Location: /reservar/manage.php?sala=" . urlencode($sala) . "&tempo=" . urlencode($tempo) . "&data=" . urlencode($data));
+            exit();
+        }
+    }
+
+    // apagar - perform delete then redirect
+    if (isset($_GET['subaction']) && $_GET['subaction'] === 'apagar') {
+        $stmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=?");
+        $stmt->bind_param("sss", $sala, $tempo, $data);
+        $stmt->execute();
+        $reserva = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!($_SESSION['admin']) && ($_SESSION['id'] != $reserva['requisitor'])) { http_response_code(403); die("Não tem permissão para apagar esta reserva."); }
+        if (!($_SESSION['admin']) && ($data < $today)) { http_response_code(403); die("Não é possível apagar reservas no passado. Apenas os administradores podem apagar reservas em datas passadas."); }
+
+        $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
+        $stmt->bind_param("sss", $sala, $tempo, $data);
+        if (!$stmt->execute()) { http_response_code(500); die("Houve um problema a apagar a reserva. Contacte um administrador, ou tente novamente mais tarde."); }
+        $stmt->close();
+        header("Location: /reservar/?sala=" . urlencode($sala));
+        exit();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt">
