@@ -42,7 +42,7 @@
 
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
     $requestPath = '/' . ltrim($requestPath, '/');
-    $isAdminApiRequest = str_starts_with($requestPath, '/admin/api/');
+    $isAdminApiRequest = preg_match('#^/admin/api(?:/[A-Za-z0-9._-]+)?$#', $requestPath) === 1;
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAdminApiRequest) {
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!verify_csrf_token($csrfToken)) {

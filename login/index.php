@@ -150,16 +150,14 @@
     // --- POST Request Handling ---
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $csrfToken = $_POST['csrf_token'] ?? '';
-        if (!verify_csrf_token($csrfToken)) {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
             http_response_code(403);
-            $localAuthError = 'Pedido inválido. Atualize a página e tente novamente.';
-            $localAuthStage = 'email';
+            die('Pedido inválido. Atualize a página e tente novamente.');
         }
 
         $action = $_POST['action'] ?? null;
 
-        if (!$localAuthError && $action === 'send_code' && isset($_POST['email'])) {
+        if ($action === 'send_code' && isset($_POST['email'])) {
             $emailValue = trim($_POST['email']);
             
             $localAuthStage = 'code';
@@ -199,7 +197,7 @@
                     send_login_code_email($user['email'], $user['nome'], $code);
                 }
             }
-        } elseif (!$localAuthError && $action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
+        } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);
             $localAuthStage = 'code';
             $user = get_user_by_email($emailValue);
@@ -261,7 +259,7 @@
             } else {
                 $localAuthError = 'Código inválido ou expirado. Peça um novo código.';
             }
-        } elseif (!$localAuthError && $action === 'setup_name' && isset($_POST['nome'])) {
+        } elseif ($action === 'setup_name' && isset($_POST['nome'])) {
             if (!isset($_SESSION['pending_user_setup'])) {
                 $localAuthError = 'Sessão expirada. Por favor tente novamente.';
                 $localAuthStage = 'email';
@@ -288,7 +286,7 @@
                     exit();
                 }
             }
-        } elseif (!$localAuthError && $action === 'verify_totp' && isset($_POST['totp_code'])) {
+        } elseif ($action === 'verify_totp' && isset($_POST['totp_code'])) {
             if (!isset($_SESSION['pending_totp_user'])) {
                 $localAuthError = 'A sessão expirou. Por favor inicie sessão de novo.';
             } else {
@@ -309,7 +307,7 @@
                     $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
                 }
             }
-        } elseif (!$localAuthError && $action === 'verify_totp_setup' && isset($_POST['totp_code'])) {
+        } elseif ($action === 'verify_totp_setup' && isset($_POST['totp_code'])) {
             if (!isset($_SESSION['pending_totp_user']) || !isset($_SESSION['pending_totp_secret'])) {
                 $localAuthError = 'Sessão expirada. Por favor tente novamente.';
             } else {
@@ -556,7 +554,7 @@
 <?php
     }else if (isset($_GET['code'])){        $now = time();
         if (!isset($_GET['state']) || !isset($_SESSION['oauth2state']) || !hash_equals($_SESSION['oauth2state'], $_GET['state'])) {
-            $clientIp = function_exists('get_client_ip') ? get_client_ip() : 'unknown';
+            $clientIp = get_client_ip();
             error_log("ClassLink OAuth state validation failed for callback. ip={$clientIp}; session_id=" . session_id());
             unset($_SESSION['oauth2state']);
             header('Location: /login/');
