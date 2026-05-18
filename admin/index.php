@@ -40,12 +40,16 @@
         }
     }
 
-    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+    $parsedRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if ($parsedRequestPath === false) {
+        $parsedRequestPath = '';
+    }
+    $requestPath = $parsedRequestPath;
     $requestPath = rawurldecode($requestPath);
     $requestPath = str_replace('\\', '/', $requestPath);
     $requestPath = preg_replace('#/+#', '/', $requestPath);
     $requestPath = '/' . ltrim($requestPath, '/');
-    $isAdminApiRequest = str_starts_with($requestPath, '/admin/api/') && !str_contains($requestPath, '/../');
+    $isAdminApiRequest = str_starts_with($requestPath, '/admin/api/');
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAdminApiRequest) {
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!verify_csrf_token($csrfToken)) {
