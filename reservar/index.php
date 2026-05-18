@@ -177,7 +177,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
             if ($isInternalUser) {
                 echo "<div class='alert alert-info mb-3' style='width: 100%;'><strong>Reserva Autónoma:</strong> Esta sala é de reserva autónoma. A sua reserva será aprovada automaticamente.</div>";
             } else {
-                echo "<div class='alert alert-warning mb-3' style='width: 100%;'><strong>Reserva Autónoma:</strong> Esta sala é de reserva autónoma, mas não tem permissão para a criar, pelo que a sua reserva necessita de aprovação por um administrador.</div>";
+                echo "<div class='alert alert-warning mb-3' style='width: 100%;'><strong>Reserva Autónoma:</strong> Esta sala é de reserva autónoma, mas não tem permissão para a criar, por isso a sua reserva necessita de aprovação por um administrador.</div>";
             }
         }
         
