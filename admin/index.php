@@ -41,8 +41,11 @@
     }
 
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+    $requestPath = rawurldecode($requestPath);
+    $requestPath = str_replace('\\', '/', $requestPath);
+    $requestPath = preg_replace('#/+#', '/', $requestPath);
     $requestPath = '/' . ltrim($requestPath, '/');
-    $isAdminApiRequest = preg_match('#^/admin/api(?:/[A-Za-z0-9._/-]+)?$#', $requestPath) === 1;
+    $isAdminApiRequest = str_starts_with($requestPath, '/admin/api/') && !str_contains($requestPath, '/../');
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAdminApiRequest) {
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!verify_csrf_token($csrfToken)) {
