@@ -125,6 +125,7 @@
         sidebarDropdownLink('/admin/config.php', 'Configurações');
         sidebarDropdownLink('/admin/registos.php', 'Registos');
         sidebarDropdownLink('/admin/relatorios.php', 'Relatórios');
+        sidebarDropdownLink('/admin/emailnotification.php', 'Envio de Emails em Massa');
         echo "</ul></li>";
 
     echo "<li class='nav-item dropdown'>
