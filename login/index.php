@@ -556,7 +556,8 @@
 <?php
     }else if (isset($_GET['code'])){        $now = time();
         if (!isset($_GET['state']) || !isset($_SESSION['oauth2state']) || !hash_equals($_SESSION['oauth2state'], $_GET['state'])) {
-            error_log("ClassLink OAuth state validation failed for callback.");
+            $clientIp = function_exists('get_client_ip') ? get_client_ip() : 'unknown';
+            error_log("ClassLink OAuth state validation failed for callback. ip={$clientIp}; session_id=" . session_id());
             unset($_SESSION['oauth2state']);
             header('Location: /login/');
             exit();
