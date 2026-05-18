@@ -8,7 +8,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ### `login/index.php`
 - `⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento`
-- `Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.`
+- `Introduza o código que recebeu no email para validar-se.` (passa a ser igual à outra mensagem)
 - `Introduza o código que recebeu no email para validar-se.`
 - `Erro ao criar utilizador. Tente novamente.`
 - `Código inválido ou expirado. Peça um novo código.`
@@ -34,7 +34,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ### `index.php`, `reservar/manage.php`, `admin/relatorios.php`
 - `A reencaminhar para iniciar sessão...`
-- `Não pode entrar no Painel Administrativo. Voltar para a página inicial`
+- `Não tem permissão para entrar no painel administrativo. Voltar para a página inicial` (altera)
 
 ## 2) Reservas
 
@@ -42,7 +42,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Sala Bloqueada: Esta sala encontra-se bloqueada. Como administrador, pode criar reservas.`
 - `Sala Bloqueada: Esta sala está bloqueada.`
 - `Reserva Autónoma: Esta sala é de reserva autónoma. A sua reserva será aprovada automaticamente.`
-- `Reserva Autónoma: Esta sala é de reserva autónoma, mas como utilizador externo, a sua reserva necessita de aprovação por um administrador.`
+- `Reserva Autónoma: Esta sala é de reserva autónoma, mas não tem permissão para a criar, pelo qual a sua reserva necessita de aprovação por um administrador.` (altera)
 - `Pendente`
 - `Ocupado`
 - `Livre`
@@ -56,7 +56,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Limpar Seleção`
 
 ### `reservar/manage.php`
-- `Motivo é obrigatório.`
+- `O motivo é obrigatório.` (altera)
 - `Nenhum tempo foi selecionado.`
 - `Já reservado`
 - `Sala não encontrada`
@@ -64,7 +64,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Data no passado`
 - `Houve um problema a reservar a sala. Contacte um administrador, ou tente novamente mais tarde.`
 - `Não tem permissão para apagar esta reserva.`
-- `Não é possível apagar reservas no passado. Apenas os administradores podem apagar reservas em datas passadas.`
+- `Não é possível apagar reservas que já ocorreram. Contacte um administrador.` (altera)
 - `Houve um problema a apagar a reserva. Contacte um administrador, ou tente novamente mais tarde.`
 - `Reservas Aprovadas!`
 - `reserva(s) criada(s) com sucesso e aprovadas automaticamente.`
@@ -101,10 +101,10 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Parâmetros inválidos.`
 - `Reserva Aprovada com Sucesso!`
 - `O utilizador será notificado por email sobre a aprovação.`
-- `A reserva foi aprovada, mas o email de notificação não foi enviado. Contacte o Postmaster.`
+- `A reserva foi aprovada, mas o email de notificação não foi enviado. Contacte um administrador.` (altera)
 - `Reserva Rejeitada`
 - `O utilizador foi notificado por email sobre a rejeição.`
-- `A reserva foi rejeitada, mas o email de notificação não foi enviado. Contacte o Postmaster.`
+- `A reserva foi rejeitada, mas o email de notificação não foi enviado. Contacte um administrador.` (altera)
 - `Nenhuma reserva selecionada.`
 - `Dados inválidos.`
 - `Aprovações em Massa Concluídas!`
@@ -130,7 +130,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ### `admin/users.php`
 - `ID inválido.`
-- `Erro: Existem reservas associadas a este utilizador. Por segurança, é necessária uma intervenção manual.`
+- `Erro: Existem reservas associadas a este utilizador. Por segurança, é necessária uma intervenção manual de um Administrador.` (altera)
 - `Utilizador não encontrado.`
 - `Dados inválidos.`
 - `TOTP removido com sucesso.`
@@ -146,7 +146,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 ### `admin/salas.php`
 - `Dados inválidos.`
 - `ID inválido.`
-- `Erro: Existem reservas associadas a esta sala. Por segurança, é necessária uma intervenção manual.`
+- `Erro: Existem reservas associadas a esta sala. Por segurança, é necessária uma intervenção manual de um Administrador.` (altera)
 - `Sala não encontrada.`
 - `A editar a Sala ...`
 - `Tipo de sala inválido.`
@@ -157,7 +157,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 ### `admin/tempos.php`
 - `Dados inválidos.`
 - `ID inválido.`
-- `Erro: Existem reservas associadas a este tempo. Por segurança, é necessária uma intervenção manual.`
+- `Erro: Existem reservas associadas a este tempo. Por segurança, é necessária uma intervenção manual de um Administrador.` (altera)
 - `Tempo não encontrado.`
 - `A editar o Tempo ...`
 - `Não existem tempos.`
@@ -203,7 +203,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `O modo, assunto e a mensagem são obrigatórios.`
 - `Não existem destinatários para enviar o email usando os filtros que selecionou.`
 - `O sistema de email não está ativado.`
-- `Sucesso! Email enviado com sucesso para {n} destinatário(s) em BCC.`
+- `Sucesso! Email enviado com sucesso.` (altera)
 - `Resumo:`
 - `Erro ao enviar email: ...`
 
@@ -249,3 +249,8 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - O texto de sucesso do `notifyemail.php` é excessivamente detalhado para o utilizador final.
 - Há várias mensagens de erro técnicas que mostram detalhes internos (`$e->getMessage()` / `$stmt->error`); idealmente devem ser registradas no servidor e substituídas por mensagens genéricas para o utilizador, mantendo os HTTP status codes adequados (403/404/500) quando aplicável.
 - Algumas mensagens estão repetidas em variantes curtas/longas; vale a pena normalizar vocabulário e tom antes da próxima atualização.
+
+## 8) Observações para IA corrigente
+
+- Fiz a revisão do texto, e nas linhas que alterei coloquei (altera), significando que as deves de alterar no código
+- No final de alterares tudo no código, apaga este ficheiro e pasta, e faz commit de tudo.
