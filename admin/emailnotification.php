@@ -1,6 +1,6 @@
 <?php 
-require '../index.php';
-require_once(__DIR__ . '/../../func/email_helper.php');
+require __DIR__ . '/index.php';
+require_once(__DIR__ . '/../func/email_helper.php');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -362,7 +362,7 @@ use PHPMailer\PHPMailer\Exception;
         btn.disabled = true;
 
         try {
-            const url = `../api/recipients_preview.php?email_mode=${encodeURIComponent(mode)}&week=${encodeURIComponent(week)}&classroom=${encodeURIComponent(classroom)}`;
+            const url = `/admin/api/recipients_preview.php?email_mode=${encodeURIComponent(mode)}&week=${encodeURIComponent(week)}&classroom=${encodeURIComponent(classroom)}`;
             const response = await fetch(url);
 
             if (!response.ok) throw new Error('Erro na resposta da API');
@@ -738,7 +738,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 $mailer->Encoding = 'base64';
                 
                 // Prefer sender name from DB ('email_account_name'), fall back to config.php value or default
-                require_once(__DIR__ . '/../../func/get_config.php');
+                require_once(__DIR__ . '/../func/get_config.php');
                 $fromName = get_app_config('email_account_name', $mail['fromname'] ?? 'ClassLink');
                 $mailer->setFrom($mail['mailfrom'], $fromName);
                 
@@ -837,7 +837,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 $mailer->send();
                 
                 // Log the action
-                require_once(__DIR__ . '/../../func/logaction.php');
+                require_once(__DIR__ . '/../func/logaction.php');
                 if (isset($emailMode) && $emailMode === 'admins') {
                     $logMessage = "Email enviado para {$recipientCount} administrador(es)";
                 } else {

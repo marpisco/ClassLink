@@ -71,3 +71,20 @@ phpmailer/phpmailer: ^7.0, league/oauth2-client: ^2.8, tecnickcom/tcpdf: ^6.7, s
 - Prefer page-local CSS/JS fixes over global theme overrides for admin-only UI issues
 - Validate `$_SERVER['HTTP_HOST']` format in URL generation to prevent host header injection
 - Error handling: check `$db->connect_error`, use HTTP status codes (403, 404, 500)
+
+## Session Summary (2026-05-17)
+
+- **Brief summary**: Implemented Issue #135 to use DB-configured sender name for outgoing emails and updated related config sample.
+- **Changes made**:
+	- Updated `func/email_helper.php` to prefer `email_account_name` from DB for `From` name.
+	- Updated `admin/scripts/notifyemail.php` to use DB-configured sender name.
+	- Removed `fromname` from `src/config.sample.php`.
+- **Rationale / notes**: Sender identity should be managed in the application DB (`config.email_account_name`) to allow runtime updates by admins; code falls back to legacy `src/config.php` value when DB key is absent for backward compatibility.
+- **Touched files**:
+	- func/email_helper.php
+	- admin/scripts/notifyemail.php
+	- src/config.sample.php
+- **Verification**:
+	- Ran `php -l` against modified PHP files (`func/email_helper.php`, `admin/scripts/notifyemail.php`) to ensure no syntax errors.
+- **Git info**:
+	- Branch: `dev` (changes prepared on feature branch `fix/email-sender-db-name` and pushed). Commit message used when adding this note: "docs: add 2026-05-17 session summary to copilot instructions"

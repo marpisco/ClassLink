@@ -52,6 +52,31 @@
         }
     }
 
+    function sidebarDropdownItemActive(array $urls): bool {
+        foreach ($urls as $url) {
+            if ($url == "/admin/" && $_SERVER['REQUEST_URI'] == "/admin/") {
+                return true;
+            }
+
+            if ($url != "/admin/" && $url != "/" && str_starts_with($_SERVER['REQUEST_URI'], $url)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function sidebarDropdownLink($url, $nome) {
+        $isActive = false;
+        if ($url == "/admin/" && $_SERVER['REQUEST_URI'] == "/admin/") {
+            $isActive = true;
+        } else if ($url != "/admin/" && $url != "/" && str_starts_with($_SERVER['REQUEST_URI'], $url)) {
+            $isActive = true;
+        }
+
+        echo "<li><a href='$url' class='dropdown-item" . ($isActive ? ' active' : '') . "'>$nome</a></li>";
+    }
+
     // Criação da Navbar no HTML
     $stickyOffset = $isDevMode ? '28px' : '0';
         // Ensure navbar has an opaque background so page content doesn't show through when scrolling
@@ -66,29 +91,78 @@
     // Links da Navbar
     sidebarLink('/admin/', 'Dashboard');
     sidebarLink('/admin/pedidos.php', 'Pedidos');
-    sidebarLink('/admin/tempos.php', 'Tempos');
-    sidebarLink('/admin/salas.php', 'Salas');
-    sidebarLink('/admin/materiais.php', 'Materiais');
-    sidebarLink('/admin/salas_postreserva.php', 'Pós-Reserva');
-    sidebarLink('/admin/users.php', 'Utilizadores');
-    sidebarLink('/admin/config.php', 'Configurações');
-    sidebarLink('/admin/registos.php', 'Registos');
-    sidebarLink('/admin/relatorios.php', 'Relatórios');
-    echo "<li class='nav-item dropdown'>
-            <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
-                Extensibilidade
-            </a>
-            <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='extensibilidadeDropdown'>";
+        $parametrizacaoActive = sidebarDropdownItemActive([
+            '/admin/tempos.php',
+            '/admin/salas.php',
+            '/admin/materiais.php',
+            '/admin/salas_postreserva.php'
+        ]);
+        echo "<li class='nav-item dropdown'>
+                <a class='nav-link dropdown-toggle" . ($parametrizacaoActive ? ' active' : '') . "' href='#' id='parametrizacaoDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                    Parametrização
+                </a>
+                <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='parametrizacaoDropdown'>
+                    <li><h6 class='dropdown-header'>Gestão operacional</h6></li>";
+        sidebarDropdownLink('/admin/tempos.php', 'Tempos');
+        sidebarDropdownLink('/admin/salas.php', 'Salas');
+        sidebarDropdownLink('/admin/materiais.php', 'Materiais');
+        sidebarDropdownLink('/admin/salas_postreserva.php', 'Pós-Reserva');
+        echo "</ul></li>";
+
+        $administrativoActive = sidebarDropdownItemActive([
+            '/admin/users.php',
+            '/admin/config.php',
+            '/admin/registos.php',
+            '/admin/relatorios.php',
+            '/admin/reservaemmassa.php'
+        ]);
+        echo "<li class='nav-item dropdown'>
+                <a class='nav-link dropdown-toggle" . ($administrativoActive ? ' active' : '') . "' href='#' id='administrativoDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                    Administrativo
+                </a>
+                <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='administrativoDropdown'>
+                    <li><h6 class='dropdown-header'>Gestão administrativa</h6></li>";
+        sidebarDropdownLink('/admin/users.php', 'Utilizadores');
+        sidebarDropdownLink('/admin/config.php', 'Configurações');
+        sidebarDropdownLink('/admin/registos.php', 'Registos');
+        sidebarDropdownLink('/admin/relatorios.php', 'Relatórios');
+        sidebarDropdownLink('/admin/emailnotification.php', 'Envio de Emails em Massa');
+        sidebarDropdownLink('/admin/reservaemmassa.php', 'Reserva em Massa');
+        echo "</ul></li>";
+
+    $extensibilidadeItems = [];
     foreach (glob(__DIR__ . "/scripts/*.php") as $scriptFile) {
         // Skip example.php and logsadmin.php (moved to registos.php tab)
         if (basename($scriptFile) !== "example.php" && basename($scriptFile) !== "logsadmin.php") {
             $scriptName = basename($scriptFile, ".php");
-            echo "<li>";
-            echo "<a class='dropdown-item' href='/admin/scripts/$scriptName.php'>" . ucfirst($scriptName) . "</a>";
-            echo "</li>";
+            $extensibilidadeItems[] = [
+                'label' => ucfirst($scriptName),
+                'url' => "/admin/scripts/$scriptName.php"
+            ];
         }
     }
-    echo "</ul></li>";
+
+    foreach (glob(__DIR__ . "/scripts/custom/*.php") as $customScriptFile) {
+        $customScriptName = basename($customScriptFile, ".php");
+        $extensibilidadeItems[] = [
+            'label' => ucfirst($customScriptName),
+            'url' => "/admin/scripts/custom/$customScriptName.php"
+        ];
+    }
+
+    if (!empty($extensibilidadeItems)) {
+        echo "<li class='nav-item dropdown'>
+                <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                    Extensibilidade
+                </a>
+                <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='extensibilidadeDropdown'>";
+        foreach ($extensibilidadeItems as $extensibilidadeItem) {
+            echo "<li>";
+            echo "<a class='dropdown-item' href='" . htmlspecialchars($extensibilidadeItem['url'], ENT_QUOTES, 'UTF-8') . "'>" . htmlspecialchars($extensibilidadeItem['label'], ENT_QUOTES, 'UTF-8') . "</a>";
+            echo "</li>";
+        }
+        echo "</ul></li>";
+    }
     echo "<li class='nav-item'><a href='/' class='nav-link'>Voltar</a></li>";
     // Fechar Navbar no HTML, e passar o conteúdo para baixo
     echo "</ul></div></div></nav><div class='container-fluid mt-4 justify-content-center text-center'>";
