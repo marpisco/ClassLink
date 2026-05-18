@@ -88,7 +88,7 @@
         'brand_name' => 'ClassLink',
         'internal_email_domain' => '',
         'admin_requires_totp' => 'true',
-        'blocked_emails_regex' => '/^a\d+@.+$/i',
+        'blocked_emails_regex' => '',
         'email_account_name' => 'ClassLink',
         'initial_setup_complete' => 'false',
         'app_mode' => 'production'
