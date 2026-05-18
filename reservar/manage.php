@@ -31,7 +31,7 @@ $today = date("Y-m-d");
 // Bulk POST handling: show messages on page (no redirect)
 if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
-        $flash_html = "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+        $flash_html = "<div class='alert alert-danger show' role='alert'>O motivo é obrigatório.</div>";
         $handled = false; // allow form to show
     } elseif (!isset($_POST['slots']) || !is_array($_POST['slots']) || count($_POST['slots']) == 0) {
         $flash_html = "<div class='alert alert-danger show' role='alert'>Nenhum tempo foi selecionado.</div>";
@@ -144,7 +144,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
     $sala = $_GET['sala'];
     if (isset($_GET['subaction']) && $_GET['subaction'] === 'reservar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
-            $flash_html = "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+            $flash_html = "<div class='alert alert-danger show' role='alert'>O motivo é obrigatório.</div>";
             $handled = false;
         } else {
             $motivo = $_POST['motivo'];
@@ -195,7 +195,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
         $reserva = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         if (!($_SESSION['admin']) && ($_SESSION['id'] != $reserva['requisitor'])) { http_response_code(403); die("Não tem permissão para apagar esta reserva."); }
-        if (!($_SESSION['admin']) && ($data < $today)) { http_response_code(403); die("Não é possível apagar reservas no passado. Apenas os administradores podem apagar reservas em datas passadas."); }
+        if (!($_SESSION['admin']) && ($data < $today)) { http_response_code(403); die("Não é possível apagar reservas que já ocorreram. Contacte um administrador."); }
 
         $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
         $stmt->bind_param("sss", $sala, $tempo, $data);
@@ -269,7 +269,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
         // Handle bulk reservation separately since it doesn't require tempo/data/sala in GET
         if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk') {
             if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
-                echo "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+                echo "<div class='alert alert-danger show' role='alert'>O motivo é obrigatório.</div>";
                 echo "<a href='" . htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') . "' class='btn btn-primary'>Voltar</a>";
             } elseif (!isset($_POST['slots']) || !is_array($_POST['slots']) || count($_POST['slots']) == 0) {
                 echo "<div class='alert alert-danger show' role='alert'>Nenhum tempo foi selecionado.</div>";
@@ -460,7 +460,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
             switch (isset($_GET['subaction']) ? $_GET['subaction'] : null) {
                 case "reservar":
                     if (!isset($_POST['motivo'])) {
-                        echo "<div class='alert alert-danger show' role='alert'>Motivo é obrigatório.</div>";
+                        echo "<div class='alert alert-danger show' role='alert'>O motivo é obrigatório.</div>";
                         break;
                     }
                     // Check if room has autonomous reservation (tipo_sala = 2) and if it's locked
@@ -583,7 +583,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                     // Check if reservation is in the past and user is not admin
                     if (!($_SESSION['admin']) && ($data < $today)) {
                         http_response_code(403);
-                        die("Não é possível apagar reservas no passado. Apenas os administradores podem apagar reservas em datas passadas.");
+                        die("Não é possível apagar reservas que já ocorreram. Contacte um administrador.");
                     }
                     
                     if (true) {

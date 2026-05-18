@@ -35,7 +35,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             $stmt->execute();
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
-                throw new Exception("Existem reservas associadas a esta sala. Por segurança, é necessária uma intervenção manual.");
+                throw new Exception("Existem reservas associadas a esta sala. Por segurança, é necessária uma intervenção manual de um Administrador.");
             }
             $stmt->close();
         } catch (Exception $e) {

@@ -850,7 +850,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subject']) && isset($
                 logaction($logMessage, $_SESSION['id']);
                 
                 echo "<div class='mt-3 alert alert-success fade show' role='alert'>
-                    <strong>Sucesso!</strong> Email enviado com sucesso para {$recipientCount} destinatário(s) em BCC.
+                    <strong>Sucesso!</strong> Email enviado com sucesso.
                 </div>";
                 
                 echo "<div class='mt-3 alert alert-info fade show' role='alert'>
