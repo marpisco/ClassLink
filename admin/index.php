@@ -130,6 +130,16 @@
         sidebarDropdownLink('/admin/reservaemmassa.php', 'Reserva em Massa');
         echo "</ul></li>";
 
+        echo "<li class='nav-item dropdown'>
+                <a class='nav-link dropdown-toggle' href='#' id='manuaisDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                    Manuais
+                </a>
+                <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='manuaisDropdown'>
+                    <li><h6 class='dropdown-header'>Documentação</h6></li>";
+        echo "<li><a href='/assets/manual_utilizador_classlink.pdf' class='dropdown-item' target='_blank' rel='noopener noreferrer'>Manual do Utilizador</a></li>";
+        echo "<li><a href='/assets/manual_tecnico_classlink.pdf' class='dropdown-item' target='_blank' rel='noopener noreferrer'>Manual Técnico</a></li>";
+        echo "</ul></li>";
+
     $extensibilidadeItems = [];
     foreach (glob(__DIR__ . "/scripts/*.php") as $scriptFile) {
         // Skip example.php and logsadmin.php (moved to registos.php tab)
