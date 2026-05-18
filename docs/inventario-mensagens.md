@@ -2,8 +2,7 @@
 
 Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
-> As mensagens abaixo são transcritas literalmente do código, para refletir o estado atual do sistema.
-> A pontuação, capitalização e idioma originais foram preservados.
+> As mensagens abaixo estão normalizadas para facilitar a revisão de legibilidade e consistência.
 
 ## 1) Autenticação e sessão
 
@@ -61,8 +60,8 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Nenhum tempo foi selecionado.`
 - `Já reservado`
 - `Sala não encontrada`
-- `sala bloqueada`
-- `data no passado`
+- `Sala bloqueada`
+- `Data no passado`
 - `Houve um problema a reservar a sala. Contacte um administrador, ou tente novamente mais tarde.`
 - `Não tem permissão para apagar esta reserva.`
 - `Não é possível apagar reservas no passado. Apenas os administradores podem apagar reservas em datas passadas.`
@@ -224,19 +223,19 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ### `admin/api/recipients_preview.php`
 - `Acesso negado.`
-- `Modo de email em falta`
+- `Modo de email em falta ou inválido`
 
 ### `admin/api/dashboard_stats.php`
-- `Unauthorized`
+- `Não autorizado.`
 
 ### `admin/api/api_registos.php`
-- `Unauthorized`
+- `Não autorizado.`
 
 ### `admin/api/salas_search.php`
-- `Acesso negado`
+- `Acesso negado.`
 
 ### `admin/api/tempos_search.php`
-- `Acesso negado`
+- `Acesso negado.`
 
 ### `admin/api/users_search.php`
 - `Acesso negado.`
