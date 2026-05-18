@@ -347,7 +347,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     $emailResult = sendReservationApprovedEmail($db, $requisitor, $_GET['sala'], $_GET['tempo'], $_GET['data']);
                     if (!$emailResult['success'] && $emailResult['error'] !== 'Email not enabled') {
                         echo "<div class='alert alert-warning alert-dismissible fade show' role='alert'>
-                                <strong>Aviso:</strong> A reserva foi aprovada, mas o email de notificação não foi enviado. Contacte o Postmaster.
+                                <strong>Aviso:</strong> A reserva foi aprovada, mas o email de notificação não foi enviado. Contacte um administrador.
                                 <br><small>Erro: " . htmlspecialchars($emailResult['error'], ENT_QUOTES, 'UTF-8') . "</small>
                                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                               </div>";
@@ -405,7 +405,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     
                     if (!$emailResult['success'] && $emailResult['error'] !== 'Email not enabled') {
                         echo "<div class='alert alert-warning alert-dismissible fade show' role='alert'>
-                                <strong>Aviso:</strong> A reserva foi rejeitada, mas o email de notificação não foi enviado. Contacte o Postmaster.
+                                <strong>Aviso:</strong> A reserva foi rejeitada, mas o email de notificação não foi enviado. Contacte um administrador.
                                 <br><small>Erro: " . htmlspecialchars($emailResult['error'], ENT_QUOTES, 'UTF-8') . "</small>
                                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                               </div>";
