@@ -91,11 +91,7 @@
         'blocked_emails_regex' => '/^a\d+@.+$/i',
         'email_account_name' => 'ClassLink',
         'initial_setup_complete' => 'false',
-        'app_mode' => 'production',
-        'db_configs' => json_encode([
-            'production' => ['name' => 'Produção', 'db' => 'reservasalas', 'user' => 'reservasalas'],
-            'development' => ['name' => 'Desenvolvimento', 'db' => 'reservasalas_dev', 'user' => 'reservasalas']
-        ])
+        'app_mode' => 'production'
     ];
     
     foreach ($defaultConfigs as $key => $value) {
