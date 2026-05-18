@@ -113,7 +113,8 @@
             '/admin/users.php',
             '/admin/config.php',
             '/admin/registos.php',
-            '/admin/relatorios.php'
+            '/admin/relatorios.php',
+            '/admin/reservaemmassa.php'
         ]);
         echo "<li class='nav-item dropdown'>
                 <a class='nav-link dropdown-toggle" . ($administrativoActive ? ' active' : '') . "' href='#' id='administrativoDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
@@ -126,6 +127,7 @@
         sidebarDropdownLink('/admin/registos.php', 'Registos');
         sidebarDropdownLink('/admin/relatorios.php', 'Relatórios');
         sidebarDropdownLink('/admin/emailnotification.php', 'Envio de Emails em Massa');
+        sidebarDropdownLink('/admin/reservaemmassa.php', 'Reserva em Massa');
         echo "</ul></li>";
 
     echo "<li class='nav-item dropdown'>

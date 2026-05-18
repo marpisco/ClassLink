@@ -1,10 +1,10 @@
 <?php 
-require '../index.php';
-require_once(__DIR__ . '/../../func/email_helper.php');
+require __DIR__ . '/index.php';
+require_once(__DIR__ . '/../func/email_helper.php');
 ?>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
-<h1>Semanas repetidas</h1>
-<p>Este script permite criar reservas repetidas de salas ao longo de várias semanas.</p>
+<h1>Reserva em Massa</h1>
+<p>Este script permite criar reservas em massa de salas ao longo de várias semanas.</p>
 <p>Selecione a sala, o utilizador, os tempos desejados e o intervalo de datas para criar as reservas.</p>
 
 <style>
@@ -241,7 +241,7 @@ require_once(__DIR__ . '/../../func/email_helper.php');
     </div>
 
     <div class="d-grid">
-        <button type="submit" class="btn btn-primary btn-lg">Criar Reservas</button>
+        <button type="submit" class="btn btn-primary btn-lg">Criar Reservas em Massa</button>
     </div>
 </form>
 
