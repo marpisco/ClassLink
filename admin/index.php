@@ -13,6 +13,7 @@
 <?php
     require_once(__DIR__ . '/../src/db.php');
     require_once(__DIR__ . '/../func/genuuid.php');
+    require_once(__DIR__ . '/../func/csrf.php');
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
     
     require_once(__DIR__ . '/../func/get_config.php');
@@ -36,6 +37,14 @@
         // A validade da sessão está quase a expirar. Extender por mais 30 minutos.
         if ($_SESSION['validity'] - time() < 900) {
             $_SESSION['validity'] = time() + 1800;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!verify_csrf_token($csrfToken)) {
+            http_response_code(403);
+            die("<div class='alert alert-danger text-center'>Pedido inválido. Atualize a página e tente novamente.</div>");
         }
     }
 ?>
@@ -177,6 +186,30 @@
     // Fechar Navbar no HTML, e passar o conteúdo para baixo
     echo "</ul></div></div></nav><div class='container-fluid mt-4 justify-content-center text-center'>";
 
+    $csrfTokenForJs = json_encode(generate_csrf_token());
+    echo "<script>
+        (function() {
+            const csrfToken = {$csrfTokenForJs};
+            function ensureCsrf(form) {
+                if (!form || String(form.method).toLowerCase() !== 'post') return;
+                if (!form.querySelector('input[name=\"csrf_token\"]')) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'csrf_token';
+                    input.value = csrfToken;
+                    form.appendChild(input);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('form[method=\"POST\"], form[method=\"post\"]').forEach(ensureCsrf);
+            });
+            document.addEventListener('submit', function(event) {
+                ensureCsrf(event.target);
+            }, true);
+        })();
+    </script>";
+
 ?>
 
 <?php
@@ -299,6 +332,7 @@
         function formulario($action, $inputs) {
             $action_safe = htmlspecialchars($action, ENT_QUOTES, 'UTF-8');
             echo "<form action='$action_safe' method='POST' class='d-flex align-items-center'>";
+            echo csrf_token_field();
             foreach ($inputs as $input) {
                 $id_safe = htmlspecialchars($input['id'], ENT_QUOTES, 'UTF-8');
                 $value_safe = htmlspecialchars($input['value'], ENT_QUOTES, 'UTF-8');

@@ -1,10 +1,15 @@
 <?php
 require_once(__DIR__ . '/../src/db.php');
+require_once(__DIR__ . '/../func/csrf.php');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
     http_response_code(403);
     header("Location: /login");
     die("A reencaminhar para iniciar sessão...");
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    die("Pedido inválido. Atualize a página e tente novamente.");
 }
 ?>
 <!DOCTYPE html>
@@ -120,6 +125,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
     <div class="d-flex align-items-center justify-content-center flex-column">
         <p class="h2 fw-light">Reservar uma Sala</p>
         <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="POST" class="d-flex align-items-center">
+            <?= csrf_token_field(); ?>
             <div class="form-floating me-2">
                 <select class="form-select" id="sala" name="sala" required onchange="this.form.submit();">
                     <?php if ($_POST['sala'] == "0" | !$_POST['sala']) {
@@ -183,6 +189,7 @@ if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
         
         echo (
             "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
+            " . csrf_token_field() . "
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );

@@ -18,7 +18,9 @@
     
     $db = new mysqli($db['servidor'], $db['user'], $db['password'], $dbName, $db['porta']);
     if ($db->connect_error) {
-        die("Ligação ao servidor falhou: " . $db->connect_error);
+        error_log("ClassLink DB connection failed: " . $db->connect_error);
+        http_response_code(500);
+        die("Ligação ao servidor falhou.");
     }
     $db->set_charset("utf8mb4");
 
