@@ -246,6 +246,6 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ## 7) Observações para revisão
 
-- O texto de sucesso do `notifyemail.php` é demasiado detalhado para o utilizador final.
-- Há várias mensagens de erro técnicas que mostram detalhes internos (`$e->getMessage()` / `$stmt->error`); idealmente devem ser registradas no servidor e substituídas por mensagens genéricas para o utilizador.
+- O texto de sucesso do `notifyemail.php` é excessivamente detalhado para o utilizador final.
+- Há várias mensagens de erro técnicas que mostram detalhes internos (`$e->getMessage()` / `$stmt->error`); idealmente devem ser registradas no servidor e substituídas por mensagens genéricas para o utilizador, mantendo os HTTP status codes adequados (403/404/500) quando aplicável.
 - Algumas mensagens estão repetidas em variantes curtas/longas; vale a pena normalizar vocabulário e tom antes da próxima atualização.
