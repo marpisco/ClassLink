@@ -40,7 +40,10 @@
         }
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+    $requestPath = '/' . ltrim($requestPath, '/');
+    $isAdminApiRequest = str_starts_with($requestPath, '/admin/api/');
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAdminApiRequest) {
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!verify_csrf_token($csrfToken)) {
             http_response_code(403);
@@ -186,13 +189,16 @@
     // Fechar Navbar no HTML, e passar o conteúdo para baixo
     echo "</ul></div></div></nav><div class='container-fluid mt-4 justify-content-center text-center'>";
 
-    $csrfTokenForJs = json_encode(generate_csrf_token());
+    $csrfTokenHtml = htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8');
+    echo "<input type='hidden' id='global-csrf-token' value='{$csrfTokenHtml}'>";
     echo "<script>
         (function() {
-            const csrfToken = {$csrfTokenForJs};
             function ensureCsrf(form) {
                 if (!form || String(form.method).toLowerCase() !== 'post') return;
                 if (!form.querySelector('input[name=\"csrf_token\"]')) {
+                    const tokenSource = document.getElementById('global-csrf-token');
+                    const csrfToken = tokenSource ? tokenSource.value : '';
+                    if (!csrfToken) return;
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'csrf_token';

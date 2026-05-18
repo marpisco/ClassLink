@@ -556,8 +556,8 @@
 <?php
     }else if (isset($_GET['code'])){        $now = time();
         if (!isset($_GET['state']) || !isset($_SESSION['oauth2state']) || !hash_equals($_SESSION['oauth2state'], $_GET['state'])) {
+            error_log("ClassLink OAuth state validation failed for callback.");
             unset($_SESSION['oauth2state']);
-            session_destroy();
             header('Location: /login/');
             exit();
         }
