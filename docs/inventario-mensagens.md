@@ -122,7 +122,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 - `Erro ao guardar configurações.`
 - `Por favor, insira uma regex para testar.`
 - `Introduza um email para testar a regex:`
-- `O email "{email}" CORRESPONDE à regex. SerÁ BLOQUEADO.`
+- `O email "{email}" CORRESPONDE à regex. Será BLOQUEADO.`
 - `O email "{email}" NÃO corresponde à regex. Será PERMITIDO.`
 - `Erro na regex: ...`
 
@@ -221,7 +221,7 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
 ### `admin/api/recipients_preview.php`
 - `Acesso negado.`
-- `Missing email mode`
+- `Modo de email em falta`
 
 ### `admin/api/dashboard_stats.php`
 - `Unauthorized`
