@@ -130,21 +130,39 @@
         sidebarDropdownLink('/admin/reservaemmassa.php', 'Reserva em Massa');
         echo "</ul></li>";
 
-    echo "<li class='nav-item dropdown'>
-            <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
-                Extensibilidade
-            </a>
-            <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='extensibilidadeDropdown'>";
+    $extensibilidadeItems = [];
     foreach (glob(__DIR__ . "/scripts/*.php") as $scriptFile) {
         // Skip example.php and logsadmin.php (moved to registos.php tab)
         if (basename($scriptFile) !== "example.php" && basename($scriptFile) !== "logsadmin.php") {
             $scriptName = basename($scriptFile, ".php");
-            echo "<li>";
-            echo "<a class='dropdown-item' href='/admin/scripts/$scriptName.php'>" . ucfirst($scriptName) . "</a>";
-            echo "</li>";
+            $extensibilidadeItems[] = [
+                'label' => ucfirst($scriptName),
+                'url' => "/admin/scripts/$scriptName.php"
+            ];
         }
     }
-    echo "</ul></li>";
+
+    foreach (glob(__DIR__ . "/scripts/custom/*.php") as $customScriptFile) {
+        $customScriptName = basename($customScriptFile, ".php");
+        $extensibilidadeItems[] = [
+            'label' => ucfirst($customScriptName),
+            'url' => "/admin/scripts/custom/$customScriptName.php"
+        ];
+    }
+
+    if (!empty($extensibilidadeItems)) {
+        echo "<li class='nav-item dropdown'>
+                <a class='nav-link dropdown-toggle' href='#' id='extensibilidadeDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                    Extensibilidade
+                </a>
+                <ul class='dropdown-menu dropdown-menu-end' aria-labelledby='extensibilidadeDropdown'>";
+        foreach ($extensibilidadeItems as $extensibilidadeItem) {
+            echo "<li>";
+            echo "<a class='dropdown-item' href='" . htmlspecialchars($extensibilidadeItem['url'], ENT_QUOTES, 'UTF-8') . "'>" . htmlspecialchars($extensibilidadeItem['label'], ENT_QUOTES, 'UTF-8') . "</a>";
+            echo "</li>";
+        }
+        echo "</ul></li>";
+    }
     echo "<li class='nav-item'><a href='/' class='nav-link'>Voltar</a></li>";
     // Fechar Navbar no HTML, e passar o conteúdo para baixo
     echo "</ul></div></div></nav><div class='container-fluid mt-4 justify-content-center text-center'>";
