@@ -2,6 +2,9 @@
 
 Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 
+> As mensagens abaixo são transcritas literalmente do código, para refletir o estado atual do sistema.
+> A pontuação, capitalização e idioma originais foram preservados.
+
 ## 1) Autenticação e sessão
 
 ### `login/index.php`
@@ -229,8 +232,13 @@ Documento de apoio à revisão das mensagens exibidas/enviadas pelo sistema.
 ### `admin/api/api_registos.php`
 - `Unauthorized`
 
-### `admin/api/salas_search.php`, `admin/api/tempos_search.php`, `admin/api/users_search.php`
+### `admin/api/salas_search.php`
 - `Acesso negado`
+
+### `admin/api/tempos_search.php`
+- `Acesso negado`
+
+### `admin/api/users_search.php`
 - `Acesso negado.`
 
 ### `admin/index.php`
