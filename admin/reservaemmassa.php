@@ -2,6 +2,7 @@
 require __DIR__ . '/index.php';
 require_once(__DIR__ . '/../func/email_helper.php');
 require_once(__DIR__ . '/../func/csrf.php');
+require_once(__DIR__ . '/../func/validation.php');
 ?>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
 <h1>Reserva em Massa</h1>
@@ -124,38 +125,47 @@ require_once(__DIR__ . '/../func/csrf.php');
 
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'import_csv') {
+    $tempFile = null;
     if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
         echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Token CSRF inválido.</div>";
     } elseif (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
         echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Erro ao fazer upload do ficheiro CSV.</div>";
     } else {
-        $fileContent = file_get_contents($_FILES['csvfile']['tmp_name']);
-        $encoding = mb_detect_encoding($fileContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
-        if ($encoding && $encoding !== 'UTF-8') {
-            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $encoding);
+        $tempFile = fopen($_FILES['csvfile']['tmp_name'], 'r');
+        if ($tempFile === false) {
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Não foi possível ler o ficheiro CSV.</div>";
+            $tempFile = null;
         }
+    }
 
-        $tempFile = tmpfile();
-        fwrite($tempFile, $fileContent);
-        rewind($tempFile);
+    if ($tempFile) {
 
         $salasValidas = [];
-        $resultSalas = $db->query("SELECT id FROM salas");
+        $stmtSalas = $db->prepare("SELECT id FROM salas");
+        $stmtSalas->execute();
+        $resultSalas = $stmtSalas->get_result();
         while ($row = $resultSalas->fetch_assoc()) {
             $salasValidas[$row['id']] = true;
         }
+        $stmtSalas->close();
 
         $requisitoresValidos = [];
-        $resultRequisitores = $db->query("SELECT id FROM cache");
+        $stmtRequisitores = $db->prepare("SELECT id FROM cache");
+        $stmtRequisitores->execute();
+        $resultRequisitores = $stmtRequisitores->get_result();
         while ($row = $resultRequisitores->fetch_assoc()) {
             $requisitoresValidos[$row['id']] = true;
         }
+        $stmtRequisitores->close();
 
         $temposValidos = [];
-        $resultTempos = $db->query("SELECT id FROM tempos");
+        $stmtTempos = $db->prepare("SELECT id FROM tempos");
+        $stmtTempos->execute();
+        $resultTempos = $stmtTempos->get_result();
         while ($row = $resultTempos->fetch_assoc()) {
             $temposValidos[$row['id']] = true;
         }
+        $stmtTempos->close();
 
         $stmtCheck = $db->prepare("SELECT 1 FROM reservas WHERE sala = ? AND tempo = ? AND data = ? LIMIT 1");
         $stmtInsert = $db->prepare("INSERT INTO reservas (sala, tempo, data, requisitor, aprovado, motivo, extra) VALUES (?, ?, ?, ?, 1, ?, ?)");
@@ -191,9 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $motivo = trim($data[4]);
             $extra = isset($data[5]) ? trim($data[5]) : '';
 
-            $dateObj = DateTime::createFromFormat('Y-m-d', $dataReserva);
-            $isValidDate = $dateObj && $dateObj->format('Y-m-d') === $dataReserva;
-            if (!$isValidDate) {
+            if (!validate_date($dataReserva)) {
                 $errorCount++;
                 $errors[] = "Linha {$lineNumber}: Data inválida '{$dataReserva}' (formato esperado: YYYY-MM-DD).";
                 continue;
@@ -260,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
 <div class="mb-4 p-3 border rounded bg-light-subtle">
     <h5>Importar Reservas via CSV</h5>
-    <a href="/assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
+    <a href="../assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
     <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID;RequisitorID;TempoID;Data(YYYY-MM-DD);Motivo;Extra(opcional)</p>
     <form action="reservaemmassa.php?action=import_csv" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
         <?php echo csrf_token_field(); ?>
