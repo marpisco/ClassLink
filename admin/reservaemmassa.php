@@ -103,6 +103,94 @@ require_once(__DIR__ . '/../func/validation.php');
         document.getElementById('selectedUserDisplay').value = '';
         document.getElementById('selectedUserDisplay').placeholder = 'Selecione um utilizador...';
     }
+
+    const lookupConfig = {
+        requisitor: {
+            endpoint: '/admin/api/requisitor_lookup.php',
+            inputId: 'lookupRequisitorInput',
+            resultsId: 'lookupRequisitorResults',
+            emptyMessage: 'Sem resultados de requisitorID.'
+        },
+        tempo: {
+            endpoint: '/admin/api/tempo_lookup.php',
+            inputId: 'lookupTempoInput',
+            resultsId: 'lookupTempoResults',
+            emptyMessage: 'Sem resultados de tempoID.'
+        },
+        sala: {
+            endpoint: '/admin/api/sala_lookup.php',
+            inputId: 'lookupSalaInput',
+            resultsId: 'lookupSalaResults',
+            emptyMessage: 'Sem resultados de salaID.'
+        }
+    };
+
+    function lookupEscapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showLookupSkeleton(targetId) {
+        const target = document.getElementById(targetId);
+        target.innerHTML = `
+            <div class="placeholder-glow mb-2"><span class="placeholder col-12"></span></div>
+            <div class="placeholder-glow mb-2"><span class="placeholder col-10"></span></div>
+            <div class="placeholder-glow"><span class="placeholder col-8"></span></div>
+        `;
+    }
+
+    function searchLookup(type) {
+        const config = lookupConfig[type];
+        if (!config) return;
+
+        const input = document.getElementById(config.inputId);
+        const target = document.getElementById(config.resultsId);
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+            target.innerHTML = "<div class='alert alert-info py-2 mb-0'>Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div>";
+            return;
+        }
+
+        showLookupSkeleton(config.resultsId);
+
+        fetch(config.endpoint + '?q=' + encodeURIComponent(query))
+            .then(response => response.json())
+            .then(data => {
+                if (!Array.isArray(data.items) || data.items.length === 0) {
+                    target.innerHTML = "<div class='alert alert-warning py-2 mb-0'>" + config.emptyMessage + "</div>";
+                    return;
+                }
+
+                const itemsHtml = data.items.slice(0, 10).map(item => {
+                    const title = item.title ? `<strong>${lookupEscapeHtml(item.title)}</strong><br>` : '';
+                    const subtitle = item.subtitle ? `<small class='text-muted'>${lookupEscapeHtml(item.subtitle)}</small><br>` : '';
+                    const itemId = lookupEscapeHtml(item.id || '');
+                    return `<div class='list-group-item'>
+                        ${title}
+                        ${subtitle}
+                        <code class='user-select-all'>${itemId}</code>
+                    </div>`;
+                }).join('');
+
+                target.innerHTML = `<div class="small text-muted mb-2">A mostrar até 10 resultados.</div><div class="list-group">${itemsHtml}</div>`;
+            })
+            .catch(() => {
+                target.innerHTML = "<div class='alert alert-danger py-2 mb-0'>Erro ao pesquisar. Tente novamente.</div>";
+            });
+    }
+
+    function initLookupTabs() {
+        const tabButtons = document.querySelectorAll('#csvLookupTabs button[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', function (event) {
+                const targetType = event.target.getAttribute('data-lookup-type');
+                if (!targetType) return;
+                searchLookup(targetType);
+            });
+        });
+    }
     
     // Form validation
     function validateForm(event) {
@@ -120,6 +208,8 @@ require_once(__DIR__ . '/../func/validation.php');
         if (form) {
             form.addEventListener('submit', validateForm);
         }
+        initLookupTabs();
+        searchLookup('requisitor');
     });
 </script>
 
@@ -273,6 +363,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     <h5>Importar Reservas via CSV</h5>
     <a href="../assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
     <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID;RequisitorID;TempoID;Data(YYYY-MM-DD);Motivo;Extra(opcional)</p>
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#csvLookupModal">
+        Pesquisar IDs (Requisitor/Tempo/Sala)
+    </button>
     <form action="reservaemmassa.php?action=import_csv" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
         <?php echo csrf_token_field(); ?>
         <div class="me-2">
@@ -280,6 +373,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         </div>
         <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">Importar CSV</button>
     </form>
+</div>
+
+<div class="modal fade" id="csvLookupModal" tabindex="-1" aria-labelledby="csvLookupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="csvLookupModalLabel">Pesquisar IDs para CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="csvLookupTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="requisitor-tab" data-bs-toggle="tab" data-bs-target="#requisitor-pane" type="button" role="tab" data-lookup-type="requisitor">requisitorID</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tempo-tab" data-bs-toggle="tab" data-bs-target="#tempo-pane" type="button" role="tab" data-lookup-type="tempo">tempoID</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sala-tab" data-bs-toggle="tab" data-bs-target="#sala-pane" type="button" role="tab" data-lookup-type="sala">salaID</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="requisitor-pane" role="tabpanel" aria-labelledby="requisitor-tab">
+                        <input type="text" class="form-control mb-2" id="lookupRequisitorInput" placeholder="Filtrar requisitorID, nome ou email..." oninput="searchLookup('requisitor')">
+                        <div id="lookupRequisitorResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                    <div class="tab-pane fade" id="tempo-pane" role="tabpanel" aria-labelledby="tempo-tab">
+                        <input type="text" class="form-control mb-2" id="lookupTempoInput" placeholder="Filtrar tempoID ou horário..." oninput="searchLookup('tempo')">
+                        <div id="lookupTempoResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                    <div class="tab-pane fade" id="sala-pane" role="tabpanel" aria-labelledby="sala-tab">
+                        <input type="text" class="form-control mb-2" id="lookupSalaInput" placeholder="Filtrar salaID ou nome da sala..." oninput="searchLookup('sala')">
+                        <div id="lookupSalaResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <small class="text-muted me-auto">Resultados limitados a 10 por pesquisa para reduzir carga na base de dados.</small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <form id="massReservationForm" action="reservaemmassa.php" method="POST" class="mt-4">
