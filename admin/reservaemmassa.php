@@ -155,7 +155,10 @@ require_once(__DIR__ . '/../func/validation.php');
 
         showLookupSkeleton(config.resultsId);
 
-        fetch(config.endpoint + '?q=' + encodeURIComponent(query))
+        const url = new URL(config.endpoint, window.location.origin);
+        url.searchParams.set('q', query);
+
+        fetch(url.toString())
             .then(response => response.json())
             .then(data => {
                 if (!Array.isArray(data.items) || data.items.length === 0) {
