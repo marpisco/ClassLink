@@ -431,7 +431,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 </div>
             </div>
             <div class="modal-footer">
-                <small class="text-muted me-auto">Resultados limitados a 10 por pesquisa para reduzir carga na base de dados.</small>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
