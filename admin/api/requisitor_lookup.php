@@ -20,11 +20,12 @@ if (mb_strlen($query) < 2) {
 }
 
 $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $query);
+$idPrefixParam = $escaped . '%';
 $searchParam = '%' . $escaped . '%';
 $limit = 10;
 
-$stmt = $db->prepare("SELECT id, nome, email FROM cache WHERE id LIKE ? ESCAPE '\\\\' OR nome LIKE ? ESCAPE '\\\\' OR email LIKE ? ESCAPE '\\\\' ORDER BY nome ASC LIMIT ?");
-$stmt->bind_param("sssi", $searchParam, $searchParam, $searchParam, $limit);
+$stmt = $db->prepare("SELECT id, nome, email FROM cache WHERE id = ? OR id LIKE ? ESCAPE '\\\\' OR nome LIKE ? ESCAPE '\\\\' OR email LIKE ? ESCAPE '\\\\' ORDER BY nome ASC LIMIT ?");
+$stmt->bind_param("ssssi", $query, $idPrefixParam, $searchParam, $searchParam, $limit);
 $stmt->execute();
 $result = $stmt->get_result();
 

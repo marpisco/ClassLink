@@ -178,7 +178,8 @@ require_once(__DIR__ . '/../func/validation.php');
 
                 target.innerHTML = `<div class="small text-muted mb-2">A mostrar até 10 resultados.</div><div class="list-group">${itemsHtml}</div>`;
             })
-            .catch(() => {
+            .catch((err) => {
+                console.error(err);
                 target.innerHTML = "<div class='alert alert-danger py-2 mb-0'>Erro ao pesquisar. Tente novamente.</div>";
             });
     }
