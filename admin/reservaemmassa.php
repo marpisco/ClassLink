@@ -299,9 +299,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 continue;
             }
 
-            if (count($data) < 5) {
+            if (count($data) < 4) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber} inválida (mínimo 5 colunas).";
+                $errors[] = "Linha {$lineNumber} inválida (mínimo 4 colunas).";
                 continue;
             }
 
@@ -309,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $requisitorId = trim($data[1]);
             $tempoId = trim($data[2]);
             $dataReserva = trim($data[3]);
-            $motivo = trim($data[4]);
+            $motivo = isset($data[4]) ? trim($data[4]) : '';
             $extra = isset($data[5]) ? trim($data[5]) : '';
 
             if (!validate_date($dataReserva)) {
