@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             }
 
             $firstColumn = preg_replace('/^\xEF\xBB\xBF/', '', trim($data[0]));
-            if ($lineNumber === 1 && (strtolower($firstColumn) === 'salaid' || strtolower($firstColumn) === 'sala')) {
+            if ($lineNumber === 1 && strtolower($firstColumn) === 'salaid') {
                 continue;
             }
 
@@ -258,9 +258,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             echo "<div class='mt-3 alert alert-warning fade show' role='alert'><strong>Atenção:</strong> {$duplicateCount} reserva(s) já existia(m) e foi/foram ignorada(s).</div>";
         }
         if ($errorCount > 0) {
-            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erros:</strong> {$errorCount} linha(s) com erro.<br>" . implode('<br>', array_slice(array_map(function($error) {
+            $displayLimit = 10;
+            $displayedErrors = array_slice(array_map(function($error) {
                 return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
-            }, $errors), 0, 10)) . "</div>";
+            }, $errors), 0, $displayLimit);
+            $truncatedNote = $errorCount > $displayLimit ? "<br><em>A mostrar os primeiros {$displayLimit} de {$errorCount} erro(s).</em>" : "";
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erros:</strong> {$errorCount} linha(s) com erro.<br>" . implode('<br>', $displayedErrors) . $truncatedNote . "</div>";
         }
     }
 }
