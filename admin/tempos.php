@@ -1,11 +1,12 @@
-<?php require 'index.php'; ?>
+<?php require 'index.php'; require_once(__DIR__ . '/../func/csrf.php'); ?>
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
 <h3>Gestão de Tempos</h3>
 <div class="mb-4">
     <h5>Importar Tempos via CSV</h5>
     <a href="/assets/csvsample_tempos.csv" download>Download do modelo CSV</a>
-    <p class="small" style="color:red;font-weight:bold;">Deve de consultar o manual do administrador para mais informações.</p>
+    <p class="small" style="color:red;font-weight:bold;">Deve consultar o manual do administrador para mais informações.</p>
     <form action="tempos.php?action=import" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
+        <?php echo csrf_token_field(); ?>
         <div class="me-2">
             <input type="file" class="form-control" id="csvfile" name="csvfile" accept=".csv" required>
         </div>
@@ -23,6 +24,11 @@
 switch (isset($_GET['action']) ? $_GET['action'] : null){
     // Import CSV
     case "import":
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            echo "<div class='alert alert-danger fade show' role='alert'>Token CSRF inválido.</div>";
+            break;
+        }
+
         if (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
             echo "<div class='alert alert-danger fade show' role='alert'>Erro ao fazer upload do ficheiro.</div>";
             break;
