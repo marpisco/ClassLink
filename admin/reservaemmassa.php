@@ -1,6 +1,7 @@
 <?php 
 require __DIR__ . '/index.php';
 require_once(__DIR__ . '/../func/email_helper.php');
+require_once(__DIR__ . '/../func/csrf.php');
 ?>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
 <h1>Reserva em Massa</h1>
@@ -114,14 +115,163 @@ require_once(__DIR__ . '/../func/email_helper.php');
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('form');
+        const form = document.getElementById('massReservationForm');
         if (form) {
             form.addEventListener('submit', validateForm);
         }
     });
 </script>
 
-<form action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" method="POST" class="mt-4">
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'import_csv') {
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Token CSRF inválido.</div>";
+    } elseif (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Erro ao fazer upload do ficheiro CSV.</div>";
+    } else {
+        $fileContent = file_get_contents($_FILES['csvfile']['tmp_name']);
+        $encoding = mb_detect_encoding($fileContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $encoding);
+        }
+
+        $tempFile = tmpfile();
+        fwrite($tempFile, $fileContent);
+        rewind($tempFile);
+
+        $salasValidas = [];
+        $resultSalas = $db->query("SELECT id FROM salas");
+        while ($row = $resultSalas->fetch_assoc()) {
+            $salasValidas[$row['id']] = true;
+        }
+
+        $requisitoresValidos = [];
+        $resultRequisitores = $db->query("SELECT id FROM cache");
+        while ($row = $resultRequisitores->fetch_assoc()) {
+            $requisitoresValidos[$row['id']] = true;
+        }
+
+        $temposValidos = [];
+        $resultTempos = $db->query("SELECT id FROM tempos");
+        while ($row = $resultTempos->fetch_assoc()) {
+            $temposValidos[$row['id']] = true;
+        }
+
+        $stmtCheck = $db->prepare("SELECT 1 FROM reservas WHERE sala = ? AND tempo = ? AND data = ? LIMIT 1");
+        $stmtInsert = $db->prepare("INSERT INTO reservas (sala, tempo, data, requisitor, aprovado, motivo, extra) VALUES (?, ?, ?, ?, 1, ?, ?)");
+
+        $lineNumber = 0;
+        $successCount = 0;
+        $errorCount = 0;
+        $duplicateCount = 0;
+        $errors = [];
+
+        while (($data = fgetcsv($tempFile, 0, ';')) !== false) {
+            $lineNumber++;
+
+            if (!isset($data[0]) || trim($data[0]) === '') {
+                continue;
+            }
+
+            $firstColumn = preg_replace('/^\xEF\xBB\xBF/', '', trim($data[0]));
+            if ($lineNumber === 1 && (strtolower($firstColumn) === 'salaid' || strtolower($firstColumn) === 'sala')) {
+                continue;
+            }
+
+            if (count($data) < 5) {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber} inválida (mínimo 5 colunas).";
+                continue;
+            }
+
+            $salaId = $firstColumn;
+            $requisitorId = trim($data[1]);
+            $tempoId = trim($data[2]);
+            $dataReserva = trim($data[3]);
+            $motivo = trim($data[4]);
+            $extra = isset($data[5]) ? trim($data[5]) : '';
+
+            $dateObj = DateTime::createFromFormat('Y-m-d', $dataReserva);
+            $isValidDate = $dateObj && $dateObj->format('Y-m-d') === $dataReserva;
+            if (!$isValidDate) {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber}: Data inválida '{$dataReserva}' (formato esperado: YYYY-MM-DD).";
+                continue;
+            }
+
+            if (!isset($salasValidas[$salaId])) {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber}: Sala inválida '{$salaId}'.";
+                continue;
+            }
+
+            if (!isset($requisitoresValidos[$requisitorId])) {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber}: Requisitor inválido '{$requisitorId}'.";
+                continue;
+            }
+
+            if (!isset($temposValidos[$tempoId])) {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber}: Tempo inválido '{$tempoId}'.";
+                continue;
+            }
+
+            if ($motivo === '') {
+                $motivo = 'Importada via CSV (reserva em massa)';
+            }
+
+            $stmtCheck->bind_param("sss", $salaId, $tempoId, $dataReserva);
+            $stmtCheck->execute();
+            $exists = $stmtCheck->get_result()->fetch_assoc();
+            if ($exists) {
+                $duplicateCount++;
+                continue;
+            }
+
+            $stmtInsert->bind_param("ssssss", $salaId, $tempoId, $dataReserva, $requisitorId, $motivo, $extra);
+            if ($stmtInsert->execute()) {
+                $successCount++;
+            } else {
+                $errorCount++;
+                $errors[] = "Linha {$lineNumber}: Erro ao inserir reserva.";
+            }
+        }
+
+        $stmtCheck->close();
+        $stmtInsert->close();
+        fclose($tempFile);
+
+        if ($successCount > 0) {
+            echo "<div class='mt-3 alert alert-success fade show' role='alert'><strong>Sucesso:</strong> {$successCount} reserva(s) importada(s) com sucesso.</div>";
+            acaoexecutada("Importação de Reservas em Massa via CSV");
+        }
+        if ($duplicateCount > 0) {
+            echo "<div class='mt-3 alert alert-warning fade show' role='alert'><strong>Atenção:</strong> {$duplicateCount} reserva(s) já existia(m) e foi/foram ignorada(s).</div>";
+        }
+        if ($errorCount > 0) {
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erros:</strong> {$errorCount} linha(s) com erro.<br>" . implode('<br>', array_slice(array_map(function($error) {
+                return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
+            }, $errors), 0, 10)) . "</div>";
+        }
+    }
+}
+?>
+
+<div class="mb-4 p-3 border rounded bg-light-subtle">
+    <h5>Importar Reservas via CSV</h5>
+    <a href="/assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
+    <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID;RequisitorID;TempoID;Data(YYYY-MM-DD);Motivo;Extra(opcional)</p>
+    <form action="reservaemmassa.php?action=import_csv" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
+        <?php echo csrf_token_field(); ?>
+        <div class="me-2">
+            <input type="file" class="form-control" id="csvfile" name="csvfile" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">Importar CSV</button>
+    </form>
+</div>
+
+<form id="massReservationForm" action="reservaemmassa.php" method="POST" class="mt-4">
     <div class="row mb-3">
         <div class="col-md-6">
             <div class="form-floating">
