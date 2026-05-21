@@ -1,6 +1,17 @@
 <?php require 'index.php'; ?>
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
 <h3>Gestão de Tempos</h3>
+<div class="mb-4">
+    <h5>Importar Tempos via CSV</h5>
+    <a href="/assets/csvsample_tempos.csv" download>Download do modelo CSV</a>
+    <p class="small" style="color:red;font-weight:bold;">Deve de consultar o manual do administrador para mais informações.</p>
+    <form action="tempos.php?action=import" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
+        <div class="me-2">
+            <input type="file" class="form-control" id="csvfile" name="csvfile" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">Importar CSV</button>
+    </form>
+</div>
 <div class="d-flex align-items-center justify-content-center mb-3">
     <span class="me-3">Adicionar um tempo</span>
     <?php formulario("tempos.php?action=criar", [
@@ -10,6 +21,65 @@
 
 <?php
 switch (isset($_GET['action']) ? $_GET['action'] : null){
+    // Import CSV
+    case "import":
+        if (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
+            echo "<div class='alert alert-danger fade show' role='alert'>Erro ao fazer upload do ficheiro.</div>";
+            break;
+        }
+
+        $db->set_charset("utf8mb4");
+        $fileContent = file_get_contents($_FILES['csvfile']['tmp_name']);
+        $encoding = mb_detect_encoding($fileContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $encoding);
+        }
+
+        $tempFile = tmpfile();
+        fwrite($tempFile, $fileContent);
+        rewind($tempFile);
+
+        $successCount = 0;
+        $errorCount = 0;
+        $errors = [];
+        $lineNumber = 0;
+
+        while (($data = fgetcsv($tempFile, 0, ';')) !== FALSE) {
+            $lineNumber++;
+
+            if (!isset($data[0]) || trim($data[0]) === '') {
+                continue;
+            }
+
+            if ($lineNumber == 1 && in_array(strtolower(trim($data[0])), ['horario', 'horashumanos', 'tempo', 'time'])) {
+                continue;
+            }
+
+            $horashumanos = trim($data[0]);
+
+            $randomuuid = uuid4();
+            $stmt = $db->prepare("INSERT INTO tempos (id, horashumanos) VALUES (?, ?)");
+            $stmt->bind_param("ss", $randomuuid, $horashumanos);
+            if ($stmt->execute()) {
+                $successCount++;
+            } else {
+                $errorCount++;
+                $errors[] = "Erro ao inserir tempo '" . htmlspecialchars($horashumanos, ENT_QUOTES, 'UTF-8') . "': " . htmlspecialchars($stmt->error, ENT_QUOTES, 'UTF-8');
+            }
+            $stmt->close();
+        }
+
+        fclose($tempFile);
+
+        if ($successCount > 0) {
+            echo "<div class='alert alert-success fade show' role='alert'>{$successCount} tempo(s) importado(s) com sucesso.</div>";
+            acaoexecutada("Importação de Tempos via CSV");
+        }
+        if ($errorCount > 0) {
+            echo "<div class='alert alert-warning fade show' role='alert'>{$errorCount} erro(s) durante a importação:<br>" . implode('<br>', array_slice($errors, 0, 10)) . "</div>";
+        }
+        break;
+
     // caso seja preenchido o formulário de criação:
     case "criar":
         if (!isset($_POST['horahumana'])) {
