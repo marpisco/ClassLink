@@ -106,19 +106,19 @@ require_once(__DIR__ . '/../func/validation.php');
 
     const lookupConfig = {
         requisitor: {
-            endpoint: '/admin/api/requisitor_lookup.php',
+            endpoint: 'api/requisitor_lookup.php',
             inputId: 'lookupRequisitorInput',
             resultsId: 'lookupRequisitorResults',
             emptyMessage: 'Sem resultados de requisitorID.'
         },
         tempo: {
-            endpoint: '/admin/api/tempo_lookup.php',
+            endpoint: 'api/tempo_lookup.php',
             inputId: 'lookupTempoInput',
             resultsId: 'lookupTempoResults',
             emptyMessage: 'Sem resultados de tempoID.'
         },
         sala: {
-            endpoint: '/admin/api/sala_lookup.php',
+            endpoint: 'api/sala_lookup.php',
             inputId: 'lookupSalaInput',
             resultsId: 'lookupSalaResults',
             emptyMessage: 'Sem resultados de salaID.'
