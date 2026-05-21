@@ -4,7 +4,7 @@
 
 <div class="mb-4">
     <h5>Importar Materiais via CSV</h5>
-    <a href="/assets/csvsample.csv" download>Download do modelo CSV</a>
+    <a href="/assets/csvsample_materiais.csv" download>Download do modelo CSV</a>
     <p class="text-muted small"><strong>Nota:</strong> Para obter o RoomID de uma sala, consulte a gestão de salas ou use a listagem abaixo.</p>
     <p class="small" style="color:red;font-weight:bold;">Deve de consultar o manual do administrador para mais informações.</p>
     <form action="materiais.php?action=import" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
@@ -53,7 +53,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         $errors = [];
         $lineNumber = 0;
         
-        while (($data = fgetcsv($tempFile, 0, ';')) !== FALSE) {  // Changed: Added ';' as delimiter
+        while (($data = fgetcsv($tempFile, 0, ',')) !== FALSE) {
             $lineNumber++;
             
             // Skip empty lines

@@ -287,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $duplicateCount = 0;
         $errors = [];
 
-        while (($data = fgetcsv($tempFile, 0, ';')) !== false) {
+        while (($data = fgetcsv($tempFile, 0, ',')) !== false) {
             $lineNumber++;
 
             if (!isset($data[0]) || trim($data[0]) === '') {
@@ -383,7 +383,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 <div class="mb-4 p-3 border rounded bg-light-subtle">
     <h5>Importar Reservas via CSV</h5>
     <a href="../assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
-    <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID;RequisitorID;TempoID;Data(YYYY-MM-DD);Motivo;Extra(opcional)</p>
+    <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID,RequisitorID,TempoID,Data(YYYY-MM-DD),Motivo,Extra(opcional)</p>
     <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#csvLookupModal">
         Pesquisar IDs (Requisitor/Tempo/Sala)
     </button>
