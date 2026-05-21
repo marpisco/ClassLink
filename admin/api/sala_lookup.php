@@ -24,8 +24,8 @@ $idPrefixParam = $escaped . '%';
 $searchParam = '%' . $escaped . '%';
 $limit = 10;
 
-$stmt = $db->prepare("SELECT id, nome FROM salas WHERE id = ? OR id LIKE ? ESCAPE '\\\\' OR nome LIKE ? ESCAPE '\\\\' ORDER BY nome ASC LIMIT ?");
-$stmt->bind_param("sssi", $query, $idPrefixParam, $searchParam, $limit);
+$stmt = $db->prepare("SELECT id, nome FROM salas WHERE id LIKE ? ESCAPE '\\\\' OR nome LIKE ? ESCAPE '\\\\' ORDER BY nome ASC LIMIT ?");
+$stmt->bind_param("ssi", $idPrefixParam, $searchParam, $limit);
 $stmt->execute();
 $result = $stmt->get_result();
 

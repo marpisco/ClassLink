@@ -126,9 +126,12 @@ require_once(__DIR__ . '/../func/validation.php');
     };
 
     function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function showLookupSkeleton(targetId) {
@@ -158,7 +161,12 @@ require_once(__DIR__ . '/../func/validation.php');
         const params = new URLSearchParams();
         params.set('q', query);
         fetch(config.endpoint + '?' + params.toString())
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (!Array.isArray(data.items) || data.items.length === 0) {
                     target.innerHTML = "<div class='alert alert-warning py-2 mb-0'>" + config.emptyMessage + "</div>";
