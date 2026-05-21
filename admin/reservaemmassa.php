@@ -173,7 +173,7 @@ require_once(__DIR__ . '/../func/validation.php');
                     return;
                 }
 
-                const itemsHtml = data.items.slice(0, 10).map(item => {
+                const itemsHtml = data.items.map(item => {
                     const title = item.title ? `<strong>${escapeHtml(item.title)}</strong><br>` : '';
                     const subtitle = item.subtitle ? `<small class='text-muted'>${escapeHtml(item.subtitle)}</small><br>` : '';
                     const itemId = escapeHtml(item.id || '');
@@ -201,6 +201,17 @@ require_once(__DIR__ . '/../func/validation.php');
                 searchLookup(targetType);
             });
         });
+
+        const lookupModal = document.getElementById('csvLookupModal');
+        let lookupModalInitialized = false;
+        if (lookupModal) {
+            lookupModal.addEventListener('shown.bs.modal', function () {
+                if (!lookupModalInitialized) {
+                    searchLookup('requisitor');
+                    lookupModalInitialized = true;
+                }
+            });
+        }
     }
     
     // Form validation
@@ -220,7 +231,6 @@ require_once(__DIR__ . '/../func/validation.php');
             form.addEventListener('submit', validateForm);
         }
         initLookupTabs();
-        searchLookup('requisitor');
     });
 </script>
 
