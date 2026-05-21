@@ -125,7 +125,7 @@ require_once(__DIR__ . '/../func/validation.php');
         }
     };
 
-    function lookupEscapeHtml(text) {
+    function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -166,9 +166,9 @@ require_once(__DIR__ . '/../func/validation.php');
                 }
 
                 const itemsHtml = data.items.slice(0, 10).map(item => {
-                    const title = item.title ? `<strong>${lookupEscapeHtml(item.title)}</strong><br>` : '';
-                    const subtitle = item.subtitle ? `<small class='text-muted'>${lookupEscapeHtml(item.subtitle)}</small><br>` : '';
-                    const itemId = lookupEscapeHtml(item.id || '');
+                    const title = item.title ? `<strong>${escapeHtml(item.title)}</strong><br>` : '';
+                    const subtitle = item.subtitle ? `<small class='text-muted'>${escapeHtml(item.subtitle)}</small><br>` : '';
+                    const itemId = escapeHtml(item.id || '');
                     return `<div class='list-group-item'>
                         ${title}
                         ${subtitle}
