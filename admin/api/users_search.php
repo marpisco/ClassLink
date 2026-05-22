@@ -27,7 +27,7 @@ if (isset($_SESSION['pending_totp_user']) || isset($_SESSION['pending_user_setup
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 $search = isset($_GET['search']) ? sanitize_input($_GET['search'], 100) : '';
 $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
-$limit = 20;
+$limit = 10;
 
 if ($action === 'search') {
     if ($search !== '') {

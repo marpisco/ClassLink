@@ -50,7 +50,7 @@ while ($row = $topReserversResult->fetch_assoc()) {
 }
 $topReserversStmt->close();
 
-// Reservations per classroom for the current week (approved reservations only)
+// Reservations per classroom for the current week (approved reservations only, top 10)
 $reservationsPerRoomStmt = $db->prepare("
     SELECT s.nome, COUNT(*) as total_reservas
     FROM reservas r
@@ -58,6 +58,7 @@ $reservationsPerRoomStmt = $db->prepare("
     WHERE r.aprovado = 1 AND r.data >= ? AND r.data <= ?
     GROUP BY r.sala, s.nome
     ORDER BY total_reservas DESC
+    LIMIT 10
 ");
 $reservationsPerRoomStmt->bind_param("ss", $currentWeekStart, $currentWeekEnd);
 $reservationsPerRoomStmt->execute();
