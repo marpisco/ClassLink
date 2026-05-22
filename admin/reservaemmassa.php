@@ -251,32 +251,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
     if ($tempFile) {
 
-        $salasValidas = [];
-        $stmtSalas = $db->prepare("SELECT id FROM salas");
-        $stmtSalas->execute();
-        $resultSalas = $stmtSalas->get_result();
-        while ($row = $resultSalas->fetch_assoc()) {
-            $salasValidas[$row['id']] = true;
-        }
-        $stmtSalas->close();
+        $stmtSalaExists = $db->prepare("SELECT 1 FROM salas WHERE id = ? LIMIT 1");
+        $stmtRequisitorExists = $db->prepare("SELECT 1 FROM cache WHERE id = ? LIMIT 1");
+        $stmtTempoExists = $db->prepare("SELECT 1 FROM tempos WHERE id = ? LIMIT 1");
 
-        $requisitoresValidos = [];
-        $stmtRequisitores = $db->prepare("SELECT id FROM cache");
-        $stmtRequisitores->execute();
-        $resultRequisitores = $stmtRequisitores->get_result();
-        while ($row = $resultRequisitores->fetch_assoc()) {
-            $requisitoresValidos[$row['id']] = true;
-        }
-        $stmtRequisitores->close();
+        $salaValidationCache = [];
+        $requisitorValidationCache = [];
+        $tempoValidationCache = [];
 
-        $temposValidos = [];
-        $stmtTempos = $db->prepare("SELECT id FROM tempos");
-        $stmtTempos->execute();
-        $resultTempos = $stmtTempos->get_result();
-        while ($row = $resultTempos->fetch_assoc()) {
-            $temposValidos[$row['id']] = true;
-        }
-        $stmtTempos->close();
+        $validateExists = function (mysqli_stmt $stmt, string $id, array &$cache): bool {
+            if ($id === '') {
+                return false;
+            }
+
+            if (array_key_exists($id, $cache)) {
+                return $cache[$id];
+            }
+
+            $lookupId = $id;
+            $stmt->bind_param("s", $lookupId);
+            $stmt->execute();
+            $stmt->store_result();
+            $exists = $stmt->num_rows > 0;
+            $stmt->free_result();
+
+            $cache[$id] = $exists;
+            return $exists;
+        };
 
         $stmtCheck = $db->prepare("SELECT 1 FROM reservas WHERE sala = ? AND tempo = ? AND data = ? LIMIT 1");
         $stmtInsert = $db->prepare("INSERT INTO reservas (sala, tempo, data, requisitor, aprovado, motivo, extra) VALUES (?, ?, ?, ?, 1, ?, ?)");
@@ -318,19 +319,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 continue;
             }
 
-            if (!isset($salasValidas[$salaId])) {
+            if (!$validateExists($stmtSalaExists, $salaId, $salaValidationCache)) {
                 $errorCount++;
                 $errors[] = "Linha {$lineNumber}: Sala inválida '{$salaId}'.";
                 continue;
             }
 
-            if (!isset($requisitoresValidos[$requisitorId])) {
+            if (!$validateExists($stmtRequisitorExists, $requisitorId, $requisitorValidationCache)) {
                 $errorCount++;
                 $errors[] = "Linha {$lineNumber}: Requisitor inválido '{$requisitorId}'.";
                 continue;
             }
 
-            if (!isset($temposValidos[$tempoId])) {
+            if (!$validateExists($stmtTempoExists, $tempoId, $tempoValidationCache)) {
                 $errorCount++;
                 $errors[] = "Linha {$lineNumber}: Tempo inválido '{$tempoId}'.";
                 continue;
@@ -357,6 +358,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             }
         }
 
+        $stmtSalaExists->close();
+        $stmtRequisitorExists->close();
+        $stmtTempoExists->close();
         $stmtCheck->close();
         $stmtInsert->close();
         fclose($tempFile);
