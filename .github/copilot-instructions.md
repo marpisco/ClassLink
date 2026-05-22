@@ -81,19 +81,27 @@ phpmailer/phpmailer: ^7.1.1, league/oauth2-client: ^2.8, tecnickcom/tcpdf: ^6.7,
 
 ## Session Summary (2026-05-22)
 
-- **Brief summary**: Upgraded PHPMailer from 7.0.2 to 7.1.1 (dependabot PR #151), merged main into dev via fast-forward, updated copilot instructions to reflect current project state.
+- **Brief summary**: Upgraded PHPMailer 7.0.2→7.1.1 (dependabot PR #151, closed manually — upgrade done separately), merged main into dev via fast-forward, added pending-auth guards to all pages/APIs (#153), set LIMIT 10 default + search filters on all API endpoints (#155), added skeleton loading UX to registos (logs) page, updated copilot instructions.
 - **Changes made**:
 	- Switched to `dev` branch, fast-forward merged `main` (commit `701ce3d` — CSV mass import feature PR #152).
-	- Upgraded `phpmailer/phpmailer` from `^7.0` to `^7.1.1` via composer; verified with `php -l` and runtime version check.
-	- Updated `.github/copilot-instructions.md`: PHPMailer 7.1.1, pragmarx/google2fa ^9.0, added config table, new func files (navbar, session_config, get_config), new admin pages (reservaemmassa, emailnotification), new API endpoints (requisitor_lookup, sala_lookup, tempo_lookup), expanded email_helper function list, added coding rules for get_app_config and dev mode, removed outdated batch scripts section, updated session summary.
-- **Rationale / notes**: PHPMailer 7.1.1 includes minor security fixes (strip breaks from properties, strict encoding validation, MessageDate validation) — no breaking changes for ClassLink since all Encoding/CharSet values use lowercase/constants. Dependenabot PR #151 is mergeable-clean and can be closed after this upgrade is confirmed working via manual email test.
+	- Upgraded `phpmailer/phpmailer` from `^7.0` to `^7.1.1` via composer; verified with `php -l` and runtime version check (`7.1.1`). Dependabot PR #151 was closed without merging since the upgrade was applied directly.
+	- **#153 — Security**: Invalidated authenticated session vars on TOTP entry so valid sessions can't bypass TOTP; added `pending_totp_user`/`pending_user_setup` and session validity checks to all page auth guards and admin API endpoints (16 files).
+	- **#155 — API**: Changed default LIMIT from 50→10 on `api_registos`, 20→10 on `salas_search`/`tempos_search`/`users_search`; added `q` search filter to `api_registos` (searches loginfo, nome, email, ip_address); added `total` count and `hasMore` fields for client-side pagination awareness; added `LIKE … ESCAPE` for safe wildcard handling.
+	- Updated `admin/registos.php`: limit 50→10 inline with API default, added `renderSkeletonRows()` for skeleton loading placeholders on initial load.
+	- Added skeleton shimmer CSS (`assets/theme.css`): `.skeleton`, `.skeleton-text`, `.skeleton-card`, `.skeleton-row`, `.skeleton-avatar` classes with animated shimmer gradient and dark-mode support.
+	- Updated `.github/copilot-instructions.md` to reflect current project state (PHPMailer 7.1.1, new func files, new admin pages/APIs, coding rules, session summaries).
+- **Rationale / notes**: PHPMailer 7.1.1 includes minor security fixes (strip breaks from properties, strict encoding validation, MessageDate validation) — no breaking changes for ClassLink. Pending-auth guards close a gap where an authenticated session could skip TOTP by navigating directly. API LIMIT defaults reduce payload sizes for better performance; search filters enable type-ahead in admin UIs.
 - **Touched files**:
-	- composer.json (phpmailer constraint ^7.0 → ^7.1.1)
-	- composer.lock (phpmailer v7.0.2 → v7.1.1)
-	- vendor/phpmailer/phpmailer/ (upgraded package)
+	- composer.json / composer.lock / vendor/phpmailer/ (PHPMailer upgrade)
+	- 16 files across all page directories + admin/api/ (pending-auth guards, #153)
+	- 6 admin/api/ files (LIMIT defaults + search filters, #155)
+	- admin/registos.php (skeleton loading + limit align)
+	- assets/theme.css (skeleton CSS)
 	- .github/copilot-instructions.md
 - **Verification**:
-	- `php -l` on func/email_helper.php, admin/emailnotification.php, src/config.php, src/config.sample.php — all pass.
+	- `php -l` on all modified PHP files — all pass.
 	- Runtime: `PHPMailer\PHPMailer\PHPMailer::VERSION` returns `7.1.1`.
 - **Git info**:
-	- Branch: `dev`. Pending: user mass-email test to confirm PHPMailer 7.1.1 works end-to-end before closing dependabot PR #151.
+	- Branch: `dev` (2 commits ahead of origin/dev: `128952b` and `bd62fb4`).
+	- Pending: user mass-email test to confirm PHPMailer 7.1.1 works end-to-end before pushing to origin.
+	- Dependabot PR #151: closed (not merged).
