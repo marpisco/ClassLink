@@ -63,7 +63,7 @@
 
 <script>
     let currentOffset = 0;
-    const limit = 10;
+    const limit = 50;
     const scrollThreshold = 200;
     let isLoading = false;
     let hasMoreLogs = true;
@@ -73,19 +73,6 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
-
-    function renderSkeletonRows(count) {
-        const tbody = document.getElementById('logsTableBody');
-        for (let i = 0; i < count; i++) {
-            const tr = document.createElement('tr');
-            tr.className = 'skeleton-row-placeholder';
-            tr.innerHTML = '<td><div class="skeleton skeleton-text w-75"></div><div class="skeleton skeleton-text w-50"></div></td>' +
-                           '<td><div class="skeleton skeleton-text"></div></td>' +
-                           '<td><div class="skeleton skeleton-text w-25"></div></td>' +
-                           '<td><div class="skeleton skeleton-text w-50"></div></td>';
-            tbody.appendChild(tr);
-        }
     }
 
     function toggleAction(logId) {
@@ -212,7 +199,6 @@
 
     // Initial load and scroll listener
     document.addEventListener('DOMContentLoaded', function() {
-        renderSkeletonRows(10);
         loadLogs();
         window.addEventListener('scroll', handleScroll);
     });
