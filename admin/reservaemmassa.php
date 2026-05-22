@@ -287,6 +287,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $errorCount = 0;
         $duplicateCount = 0;
         $errors = [];
+        $maxDisplayedErrors = 10;
+
+        $recordError = function(string $message) use (&$errors, $maxDisplayedErrors): void {
+            if (count($errors) < $maxDisplayedErrors) {
+                $errors[] = $message;
+            }
+        };
 
         while (($data = fgetcsv($tempFile, 0, ',')) !== false) {
             $lineNumber++;
@@ -302,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
             if (count($data) < 4) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber} inválida (mínimo 4 colunas).";
+                $recordError("Linha {$lineNumber} inválida (mínimo 4 colunas).");
                 continue;
             }
 
@@ -315,25 +322,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
             if (!validate_date($dataReserva)) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber}: Data inválida '{$dataReserva}' (formato esperado: YYYY-MM-DD).";
+                $recordError("Linha {$lineNumber}: Data inválida '{$dataReserva}' (formato esperado: YYYY-MM-DD).");
                 continue;
             }
 
             if (!$validateExists($stmtSalaExists, $salaId, $salaValidationCache)) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber}: Sala inválida '{$salaId}'.";
+                $recordError("Linha {$lineNumber}: Sala inválida '{$salaId}'.");
                 continue;
             }
 
             if (!$validateExists($stmtRequisitorExists, $requisitorId, $requisitorValidationCache)) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber}: Requisitor inválido '{$requisitorId}'.";
+                $recordError("Linha {$lineNumber}: Requisitor inválido '{$requisitorId}'.");
                 continue;
             }
 
             if (!$validateExists($stmtTempoExists, $tempoId, $tempoValidationCache)) {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber}: Tempo inválido '{$tempoId}'.";
+                $recordError("Linha {$lineNumber}: Tempo inválido '{$tempoId}'.");
                 continue;
             }
 
@@ -354,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 $successCount++;
             } else {
                 $errorCount++;
-                $errors[] = "Linha {$lineNumber}: Erro ao inserir reserva.";
+                $recordError("Linha {$lineNumber}: Erro ao inserir reserva.");
             }
         }
 
@@ -373,11 +380,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             echo "<div class='mt-3 alert alert-warning fade show' role='alert'><strong>Atenção:</strong> {$duplicateCount} reserva(s) já existia(m) e foi/foram ignorada(s).</div>";
         }
         if ($errorCount > 0) {
-            $displayLimit = 10;
-            $displayedErrors = array_slice(array_map(function($error) {
+            $displayedErrors = array_map(function($error) {
                 return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
-            }, $errors), 0, $displayLimit);
-            $truncatedNote = $errorCount > $displayLimit ? "<br><em>A mostrar os primeiros {$displayLimit} de {$errorCount} erro(s).</em>" : "";
+            }, $errors);
+            $truncatedNote = $errorCount > $maxDisplayedErrors ? "<br><em>A mostrar os primeiros {$maxDisplayedErrors} de {$errorCount} erro(s).</em>" : "";
             echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erros:</strong> {$errorCount} linha(s) com erro.<br>" . implode('<br>', $displayedErrors) . $truncatedNote . "</div>";
         }
     }
