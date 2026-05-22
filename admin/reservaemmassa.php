@@ -237,12 +237,26 @@ require_once(__DIR__ . '/../func/validation.php');
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'import_csv') {
     $tempFile = null;
+    $maxFileSize = 2 * 1024 * 1024; // 2 MB
     if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
         echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Token CSRF inválido.</div>";
     } elseif (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
         echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Erro ao fazer upload do ficheiro CSV.</div>";
+    } elseif ($_FILES['csvfile']['size'] > $maxFileSize) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Ficheiro demasiado grande (máximo 2 MB).</div>";
     } else {
-        $tempFile = fopen($_FILES['csvfile']['tmp_name'], 'r');
+        // Detect encoding and convert to UTF-8 if needed (consistent with materiais.php CSV import)
+        $fileContent = file_get_contents($_FILES['csvfile']['tmp_name']);
+        $encoding = mb_detect_encoding($fileContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $encoding);
+        }
+
+        $tempFile = tmpfile();
+        fwrite($tempFile, $fileContent);
+        rewind($tempFile);
+        unset($fileContent);
+
         if ($tempFile === false) {
             echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Não foi possível ler o ficheiro CSV.</div>";
             $tempFile = null;
