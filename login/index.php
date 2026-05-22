@@ -207,6 +207,9 @@
 
                 // Admin TOTP check
                 if ($user['admin'] == 1 && is_admin_totp_required()) {
+                    // Invalidate existing authenticated session before entering TOTP flow
+                    unset($_SESSION['id'], $_SESSION['nome'], $_SESSION['email'], $_SESSION['admin'], $_SESSION['validity']);
+
                     if (empty($user['totp_secret'])) {
                         // Admin without TOTP - redirect to setup
                         $_SESSION['pending_totp_user'] = [

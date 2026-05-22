@@ -10,6 +10,18 @@ if (!isset($_SESSION['admin']) || !$_SESSION['admin']) {
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
+// Check session validity
+if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Sessão expirada']);
+    exit;
+}
+// Guard: reject pending TOTP/setup flows from API access
+if (isset($_SESSION['pending_totp_user']) || isset($_SESSION['pending_user_setup'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Autenticação incompleta']);
+    exit;
+}
 
 $currentYear = date('Y');
 $currentWeekStart = date('Y-m-d', strtotime('monday this week'));
