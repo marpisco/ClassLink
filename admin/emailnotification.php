@@ -550,7 +550,7 @@ $emailMode = isset($_POST['email_mode']) ? $_POST['email_mode'] : ''; // no defa
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="identify_sender" name="identify_sender" value="1" <?php echo (isset($_POST['identify_sender']) && $_POST['identify_sender'] == '1') ? 'checked' : ''; ?>>
                     <label class="form-check-label" for="identify_sender">
-                        Identificar-me como remetente (o seu nome será adicionado no final da mensagem)
+                        Identificar-me como remetente
                     </label>
                 </div>
             </div>

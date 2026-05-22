@@ -10,6 +10,18 @@ if (!isset($_SESSION['admin']) || !$_SESSION['admin']) {
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
+// Check session validity
+if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Sessão expirada']);
+    exit;
+}
+// Guard: reject pending TOTP/setup flows from API access
+if (isset($_SESSION['pending_totp_user']) || isset($_SESSION['pending_user_setup'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Autenticação incompleta']);
+    exit;
+}
 
 $currentYear = date('Y');
 $currentWeekStart = date('Y-m-d', strtotime('monday this week'));
@@ -38,7 +50,7 @@ while ($row = $topReserversResult->fetch_assoc()) {
 }
 $topReserversStmt->close();
 
-// Reservations per classroom for the current week (approved reservations only)
+// Reservations per classroom for the current week (approved reservations only, top 10)
 $reservationsPerRoomStmt = $db->prepare("
     SELECT s.nome, COUNT(*) as total_reservas
     FROM reservas r
@@ -46,6 +58,7 @@ $reservationsPerRoomStmt = $db->prepare("
     WHERE r.aprovado = 1 AND r.data >= ? AND r.data <= ?
     GROUP BY r.sala, s.nome
     ORDER BY total_reservas DESC
+    LIMIT 10
 ");
 $reservationsPerRoomStmt->bind_param("ss", $currentWeekStart, $currentWeekEnd);
 $reservationsPerRoomStmt->execute();
