@@ -132,6 +132,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         echo "<div class='alert alert-info fade show' role='alert'>Completar informações do material</div>";
         ?>
         <form action="materiais.php?action=criar_completo" method="POST" class="mb-3">
+            <?= csrf_token_field(); ?>
             <div class="form-floating mb-2">
                 <input type="text" class="form-control" id="nomematerial" name="nomematerial" placeholder="Nome do Material" value="<?php echo htmlspecialchars($_POST['nomematerial'], ENT_QUOTES, 'UTF-8'); ?>" required>
                 <label for="nomematerial">Nome do Material</label>
@@ -175,13 +176,13 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         
     // Delete material
     case "apagar":
-        if (!isset($_GET['id'])) {
+        if (!isset($_POST['id'])) {
             echo "<div class='alert alert-danger fade show' role='alert'>ID inválido.</div>";
             break;
         }
         
         $stmt = $db->prepare("DELETE FROM materiais WHERE id = ?");
-        $stmt->bind_param("s", $_GET['id']);
+        $stmt->bind_param("s", $_POST['id']);
         $stmt->execute();
         $stmt->close();
         acaoexecutada("Eliminação de Material");
@@ -208,6 +209,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         echo "<div class='alert alert-warning fade show' role='alert'>A editar o Material <b>" . htmlspecialchars($d['nome'], ENT_QUOTES, 'UTF-8') . "</b>.</div>";
         ?>
         <form action="materiais.php?action=update&id=<?php echo urlencode($d['id']); ?>" method="POST" class="mb-3">
+            <?= csrf_token_field(); ?>
             <div class="form-floating mb-2">
                 <input type="text" class="form-control" id="nomematerial" name="nomematerial" placeholder="Nome do Material" value="<?php echo htmlspecialchars($d['nome'], ENT_QUOTES, 'UTF-8'); ?>" required>
                 <label for="nomematerial">Nome do Material</label>
@@ -298,7 +300,11 @@ if ($materiaisQuery->num_rows == 0) {
         echo "<td><span class='badge bg-info'>{$salaNome}</span></td>";
         echo "<td>";
         echo "<a href='/admin/materiais.php?action=edit&id={$idEnc}' class='btn btn-sm btn-outline-primary me-1'>Editar</a>";
-        echo "<a href='/admin/materiais.php?action=apagar&id={$idEnc}' class='btn btn-sm btn-outline-danger' onclick='return confirm(\"Tem a certeza que pretende apagar este material?\");'>Apagar</a>";
+        echo "<form action='/admin/materiais.php?action=apagar' method='POST' style='display:inline;' onsubmit='return confirm(\"Tem a certeza que pretende apagar este material?\");'>";
+        echo csrf_token_field();
+        echo "<input type='hidden' name='id' value='{$idEnc}'>";
+        echo "<button type='submit' class='btn btn-sm btn-outline-danger'>Apagar</button>";
+        echo "</form>";
         echo "</td>";
         echo "</tr>";
     }

@@ -296,9 +296,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $stmtCheck = $db->prepare("SELECT 1 FROM reservas WHERE sala = ? AND tempo = ? AND data = ? LIMIT 1");
         $stmtInsert = $db->prepare("INSERT INTO reservas (sala, tempo, data, requisitor, aprovado, motivo, extra) VALUES (?, ?, ?, ?, 1, ?, ?)");
 
+        $db->begin_transaction();
+
         $lineNumber = 0;
         $successCount = 0;
         $errorCount = 0;
+        $insertErrorCount = 0;
         $duplicateCount = 0;
         $errors = [];
         $maxDisplayedErrors = 10;
@@ -375,8 +378,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 $successCount++;
             } else {
                 $errorCount++;
+                $insertErrorCount++;
                 $recordError("Linha {$lineNumber}: Erro ao inserir reserva.");
             }
+        }
+
+        if ($insertErrorCount > 0) {
+            $db->rollback();
+        } else {
+            $db->commit();
         }
 
         $stmtSalaExists->close();
@@ -462,6 +472,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 </div>
 
 <form id="massReservationForm" action="reservaemmassa.php" method="POST" class="mt-4">
+    <?= csrf_token_field(); ?>
     <div class="row mb-3">
         <div class="col-md-6">
             <div class="form-floating">
@@ -690,6 +701,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sala']) && isset($_PO
                 $reservas_duplicadas = 0;
                 $erros = [];
                 $num_semanas = 0;
+                $db->begin_transaction();
+
                 
                 // Create reservations for each week until we pass the end date
                 $current_date = $first_date;
@@ -740,6 +753,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sala']) && isset($_PO
                 }
                 
                 // Send email notification to the user if any reservations were created
+                if (!empty($erros)) {
+                    $db->rollback();
+                    $reservas_criadas = 0;
+                } else {
+                    $db->commit();
+                }
+
                 if ($reservas_criadas > 0) {
                     sendRecurringWeeklyReservationsEmail(
                         $db,
