@@ -1,13 +1,16 @@
-<?php require 'index.php'; ?>
+<?php require 'index.php';
+require_once(__DIR__ . '/../func/csrf.php');
+?>
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
 <h3>Gestão de Materiais</h3>
 
 <div class="mb-4">
     <h5>Importar Materiais via CSV</h5>
-    <a href="/assets/csvsample.csv" download>Download do modelo CSV</a>
+    <a href="/assets/csvsample_materiais.csv" download>Download do modelo CSV</a>
     <p class="text-muted small"><strong>Nota:</strong> Para obter o RoomID de uma sala, consulte a gestão de salas ou use a listagem abaixo.</p>
     <p class="small" style="color:red;font-weight:bold;">Deve de consultar o manual do administrador para mais informações.</p>
     <form action="materiais.php?action=import" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
+        <?php echo csrf_token_field(); ?>
         <div class="me-2">
             <input type="file" class="form-control" id="csvfile" name="csvfile" accept=".csv" required>
         </div>
@@ -26,8 +29,15 @@
 switch (isset($_GET['action']) ? $_GET['action'] : null){
     // Import CSV
     case "import":
-        if (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
+        $maxFileSize = 2 * 1024 * 1024; // 2 MB
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            echo "<div class='alert alert-danger fade show' role='alert'><strong>Erro:</strong> Token CSRF inválido.</div>";
+            break;
+        } elseif (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
             echo "<div class='alert alert-danger fade show' role='alert'>Erro ao fazer upload do ficheiro.</div>";
+            break;
+        } elseif ($_FILES['csvfile']['size'] > $maxFileSize) {
+            echo "<div class='alert alert-danger fade show' role='alert'><strong>Erro:</strong> Ficheiro demasiado grande (máximo 2 MB).</div>";
             break;
         }
         
@@ -53,7 +63,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         $errors = [];
         $lineNumber = 0;
         
-        while (($data = fgetcsv($tempFile, 0, ';')) !== FALSE) {  // Changed: Added ';' as delimiter
+        while (($data = fgetcsv($tempFile, 0, ',')) !== FALSE) {
             $lineNumber++;
             
             // Skip empty lines

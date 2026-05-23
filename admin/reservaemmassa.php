@@ -1,6 +1,8 @@
 <?php 
 require __DIR__ . '/index.php';
 require_once(__DIR__ . '/../func/email_helper.php');
+require_once(__DIR__ . '/../func/csrf.php');
+require_once(__DIR__ . '/../func/validation.php');
 ?>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
 <h1>Reserva em Massa</h1>
@@ -101,6 +103,116 @@ require_once(__DIR__ . '/../func/email_helper.php');
         document.getElementById('selectedUserDisplay').value = '';
         document.getElementById('selectedUserDisplay').placeholder = 'Selecione um utilizador...';
     }
+
+    const lookupConfig = {
+        requisitor: {
+            endpoint: 'api/requisitor_lookup.php',
+            inputId: 'lookupRequisitorInput',
+            resultsId: 'lookupRequisitorResults',
+            emptyMessage: 'Sem resultados de requisitorID.'
+        },
+        tempo: {
+            endpoint: 'api/tempo_lookup.php',
+            inputId: 'lookupTempoInput',
+            resultsId: 'lookupTempoResults',
+            emptyMessage: 'Sem resultados de tempoID.'
+        },
+        sala: {
+            endpoint: 'api/sala_lookup.php',
+            inputId: 'lookupSalaInput',
+            resultsId: 'lookupSalaResults',
+            emptyMessage: 'Sem resultados de salaID.'
+        }
+    };
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function showLookupSkeleton(targetId) {
+        const target = document.getElementById(targetId);
+        target.innerHTML = `
+            <div class="placeholder-glow mb-2"><span class="placeholder col-12"></span></div>
+            <div class="placeholder-glow mb-2"><span class="placeholder col-10"></span></div>
+            <div class="placeholder-glow"><span class="placeholder col-8"></span></div>
+        `;
+    }
+
+    function searchLookup(type) {
+        const config = lookupConfig[type];
+        if (!config) return;
+
+        const input = document.getElementById(config.inputId);
+        const target = document.getElementById(config.resultsId);
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+            target.innerHTML = "<div class='alert alert-info py-2 mb-0'>Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div>";
+            return;
+        }
+
+        showLookupSkeleton(config.resultsId);
+
+        const params = new URLSearchParams();
+        params.set('q', query);
+        fetch(config.endpoint + '?' + params.toString())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!Array.isArray(data.items) || data.items.length === 0) {
+                    target.innerHTML = "<div class='alert alert-warning py-2 mb-0'>" + config.emptyMessage + "</div>";
+                    return;
+                }
+
+                const itemsHtml = data.items.map(item => {
+                    const title = item.title ? `<strong>${escapeHtml(item.title)}</strong><br>` : '';
+                    const subtitle = item.subtitle ? `<small class='text-muted'>${escapeHtml(item.subtitle)}</small><br>` : '';
+                    const itemId = escapeHtml(item.id || '');
+                    return `<div class='list-group-item'>
+                        ${title}
+                        ${subtitle}
+                        <code class='user-select-all'>${itemId}</code>
+                    </div>`;
+                }).join('');
+
+                target.innerHTML = `<div class="small text-muted mb-2">A mostrar até 10 resultados.</div><div class="list-group">${itemsHtml}</div>`;
+            })
+            .catch((err) => {
+                console.error(err);
+                target.innerHTML = "<div class='alert alert-danger py-2 mb-0'>Erro ao pesquisar. Tente novamente.</div>";
+            });
+    }
+
+    function initLookupTabs() {
+        const tabButtons = document.querySelectorAll('#csvLookupTabs button[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', function (event) {
+                const targetType = event.target.getAttribute('data-lookup-type');
+                if (!targetType) return;
+                searchLookup(targetType);
+            });
+        });
+
+        const lookupModal = document.getElementById('csvLookupModal');
+        let lookupModalInitialized = false;
+        if (lookupModal) {
+            lookupModal.addEventListener('shown.bs.modal', function () {
+                if (!lookupModalInitialized) {
+                    searchLookup('requisitor');
+                    lookupModalInitialized = true;
+                }
+            });
+        }
+    }
     
     // Form validation
     function validateForm(event) {
@@ -114,14 +226,242 @@ require_once(__DIR__ . '/../func/email_helper.php');
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('form');
+        const form = document.getElementById('massReservationForm');
         if (form) {
             form.addEventListener('submit', validateForm);
         }
+        initLookupTabs();
     });
 </script>
 
-<form action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" method="POST" class="mt-4">
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'import_csv') {
+    $tempFile = null;
+    $maxFileSize = 2 * 1024 * 1024; // 2 MB
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Token CSRF inválido.</div>";
+    } elseif (!isset($_FILES['csvfile']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Erro ao fazer upload do ficheiro CSV.</div>";
+    } elseif ($_FILES['csvfile']['size'] > $maxFileSize) {
+        echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Ficheiro demasiado grande (máximo 2 MB).</div>";
+    } else {
+        // Detect encoding and convert to UTF-8 if needed (consistent with materiais.php CSV import)
+        $fileContent = file_get_contents($_FILES['csvfile']['tmp_name']);
+        $encoding = mb_detect_encoding($fileContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $encoding);
+        }
+
+        $tempFile = tmpfile();
+        fwrite($tempFile, $fileContent);
+        rewind($tempFile);
+        unset($fileContent);
+
+        if ($tempFile === false) {
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erro:</strong> Não foi possível ler o ficheiro CSV.</div>";
+            $tempFile = null;
+        }
+    }
+
+    if ($tempFile) {
+
+        $stmtSalaExists = $db->prepare("SELECT 1 FROM salas WHERE id = ? LIMIT 1");
+        $stmtRequisitorExists = $db->prepare("SELECT 1 FROM cache WHERE id = ? LIMIT 1");
+        $stmtTempoExists = $db->prepare("SELECT 1 FROM tempos WHERE id = ? LIMIT 1");
+
+        $salaValidationCache = [];
+        $requisitorValidationCache = [];
+        $tempoValidationCache = [];
+
+        $validateExists = function (mysqli_stmt $stmt, string $id, array &$cache): bool {
+            if ($id === '') {
+                return false;
+            }
+
+            if (array_key_exists($id, $cache)) {
+                return $cache[$id];
+            }
+
+            $lookupId = $id;
+            $stmt->bind_param("s", $lookupId);
+            $stmt->execute();
+            $stmt->store_result();
+            $exists = $stmt->num_rows > 0;
+            $stmt->free_result();
+
+            $cache[$id] = $exists;
+            return $exists;
+        };
+
+        $stmtCheck = $db->prepare("SELECT 1 FROM reservas WHERE sala = ? AND tempo = ? AND data = ? LIMIT 1");
+        $stmtInsert = $db->prepare("INSERT INTO reservas (sala, tempo, data, requisitor, aprovado, motivo, extra) VALUES (?, ?, ?, ?, 1, ?, ?)");
+
+        $lineNumber = 0;
+        $successCount = 0;
+        $errorCount = 0;
+        $duplicateCount = 0;
+        $errors = [];
+        $maxDisplayedErrors = 10;
+
+        $recordError = function(string $message) use (&$errors, $maxDisplayedErrors): void {
+            if (count($errors) < $maxDisplayedErrors) {
+                $errors[] = $message;
+            }
+        };
+
+        while (($data = fgetcsv($tempFile, 0, ',')) !== false) {
+            $lineNumber++;
+
+            if (!isset($data[0]) || trim($data[0]) === '') {
+                continue;
+            }
+
+            $firstColumn = preg_replace('/^\xEF\xBB\xBF/', '', trim($data[0]));
+            if ($lineNumber === 1 && strtolower($firstColumn) === 'salaid') {
+                continue;
+            }
+
+            if (count($data) < 4) {
+                $errorCount++;
+                $recordError("Linha {$lineNumber} inválida (mínimo 4 colunas).");
+                continue;
+            }
+
+            $salaId = $firstColumn;
+            $requisitorId = trim($data[1]);
+            $tempoId = trim($data[2]);
+            $dataReserva = trim($data[3]);
+            $motivo = isset($data[4]) ? trim($data[4]) : '';
+            $extra = isset($data[5]) ? trim($data[5]) : '';
+
+            if (!validate_date($dataReserva)) {
+                $errorCount++;
+                $recordError("Linha {$lineNumber}: Data inválida '{$dataReserva}' (formato esperado: YYYY-MM-DD).");
+                continue;
+            }
+
+            if (!$validateExists($stmtSalaExists, $salaId, $salaValidationCache)) {
+                $errorCount++;
+                $recordError("Linha {$lineNumber}: Sala inválida '{$salaId}'.");
+                continue;
+            }
+
+            if (!$validateExists($stmtRequisitorExists, $requisitorId, $requisitorValidationCache)) {
+                $errorCount++;
+                $recordError("Linha {$lineNumber}: Requisitor inválido '{$requisitorId}'.");
+                continue;
+            }
+
+            if (!$validateExists($stmtTempoExists, $tempoId, $tempoValidationCache)) {
+                $errorCount++;
+                $recordError("Linha {$lineNumber}: Tempo inválido '{$tempoId}'.");
+                continue;
+            }
+
+            if ($motivo === '') {
+                $motivo = 'Importada via CSV (reserva em massa)';
+            }
+
+            $stmtCheck->bind_param("sss", $salaId, $tempoId, $dataReserva);
+            $stmtCheck->execute();
+            $exists = $stmtCheck->get_result()->fetch_assoc();
+            if ($exists) {
+                $duplicateCount++;
+                continue;
+            }
+
+            $stmtInsert->bind_param("ssssss", $salaId, $tempoId, $dataReserva, $requisitorId, $motivo, $extra);
+            if ($stmtInsert->execute()) {
+                $successCount++;
+            } else {
+                $errorCount++;
+                $recordError("Linha {$lineNumber}: Erro ao inserir reserva.");
+            }
+        }
+
+        $stmtSalaExists->close();
+        $stmtRequisitorExists->close();
+        $stmtTempoExists->close();
+        $stmtCheck->close();
+        $stmtInsert->close();
+        fclose($tempFile);
+
+        if ($successCount > 0) {
+            echo "<div class='mt-3 alert alert-success fade show' role='alert'><strong>Sucesso:</strong> {$successCount} reserva(s) importada(s) com sucesso.</div>";
+            acaoexecutada("Importação de Reservas em Massa via CSV");
+        }
+        if ($duplicateCount > 0) {
+            echo "<div class='mt-3 alert alert-warning fade show' role='alert'><strong>Atenção:</strong> {$duplicateCount} reserva(s) já existia(m) e foi/foram ignorada(s).</div>";
+        }
+        if ($errorCount > 0) {
+            $displayedErrors = array_map(function($error) {
+                return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
+            }, $errors);
+            $truncatedNote = $errorCount > $maxDisplayedErrors ? "<br><em>A mostrar os primeiros {$maxDisplayedErrors} de {$errorCount} erro(s).</em>" : "";
+            echo "<div class='mt-3 alert alert-danger fade show' role='alert'><strong>Erros:</strong> {$errorCount} linha(s) com erro.<br>" . implode('<br>', $displayedErrors) . $truncatedNote . "</div>";
+        }
+    }
+}
+?>
+
+<div class="mb-4 p-3 border rounded bg-light-subtle">
+    <h5>Importar Reservas via CSV</h5>
+    <a href="../assets/csvsample_reservas.csv" download>Download do modelo CSV</a>
+    <p class="text-muted small mb-2"><strong>Formato:</strong> SalaID,RequisitorID,TempoID,Data(YYYY-MM-DD),Motivo,Extra(opcional)</p>
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#csvLookupModal">
+        Pesquisar IDs (Requisitor/Tempo/Sala)
+    </button>
+    <form action="reservaemmassa.php?action=import_csv" method="POST" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center">
+        <?php echo csrf_token_field(); ?>
+        <div class="me-2">
+            <input type="file" class="form-control" id="csvfile" name="csvfile" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">Importar CSV</button>
+    </form>
+</div>
+
+<div class="modal fade" id="csvLookupModal" tabindex="-1" aria-labelledby="csvLookupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="csvLookupModalLabel">Pesquisar IDs para CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="csvLookupTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="requisitor-tab" data-bs-toggle="tab" data-bs-target="#requisitor-pane" type="button" role="tab" data-lookup-type="requisitor">requisitorID</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tempo-tab" data-bs-toggle="tab" data-bs-target="#tempo-pane" type="button" role="tab" data-lookup-type="tempo">tempoID</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sala-tab" data-bs-toggle="tab" data-bs-target="#sala-pane" type="button" role="tab" data-lookup-type="sala">salaID</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="requisitor-pane" role="tabpanel" aria-labelledby="requisitor-tab">
+                        <input type="text" class="form-control mb-2" id="lookupRequisitorInput" placeholder="Filtrar requisitorID, nome ou email..." oninput="searchLookup('requisitor')">
+                        <div id="lookupRequisitorResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                    <div class="tab-pane fade" id="tempo-pane" role="tabpanel" aria-labelledby="tempo-tab">
+                        <input type="text" class="form-control mb-2" id="lookupTempoInput" placeholder="Filtrar tempoID ou horário..." oninput="searchLookup('tempo')">
+                        <div id="lookupTempoResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                    <div class="tab-pane fade" id="sala-pane" role="tabpanel" aria-labelledby="sala-tab">
+                        <input type="text" class="form-control mb-2" id="lookupSalaInput" placeholder="Filtrar salaID ou nome da sala..." oninput="searchLookup('sala')">
+                        <div id="lookupSalaResults"><div class="alert alert-info py-2 mb-0">Digite pelo menos 2 caracteres para pesquisar (máx. 10 resultados).</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="massReservationForm" action="reservaemmassa.php" method="POST" class="mt-4">
     <div class="row mb-3">
         <div class="col-md-6">
             <div class="form-floating">

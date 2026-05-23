@@ -11,6 +11,18 @@ if (!isset($_SESSION['admin']) || !$_SESSION['admin']) {
     echo json_encode(['error' => 'Acesso negado.']);
     exit;
 }
+// Check session validity
+if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Sessão expirada']);
+    exit;
+}
+// Guard: reject pending TOTP/setup flows from API access
+if (isset($_SESSION['pending_totp_user']) || isset($_SESSION['pending_user_setup'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Autenticação incompleta']);
+    exit;
+}
 
 // Get parameters
 $emailMode = isset($_GET['email_mode']) ? $_GET['email_mode'] : '';
@@ -87,13 +99,27 @@ if ($emailMode === 'admins') {
 }
 
 if ($result) {
+    $allRecipients = [];
     while ($row = $result->fetch_assoc()) {
-        $recipients[] = $row['nome'] . ' (' . $row['email'] . ')';
+        $allRecipients[] = $row['nome'] . ' (' . $row['email'] . ')';
     }
     if (isset($stmt)) $stmt->close();
-}
 
-echo json_encode([
-    'count' => count($recipients),
-    'recipients' => $recipients
-]);
+    // Return full count but limit displayed recipients to reduce payload
+    $displayLimit = 10;
+    $displayedRecipients = array_slice($allRecipients, 0, $displayLimit);
+
+    echo json_encode([
+        'count' => count($allRecipients),
+        'recipients' => $displayedRecipients,
+        'total' => count($allRecipients),
+        'hasMore' => count($allRecipients) > $displayLimit
+    ]);
+} else {
+    echo json_encode([
+        'count' => 0,
+        'recipients' => [],
+        'total' => 0,
+        'hasMore' => false
+    ]);
+}

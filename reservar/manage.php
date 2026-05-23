@@ -5,6 +5,8 @@ require_once(__DIR__ . '/../func/get_config.php');
 require_once(__DIR__ . '/../func/csrf.php');
 require_once(__DIR__ . '/../src/db.php');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
+if (isset($_SESSION['pending_user_setup'])) { header('Location: /login?step=setup'); exit(); }
 if (!isset($_SESSION['validity']) || $_SESSION['validity'] < time()) {
     http_response_code(403);
     header("Location: /login");

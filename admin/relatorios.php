@@ -7,10 +7,13 @@ require_once(__DIR__ . '/../vendor/autoload.php');
 // Handle PDF generation
 if (isset($_POST['gerar_pdf'])) {
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
-    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
         die("<div class='alert alert-danger text-center'>Pedido inválido. Atualize a página e tente novamente.</div>");
     }
+    // Guard: redirect pending TOTP/setup flows to completion
+    if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
+    if (isset($_SESSION['pending_user_setup'])) { header('Location: /login?step=setup'); exit(); }
     if (!$_SESSION['admin']) {
         http_response_code(403);
         die("<div class='alert alert-danger text-center'>Não tem permissão para entrar no painel administrativo. <a href='/'>Voltar para a página inicial</a></div>");
