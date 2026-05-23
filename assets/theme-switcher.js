@@ -6,7 +6,7 @@
     // Set data-bs-theme immediately (before DOM is ready) to avoid flash of wrong theme
     htmlElement.setAttribute('data-bs-theme', darkModeQuery.matches ? 'dark' : 'light');
 
-    // Handle admin navbar — deferred until DOM is ready so #admin-navbar exists
+    // Handle admin navbar class switching
     function applyNavbarTheme(isDark) {
         const adminNavbar = document.getElementById('admin-navbar');
         if (!adminNavbar) return;
@@ -19,21 +19,26 @@
         }
     }
 
+    // Exposed for inline <script> placed right after the navbar HTML — runs
+    // synchronously before paint, so there is no flash of wrong navbar theme.
+    window.__applyNavbarTheme = function () {
+        applyNavbarTheme(darkModeQuery.matches);
+    };
+
+    // DOMContentLoaded fallback (e.g. if the inline call is missing or navbar
+    // is added dynamically after page load)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            applyNavbarTheme(darkModeQuery.matches);
+        });
+    }
+
     function applyTheme(isDark) {
         htmlElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
         applyNavbarTheme(isDark);
     }
 
-    // Apply navbar classes once the DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-            applyNavbarTheme(darkModeQuery.matches);
-        });
-    } else {
-        applyNavbarTheme(darkModeQuery.matches);
-    }
-
-    // Listen for changes in system theme preference
+    // Listen for changes in system theme preference (live OS toggle)
     darkModeQuery.addEventListener('change', function (e) {
         applyTheme(e.matches);
     });

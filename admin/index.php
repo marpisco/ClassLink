@@ -198,7 +198,7 @@
     }
     echo "<li class='nav-item'><a href='/' class='nav-link'>Voltar</a></li>";
     // Fechar Navbar no HTML, e passar o conteúdo para baixo
-    echo "</ul></div></div></nav><div class='container-fluid mt-4 justify-content-center text-center'>";
+    echo "</ul></div></div></nav><script>window.__applyNavbarTheme&&window.__applyNavbarTheme();</script><div class='container-fluid mt-4 justify-content-center text-center'>";
 
     $csrfTokenHtml = htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8');
     echo "<input type='hidden' id='global-csrf-token' value='{$csrfTokenHtml}'>";
