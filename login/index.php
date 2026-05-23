@@ -1,8 +1,13 @@
 <?php
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
+    require_once(__DIR__ . '/../func/csrf.php');
 
     // Handle database selection
     if (isset($_POST['action']) && $_POST['action'] === 'select_db') {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            die('Pedido inválido. Atualize a página e tente novamente.');
+        }
         $selectedDb = $_POST['db_selection'] ?? null;
         if ($selectedDb) {
             $_SESSION['selected_db'] = $selectedDb;
@@ -28,6 +33,7 @@
     $localAuthInfo = null;
     $localAuthStage = 'email';
     $emailValue = '';
+    $csrfTokenField = csrf_token_field();
 
     // --- Helper Functions for OTP/TOTP ---
 
@@ -144,6 +150,11 @@
     // --- POST Request Handling ---
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            die('Pedido inválido. Atualize a página e tente novamente.');
+        }
+
         $action = $_POST['action'] ?? null;
 
         if ($action === 'send_code' && isset($_POST['email'])) {
@@ -339,7 +350,7 @@
             exit();
         }
         $devModeBanner = is_development_mode() ? '<div style="background-color: #dc3545; color: white; padding: 4px; font-size: 12px; font-weight: bold; text-align: center; position: absolute; top: 0; width: 100%; z-index: 100;">⚠️ MODO DE DESENVOLVIMENTO - Dados de teste | Base de dados de desenvolvimento</div>' : '';
-        $content = $devModeBanner . '<div class="login-box"><h1>Verificação de Segurança</h1><p class="small">Introduza o código do seu autenticador para prosseguir.</p>' . (!empty($localAuthError) ? '<div class="error-msg">' . htmlspecialchars($localAuthError) . '</div>' : '') . '<form method="POST" action="/login/index.php"><input type="hidden" name="action" value="verify_totp"><div class="form-group"><input type="text" name="totp_code" placeholder="Código do autenticador" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required></div><button type="submit">Autenticar</button></form></div>';
+        $content = $devModeBanner . '<div class="login-box"><h1>Verificação de Segurança</h1><p class="small">Introduza o código do seu autenticador para prosseguir.</p>' . (!empty($localAuthError) ? '<div class="error-msg">' . htmlspecialchars($localAuthError) . '</div>' : '') . '<form method="POST" action="/login/index.php">' . $csrfTokenField . '<input type="hidden" name="action" value="verify_totp"><div class="form-group"><input type="text" name="totp_code" placeholder="Código do autenticador" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required></div><button type="submit">Autenticar</button></form></div>';
         render_login_template('Verificação de Segurança', $content);
         die();
     }
@@ -357,6 +368,7 @@
         $content .= '<p class="small">Por favor, introduza o seu nome completo.</p>';
         if (!empty($localAuthError)) { $content .= '<div class="error-msg">' . htmlspecialchars($localAuthError) . '</div>'; }
         $content .= '<form method="POST" action="/login/index.php">';
+        $content .= $csrfTokenField;
         $content .= '<input type="hidden" name="action" value="setup_name">';
         $content .= '<div class="form-group"><input type="text" name="nome" placeholder="Nome completo" required></div>';
         $content .= '<button type="submit">Continuar</button>';
@@ -399,6 +411,7 @@
         $content .= '<div class="qr-container"><img src="' . htmlspecialchars($qrCodeImage) . '" alt="QR Code"></div>';
         $content .= '<div class="info-msg"><strong>Código manual:</strong><br><span class="manual-code">' . htmlspecialchars($secret) . '</span></div>';
         $content .= '<form method="POST" action="/login/index.php">';
+        $content .= $csrfTokenField;
         $content .= '<input type="hidden" name="action" value="verify_totp_setup">';
         $content .= '<div class="form-group"><input type="text" name="totp_code" placeholder="Código do autenticador" pattern="\\d{6}" maxlength="6" autocomplete="one-time-code" required></div>';
         $content .= '<button type="submit">Validar e Ativar</button>';
@@ -454,6 +467,7 @@
                 <h1>Iniciar Sessão no ClassLink</h1>
                 <?php if ($showDbPicker): ?>
                 <form method="POST" action="/login/index.php" style="margin-bottom: 1rem;">
+                    <?= $csrfTokenField ?>
                     <input type="hidden" name="action" value="select_db">
                     <select name="db_selection" onchange="this.form.submit()" class="form-select" style="max-width: 200px; margin: 0 auto;">
                         <option value="">Selecionar Base de Dados...</option>
@@ -478,6 +492,7 @@
 
                 <?php if ($localAuthStage === 'email'): ?>
                 <form method="POST" action="/login/index.php">
+                    <?= $csrfTokenField ?>
                     <input type="hidden" name="action" value="send_code">
                     <div class="form-group">
                         <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" required>
@@ -486,6 +501,7 @@
                 </form>
                 <?php else: ?>
                 <form method="POST" action="/login/index.php">
+                    <?= $csrfTokenField ?>
                     <input type="hidden" name="action" value="verify_code">
                     <div class="form-group">
                         <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" readonly style="opacity: 0.7;">
@@ -539,7 +555,17 @@
     } else if (isset($_GET['error'])) {
 	?>
 <?php
-    }else if (isset($_GET['code'])){        $now = time();        try {
+    }else if (isset($_GET['code'])){        $now = time();
+        if (!isset($_GET['state']) || !isset($_SESSION['oauth2state']) || $_GET['state'] === '' || $_SESSION['oauth2state'] === '' || !hash_equals($_SESSION['oauth2state'], $_GET['state'])) {
+            $clientIp = get_client_ip();
+            $sessionHash = substr(hash('sha256', session_id()), 0, 8);
+            error_log("ClassLink OAuth state validation failed for callback. ip={$clientIp}; session_hash={$sessionHash}");
+            unset($_SESSION['oauth2state']);
+            header('Location: /login/');
+            exit();
+        }
+        unset($_SESSION['oauth2state']);
+        try {
             $accessToken = $provider->getAccessToken('authorization_code', [
                 'code' => $_GET['code']
             ]);

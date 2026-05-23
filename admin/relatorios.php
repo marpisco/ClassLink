@@ -1,11 +1,16 @@
 <?php
 require_once(__DIR__ . '/../func/logaction.php');
+require_once(__DIR__ . '/../func/csrf.php');
 require_once(__DIR__ . '/../src/db.php');
 require_once(__DIR__ . '/../vendor/autoload.php');
 
 // Handle PDF generation
 if (isset($_POST['gerar_pdf'])) {
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die("<div class='alert alert-danger text-center'>Pedido inválido. Atualize a página e tente novamente.</div>");
+    }
     // Guard: redirect pending TOTP/setup flows to completion
     if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
     if (isset($_SESSION['pending_user_setup'])) { header('Location: /login?step=setup'); exit(); }
@@ -164,6 +169,7 @@ require 'index.php';
     <p>Gere um relatório em PDF da utilização de salas para um dia específico.</p>
     
     <form method="POST" style="max-width: 500px; margin: 20px auto;">
+        <?= csrf_token_field(); ?>
         <div class="mb-3">
             <label for="data_relatorio" class="form-label">Selecione a Data</label>
             <input type="date" class="form-control" id="data_relatorio" name="data_relatorio" value="<?php echo date('Y-m-d'); ?>" required>

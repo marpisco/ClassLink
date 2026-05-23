@@ -2,6 +2,7 @@
 require_once(__DIR__ . '/../func/logaction.php');
 require_once(__DIR__ . '/../func/email_helper.php');
 require_once(__DIR__ . '/../func/get_config.php');
+require_once(__DIR__ . '/../func/csrf.php');
 require_once(__DIR__ . '/../src/db.php');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
@@ -29,6 +30,11 @@ $flash_html = '';
 $handled = false;
 $id = $_SESSION['id'] ?? null;
 $today = date("Y-m-d");
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    die("Pedido inválido. Atualize a página e tente novamente.");
+}
 
 // Bulk POST handling: show messages on page (no redirect)
 if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -96,7 +102,12 @@ if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQU
             $bulkRequisitor = $requisitor;
             $lastSlotSala = $slotSala;
 
-            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($db->query("SELECT email FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['email'] ?? '');
+            $requisitorEmailStmt = $db->prepare("SELECT email FROM cache WHERE id = ?");
+            $requisitorEmailStmt->bind_param("s", $requisitor);
+            $requisitorEmailStmt->execute();
+            $requisitorEmailResult = $requisitorEmailStmt->get_result();
+            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($requisitorEmailResult->fetch_assoc()['email'] ?? '');
+            $requisitorEmailStmt->close();
             $internalDomain = get_app_config('internal_email_domain', '');
             $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
             $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
@@ -107,10 +118,22 @@ if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQU
             if ($stmt->execute()) {
                 $successCount++;
                 saveReservationMaterials($db, $slotSala, $slotTempo, $slotData, $_POST['materiais'] ?? null);
-                $salaNome = $db->query("SELECT nome FROM salas WHERE id='" . $db->real_escape_string($slotSala) . "'")->fetch_assoc()['nome'] ?? $slotSala;
-                $tempoNome = $db->query("SELECT horashumanos FROM tempos WHERE id='" . $db->real_escape_string($slotTempo) . "'")->fetch_assoc()['horashumanos'] ?? $slotTempo;
+                $salaNomeStmt = $db->prepare("SELECT nome FROM salas WHERE id = ?");
+                $salaNomeStmt->bind_param("s", $slotSala);
+                $salaNomeStmt->execute();
+                $salaNome = $salaNomeStmt->get_result()->fetch_assoc()['nome'] ?? $slotSala;
+                $salaNomeStmt->close();
+                $tempoNomeStmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id = ?");
+                $tempoNomeStmt->bind_param("s", $slotTempo);
+                $tempoNomeStmt->execute();
+                $tempoNome = $tempoNomeStmt->get_result()->fetch_assoc()['horashumanos'] ?? $slotTempo;
+                $tempoNomeStmt->close();
                 if ($_SESSION['admin'] && $requisitor != $id) {
-                    $userName = $db->query("SELECT nome FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['nome'] ?? 'Utilizador';
+                    $userNameStmt = $db->prepare("SELECT nome FROM cache WHERE id = ?");
+                    $userNameStmt->bind_param("s", $requisitor);
+                    $userNameStmt->execute();
+                    $userName = $userNameStmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
+                    $userNameStmt->close();
                     logaction("Criou uma reserva para o utilizador '{$userName}': sala '{$salaNome}' no dia {$slotData} às {$tempoNome}", $_SESSION['id']);
                 } else {
                     logaction("Criou uma reserva: sala '{$salaNome}' no dia {$slotData} às {$tempoNome}", $requisitor);
@@ -128,7 +151,11 @@ if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQU
         $out .= ($isAutonomous) ? "<div class='alert alert-success'><h4 class='alert-heading'>Reservas Aprovadas!</h4><p class='mb-0'>{$successCount} reserva(s) criada(s) com sucesso e aprovadas automaticamente.</p></div>" : "<div class='alert alert-success'><h4 class='alert-heading'>Reservas Submetidas!</h4><p class='mb-0'>{$successCount} reserva(s) criada(s) com sucesso e submetidas para aprovação.</p></div>";
         if (count($failedSlots) > 0) $out .= "<div class='alert alert-warning'><strong>Algumas reservas falharam:</strong><br>" . implode('<br>', $failedSlots) . "</div>";
         if ($successCount > 0 && isset($lastSlotSala)) {
-            $salaData = $db->query("SELECT nome, post_reservation_content FROM salas WHERE id='" . $db->real_escape_string($lastSlotSala) . "'")->fetch_assoc();
+            $salaDataStmt = $db->prepare("SELECT nome, post_reservation_content FROM salas WHERE id = ?");
+            $salaDataStmt->bind_param("s", $lastSlotSala);
+            $salaDataStmt->execute();
+            $salaData = $salaDataStmt->get_result()->fetch_assoc();
+            $salaDataStmt->close();
             if (!empty($salaData['post_reservation_content'])) {
                 $out .= "<div class='card mb-3'><div class='card-body'><h5 class='card-title'>Informações Importantes - " . htmlspecialchars($salaData['nome'], ENT_QUOTES, 'UTF-8') . "</h5><div class='post-reservation-content'>" . $salaData['post_reservation_content'] . "</div></div></div>";
             }
@@ -170,7 +197,12 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                 if ($userExists) $requisitor = $_POST['requisitor_id'];
             }
 
-            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($db->query("SELECT email FROM cache WHERE id='" . $db->real_escape_string($requisitor) . "'")->fetch_assoc()['email'] ?? '');
+            $requisitorEmailStmt = $db->prepare("SELECT email FROM cache WHERE id = ?");
+            $requisitorEmailStmt->bind_param("s", $requisitor);
+            $requisitorEmailStmt->execute();
+            $requisitorEmailResult = $requisitorEmailStmt->get_result();
+            $requisitorEmail = ($requisitor === $id) ? $_SESSION['email'] : ($requisitorEmailResult->fetch_assoc()['email'] ?? '');
+            $requisitorEmailStmt->close();
             $internalDomain = get_app_config('internal_email_domain', '');
             $isInternalUser = !empty($internalDomain) && str_ends_with(strtolower($requisitorEmail), '@' . $internalDomain);
             $aprovado = ($salaInfo['tipo_sala'] == 2 && $isInternalUser) ? 1 : 0;
@@ -687,7 +719,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                             $materiaisResult = $materiaisStmt->get_result();
                             $materiaisStmt->close();
                             
-                            echo "<form action='/reservar/manage.php?subaction=reservar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' method='POST' data-prevent-double-submit>
+                            echo "<form action='/reservar/manage.php?subaction=reservar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' method='POST' data-prevent-double-submit>" . csrf_token_field() . "
                         <div class='form-floating mb-3'>
                         <input type='text' class='form-control' id='sala' name='sala' placeholder='Sala' value='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "' disabled>
                         <label for='sala'>Sala</label>
