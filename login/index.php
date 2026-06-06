@@ -806,22 +806,36 @@
                     $stmt->close();
 
                     if (empty($adminData['totp_secret'])) {
-                        // Admin has no TOTP configured - redirect to setup
+                        // Admin has no TOTP configured - redirect to setup.
+                        // Defense in depth: clear the authenticated identity
+                        // before redirecting so a partially-authenticated
+                        // admin (no TOTP yet verified) cannot be used by
+                        // any future page that forgets to check
+                        // pending_totp_user.
+                        $pendingTotpId = $_SESSION['id'];
+                        $pendingTotpNome = $_SESSION['nome'];
+                        $pendingTotpEmail = $_SESSION['email'];
+                        unset($_SESSION['id'], $_SESSION['nome'], $_SESSION['email'], $_SESSION['admin'], $_SESSION['validity']);
                         $_SESSION['pending_totp_user'] = [
-                            'id' => $_SESSION['id'],
-                            'nome' => $_SESSION['nome'],
-                            'email' => $_SESSION['email'],
+                            'id' => $pendingTotpId,
+                            'nome' => $pendingTotpNome,
+                            'email' => $pendingTotpEmail,
                             'admin' => true
                         ];
                         header('Location: /login?step=totp_setup');
                         exit();
                     }
 
-                    // Valid admin with TOTP: redirect to TOTP verification step
+                    // Valid admin with TOTP: redirect to TOTP verification step.
+                    // Same defense in depth as above.
+                    $pendingTotpId = $_SESSION['id'];
+                    $pendingTotpNome = $_SESSION['nome'];
+                    $pendingTotpEmail = $_SESSION['email'];
+                    unset($_SESSION['id'], $_SESSION['nome'], $_SESSION['email'], $_SESSION['admin'], $_SESSION['validity']);
                     $_SESSION['pending_totp_user'] = [
-                        'id' => $_SESSION['id'],
-                        'nome' => $_SESSION['nome'],
-                        'email' => $_SESSION['email'],
+                        'id' => $pendingTotpId,
+                        'nome' => $pendingTotpNome,
+                        'email' => $pendingTotpEmail,
                         'admin' => true
                     ];
                     header('Location: /login?step=totp');
