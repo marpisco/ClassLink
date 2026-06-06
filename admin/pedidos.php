@@ -285,7 +285,10 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         // POST with CSRF; details is read-only and may use GET.
         $isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
         $src = $isPost ? $_POST : $_GET;
-        $subaction = $src['subaction'] ?? null;
+        // Fall back to GET['subaction'] for POST requests too — some bulk
+        // action JS puts it in the URL for convenience. The POST body still
+        // carries the actual data (e.g. reservations list).
+        $subaction = $src['subaction'] ?? ($_GET['subaction'] ?? null);
 
         $stateChanging = in_array($subaction, ['aprovar', 'rejeitar', 'bulk_approve', 'bulk_reject']);
         if ($stateChanging && !$isPost) {
@@ -1371,13 +1374,21 @@ function bulkReject() {
 function submitBulkAction(action, reservations) {
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '/admin/pedidos.php?subaction=' + action;
-    
+    form.action = '/admin/pedidos.php';
+
+    // subaction must be in the body so the PHP handler sees it in
+    // $_POST (the server only reads $src['subaction'] for POSTs).
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'subaction';
+    actionInput.value = action;
+    form.appendChild(actionInput);
+
     const input = document.createElement('input');
     input.type = 'hidden';
     input.name = 'reservations';
     input.value = JSON.stringify(reservations);
-    
+
     form.appendChild(input);
     document.body.appendChild(form);
     form.submit();
