@@ -4,16 +4,26 @@
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
 <h3>Gestão de Utilizadores</h3>
 <?php
+// Destructive actions must be POST. The CSRF token is validated by the
+// global guard in admin/index.php for any POST to /admin/*.
+$destructiveActions = ['apagar', 'removetotp'];
+$actionParam = $_GET['action'] ?? null;
+if (in_array($actionParam, $destructiveActions, true) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    echo "<div class='alert alert-danger fade show' role='alert'>Pedido inválido. As ações destrutivas requerem POST.</div>";
+    return;
+}
+
 switch (isset($_GET['action']) ? $_GET['action'] : null){
     // caso execute a ação apagar:
     case "apagar":
-        if (!isset($_GET['id'])) {
+        if (!isset($_POST['id'])) {
             echo "<div class='alert alert-danger fade show' role='alert'>ID inválido.</div>";
             break;
         }
         try {
             $stmt = $db->prepare("SELECT * FROM reservas WHERE requisitor = ? AND aprovado != -1");
-            $stmt->bind_param("s", $_GET['id']);
+            $stmt->bind_param("s", $_POST['id']);
             $stmt->execute();
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
@@ -25,7 +35,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             break;
         }
         $stmt = $db->prepare("DELETE FROM cache WHERE id = ?");
-        $stmt->bind_param("s", $_GET['id']);
+        $stmt->bind_param("s", $_POST['id']);
         $stmt->execute();
         $stmt->close();
         acaoexecutada("Eliminação de Utilizador");
@@ -58,17 +68,17 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             echo "<div class='alert alert-danger fade show' role='alert'>Dados inválidos.</div>";
             break;
         }
-        
+
         // Get current admin status before update
         $checkStmt = $db->prepare("SELECT admin, totp_secret FROM cache WHERE id = ?");
         $checkStmt->bind_param("s", $_GET['id']);
         $checkStmt->execute();
         $checkResult = $checkStmt->get_result()->fetch_assoc();
         $checkStmt->close();
-        
+
         $wasAdmin = $checkResult['admin'] ?? 0;
         $adminValue = isset($_POST["administrador"]) ? 1 : 0;
-        
+
         // If demoting from admin to non-admin, remove TOTP
         if ($wasAdmin == 1 && $adminValue == 0 && !empty($checkResult['totp_secret'])) {
             $stmt = $db->prepare("UPDATE cache SET nome = ?, email = ?, admin = ?, totp_secret = NULL WHERE id = ?");
@@ -86,12 +96,12 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         break;
     // caso execute a ação remover TOTP:
     case "removetotp":
-        if (!isset($_GET['id'])) {
+        if (!isset($_POST['id'])) {
             echo "<div class='alert alert-danger fade show' role='alert'>ID inválido.</div>";
             break;
         }
         $stmt = $db->prepare("UPDATE cache SET totp_secret = NULL WHERE id = ?");
-        $stmt->bind_param("s", $_GET['id']);
+        $stmt->bind_param("s", $_POST['id']);
         $stmt->execute();
         $stmt->close();
         acaoexecutada("Remoção de TOTP de utilizador");
@@ -198,9 +208,17 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                         <div class="card-footer bg-transparent">
                             <a href='/admin/users.php?action=edit&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-primary'>EDITAR</a>
                             <?php if ($hasTotp): ?>
-                                <a href='/admin/users.php?action=removetotp&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-warning' onclick='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>Remover TOTP</a>
+                                <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>
+                                    <input type='hidden' name='action' value='removetotp'>
+                                    <input type='hidden' name='id' value='<?php echo $idEnc; ?>'>
+                                    <button type='submit' class='btn btn-sm btn-warning'>Remover TOTP</button>
+                                </form>
                             <?php endif; ?>
-                            <a href='/admin/users.php?action=apagar&id=<?php echo $idEnc; ?>' class='btn btn-sm btn-danger' onclick='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>APAGAR</a>
+                            <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>
+                                <input type='hidden' name='action' value='apagar'>
+                                <input type='hidden' name='id' value='<?php echo $idEnc; ?>'>
+                                <button type='submit' class='btn btn-sm btn-danger'>APAGAR</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -259,8 +277,8 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                     </div>
                     <div class="card-footer bg-transparent">
                         <a href='/admin/users.php?action=edit&id=${idEnc}' class='btn btn-sm btn-primary'>EDITAR</a>
-                        ${user.hasTotp ? `<a href='/admin/users.php?action=removetotp&id=${idEnc}' class='btn btn-sm btn-warning' onclick='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>Remover TOTP</a>` : ''}
-                        <a href='/admin/users.php?action=apagar&id=${idEnc}' class='btn btn-sm btn-danger' onclick='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>APAGAR</a>
+                        ${user.hasTotp ? `<form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'><input type='hidden' name='action' value='removetotp'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-warning'>Remover TOTP</button></form>` : ''}
+                        <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
                     </div>
                 </div>
             </div>

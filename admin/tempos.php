@@ -9,6 +9,16 @@
 </div>
 
 <?php
+// Destructive actions must be POST. CSRF is validated globally in
+// admin/index.php for any POST to /admin/*.
+$destructiveActions = ['apagar'];
+$actionParam = $_GET['action'] ?? null;
+if (in_array($actionParam, $destructiveActions, true) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    echo "<div class='alert alert-danger fade show' role='alert'>Pedido inválido. As ações destrutivas requerem POST.</div>";
+    return;
+}
+
 switch (isset($_GET['action']) ? $_GET['action'] : null){
     // caso seja preenchido o formulário de criação:
     case "criar":
@@ -25,13 +35,13 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
         break;
     // caso execute a ação apagar:
     case "apagar":
-        if (!isset($_GET['id'])) {
+        if (!isset($_POST['id'])) {
             echo "<div class='alert alert-danger fade show' role='alert'>ID inválido.</div>";
             break;
         }
         try {
             $stmt = $db->prepare("SELECT * FROM reservas WHERE tempo = ? AND aprovado != -1");
-            $stmt->bind_param("s", $_GET['id']);
+            $stmt->bind_param("s", $_POST['id']);
             $stmt->execute();
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
@@ -43,7 +53,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             break;
         }
         $stmt = $db->prepare("DELETE FROM tempos WHERE id = ?");
-        $stmt->bind_param("s", $_GET['id']);
+        $stmt->bind_param("s", $_POST['id']);
         $stmt->execute();
         $stmt->close();
         acaoexecutada("Eliminação de Tempo");
@@ -163,7 +173,7 @@ function loadTempos(reset = false) {
                     <td>${escapeHtml(tempo.horashumanos)}</td>
                     <td>
                         <a href='/admin/tempos.php?action=edit&id=${idEnc}' class='btn btn-sm btn-primary'>EDITAR</a>
-                        <a href='/admin/tempos.php?action=apagar&id=${idEnc}' class='btn btn-sm btn-danger' onclick='return confirm("Tem a certeza que pretende apagar o tempo? Isto irá causar problemas se a sala tiver reservas passadas.");'>APAGAR</a>
+                        <form action='/admin/tempos.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o tempo? Isto irá causar problemas se a sala tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
                     </td>
                 </tr>`;
                 
