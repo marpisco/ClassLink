@@ -287,7 +287,7 @@
                     // Blocked email check
                     if (!$_SESSION['admin']) {
                         $alunoRegex = get_app_config('blocked_emails_regex', '');
-                        if (preg_match($alunoRegex, $_SESSION['email'])) {
+                        if (!empty($alunoRegex) && @preg_match($alunoRegex, $_SESSION['email']) === 1) {
                             session_destroy();
                             $content = '<div class="login-box"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
                             render_login_template('Acesso Bloqueado', $content);
