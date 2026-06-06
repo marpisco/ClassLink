@@ -28,6 +28,10 @@ function rl_now(): string {
     return date('Y-m-d H:i:s');
 }
 
+function verify_code_attempt_action(string $userId): string {
+    return 'verify_code:' . substr(hash('sha256', $userId), 0, 32);
+}
+
 /**
  * Look up the rate_limits row for a given (ip, action) pair.
  * Returns the row array or null.

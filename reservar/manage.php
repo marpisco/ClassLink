@@ -4,6 +4,7 @@ require_once(__DIR__ . '/../func/logaction.php');
 require_once(__DIR__ . '/../func/email_helper.php');
 require_once(__DIR__ . '/../func/get_config.php');
 require_once(__DIR__ . '/../func/csrf.php');
+require_once(__DIR__ . '/../func/trusted_referer.php');
 require_once(__DIR__ . '/../src/db.php');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
@@ -305,15 +306,16 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
         <?php
         $id = $_SESSION['id'];
         $today = date("Y-m-d");
+        $trustedBackHref = trusted_referer_path_from_server('/reservar');
         
         // Handle bulk reservation separately since it doesn't require tempo/data/sala in GET
         if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk') {
             if (!isset($_POST['motivo']) || empty($_POST['motivo'])) {
                 echo "<div class='alert alert-danger show' role='alert'>O motivo é obrigatório.</div>";
-                echo "<a href='" . htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') . "' class='btn btn-primary'>Voltar</a>";
+                echo "<a href='" . htmlspecialchars($trustedBackHref, ENT_QUOTES, 'UTF-8') . "' class='btn btn-primary'>Voltar</a>";
             } elseif (!isset($_POST['slots']) || !is_array($_POST['slots']) || count($_POST['slots']) == 0) {
                 echo "<div class='alert alert-danger show' role='alert'>Nenhum tempo foi selecionado.</div>";
-                echo "<a href='" . htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') . "' class='btn btn-primary'>Voltar</a>";
+                echo "<a href='" . htmlspecialchars($trustedBackHref, ENT_QUOTES, 'UTF-8') . "' class='btn btn-primary'>Voltar</a>";
             } else {
                 $motivo = $_POST['motivo'];
                 $extra = $_POST['extra'] ?? '';
@@ -774,7 +776,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                             }
                             echo "<button type='submit' class='btn btn-success w-100 mb-2'>Reservar</button>
                         </form>";
-                            echo "<a href='" . htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') . "' class='btn btn-secondary w-100'>Voltar</a>";
+                            echo "<a href='" . htmlspecialchars($trustedBackHref, ENT_QUOTES, 'UTF-8') . "' class='btn btn-secondary w-100'>Voltar</a>";
                             echo "</div></div>";
                         }
                     } else {
@@ -874,7 +876,7 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                             echo "<a href='/reservar/manage.php?subaction=apagar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' class='btn btn-danger me-md-2 mb-2 mb-md-0' onclick='return confirm(\"Tem a certeza que pretende apagar esta reserva?\");'>Apagar Reserva</a> ";
                         }
                         echo "<a href='/reservar' class='btn btn-success me-md-2 mb-2 mb-md-0'>Voltar à página de reserva de salas</a> ";
-                        if (strpos($_SERVER['HTTP_REFERER'], '/admin/pedidos.php') !== false) {
+                        if (str_starts_with(trusted_referer_path_from_server(''), '/admin/pedidos.php')) {
                             echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos pedidos</a>";
                         } else {
                             echo "<a href='/reservas' class='btn btn-primary'>Ver todas as minhas reservas</a>";
