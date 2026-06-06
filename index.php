@@ -1,4 +1,5 @@
 <?php
+    require_once(__DIR__ . '/func/session_config.php');
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
     // Guard: redirect pending TOTP/setup flows to completion
     if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }

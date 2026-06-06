@@ -1,6 +1,8 @@
 <?php
+    require_once(__DIR__ . '/../func/session_config.php');
     if (session_status() === PHP_SESSION_NONE) { session_start(); }
     require_once(__DIR__ . '/../func/csrf.php');
+    require_once(__DIR__ . '/../func/rate_limit.php');
 
     // Handle database selection
     if (isset($_POST['action']) && $_POST['action'] === 'select_db') {
@@ -18,12 +20,12 @@
 
     // Include config and db normally
     require_once(__DIR__ . '/../src/config.php');
-    
+
     // Store db config before it's overwritten by mysqli
     $dbConfig = $db['db'];
     $showDbPicker = is_array($dbConfig) && count($dbConfig) > 1;
     $dbOptions = is_array($dbConfig) ? $dbConfig : [];
-    
+
     require_once(__DIR__ . '/../src/db.php');
     require_once(__DIR__ . '/../func/get_config.php');
     require_once(__DIR__ . '/../func/logaction.php');
@@ -80,19 +82,31 @@
 
     function create_pending_user($email) {
         global $db;
-        
-        // Check if this is the first user - make them admin
-        $userCountResult = $db->query("SELECT COUNT(*) as count FROM cache");
-        $userCount = $userCountResult->fetch_assoc()['count'];
-        $isFirstUser = $userCount == 0;
-        
+
+        // Race-safe first-user admin assignment. The first thread to atomically
+        // claim the `first_user_admin_id` config row gets admin; concurrent
+        // threads will see the existing value and lose. This is enforced by
+        // MySQL's INSERT ... ON DUPLICATE KEY UPDATE semantics — only one row
+        // can be inserted, all other attempts update the existing row.
+        $claimId = 'first_user_claim_' . bin2hex(random_bytes(8));
+        $stmt = $db->prepare("INSERT INTO config (config_key, config_value) VALUES ('first_user_admin_id', ?) ON DUPLICATE KEY UPDATE config_value = config_value");
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param("s", $claimId);
+        $stmt->execute();
+        $claimed = $stmt->affected_rows === 1; // 1 = inserted (we won the race), 2 = updated (someone else got there first)
+        $stmt->close();
+
+        $isFirstUser = $claimed;
+
         // Generate ID based on whether this is first user
         if ($isFirstUser) {
             $tempId = 'admin_first_' . bin2hex(random_bytes(8));
         } else {
             $tempId = 'pending_' . bin2hex(random_bytes(16));
         }
-        
+
         $stmt = $db->prepare("INSERT INTO cache (id, email, nome, admin) VALUES (?, ?, ?, ?)");
         if ($stmt) {
             $pendingName = 'Pendente'; // Placeholder name
@@ -143,8 +157,14 @@
         $_SESSION['nome'] = $userName;
         $_SESSION['email'] = $userEmail;
         $_SESSION['admin'] = (bool)$isAdmin;
-        $_SESSION['validity'] = time() + 3600;
+        // Session validity matches the GC maxlifetime configured in
+        // func/session_config.php (1800 seconds / 30 minutes). Keep these
+        // values in sync to avoid users being logged out unexpectedly.
+        $_SESSION['validity'] = time() + 1800;
         session_regenerate_id(true);
+        // Rotate the CSRF token on every successful authentication so that a
+        // token captured before login can't be reused.
+        regenerate_csrf_token();
     }
 
     // --- POST Request Handling ---
@@ -159,30 +179,43 @@
 
         if ($action === 'send_code' && isset($_POST['email'])) {
             $emailValue = trim($_POST['email']);
-            
-            $localAuthStage = 'code';
-            $user = get_user_by_email($emailValue);
-            
-            // If user doesn't exist, create a pending user
-            if (!$user) {
-                $userId = create_pending_user($emailValue);
-                if ($userId) {
-                    $user = [
-                        'id' => $userId,
-                        'nome' => 'Pendente',
-                        'email' => $emailValue,
-                        'admin' => 0,
-                        'totp_secret' => null
-                    ];
-                    $localAuthInfo = 'Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.';
-                } else {
-                    $localAuthError = 'Erro ao criar utilizador. Tente novamente.';
-                    $localAuthStage = 'email';
-                }
+
+            // Issue 14: server-side email validation
+            if (!filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
+                $localAuthError = 'Endereço de email inválido.';
+                $localAuthStage = 'email';
+            } elseif (!check_rate_limit('send_code', 10, 3600)) {
+                // Issue 2: rate limit send_code per IP (10/hour)
+                $localAuthError = 'Demasiados pedidos. Por favor aguarde antes de tentar novamente.';
+                $localAuthStage = 'email';
             } else {
-                $localAuthInfo = 'Introduza o código que recebeu no email para validar-se.';
-                
-                if ($user && $localAuthStage === 'code') {
+                $localAuthStage = 'code';
+                $user = get_user_by_email($emailValue);
+
+                // If user doesn't exist, create a pending user
+                if (!$user) {
+                    $userId = create_pending_user($emailValue);
+                    if ($userId) {
+                        $user = [
+                            'id' => $userId,
+                            'nome' => 'Pendente',
+                            'email' => $emailValue,
+                            'admin' => 0,
+                            'totp_secret' => null
+                        ];
+                        $localAuthInfo = 'Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.';
+                    } else {
+                        $localAuthError = 'Erro ao criar utilizador. Tente novamente.';
+                        $localAuthStage = 'email';
+                    }
+                } else {
+                    $localAuthInfo = 'Introduza o código que recebeu no email para validar-se.';
+                }
+
+                // Issue 1 fix: send a code for BOTH new and existing users.
+                // Previously the code generation was inside the else branch only,
+                // so newly created users never received a code and were stuck.
+                if ($user && isset($user['email'])) {
                     $code = generate_email_code();
                     $otpHash = password_hash($code, PASSWORD_DEFAULT);
                     $expiresAt = date('Y-m-d H:i:s', time() + 600);
@@ -196,6 +229,11 @@
 
                     send_login_code_email($user['email'], $user['nome'], $code);
                 }
+
+                // Record the attempt AFTER attempting to send so successful sends
+                // still count against the rate limit (otherwise a flood of
+                // legitimate-looking requests could bypass it).
+                record_attempt('send_code');
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);
@@ -203,6 +241,8 @@
             $user = get_user_by_email($emailValue);
 
             if ($user && !empty($user['otp_code_hash']) && !empty($user['otp_expires']) && strtotime($user['otp_expires']) >= time() && password_verify(trim($_POST['otp_code']), $user['otp_code_hash'])) {
+                // Issue 2: clear rate-limit state on success and reset the OTP
+                clear_attempts('verify_code');
                 clear_user_otp($user['id']);
 
                 // Check if this is a pending user (needs to set their name)
@@ -260,7 +300,22 @@
                     exit();
                 }
             } else {
-                $localAuthError = 'Código inválido ou expirado. Peça um novo código.';
+                // Issue 2: record a failed verify_code attempt. After 5 failed
+                // attempts, invalidate the OTP for the user — they must request
+                // a fresh code to continue. No IP lockout here (per the spec),
+                // so legitimate users who mistype a few times aren't penalized.
+                if ($user) {
+                    record_attempt('verify_code');
+                    if (!check_rate_limit('verify_code', 5, 3600)) {
+                        invalidate_user_otp($user['id']);
+                        clear_attempts('verify_code');
+                        $localAuthError = 'Demasiadas tentativas inválidas. O código atual foi invalidado; por favor solicite um novo código.';
+                    } else {
+                        $localAuthError = 'Código inválido ou expirado. Peça um novo código.';
+                    }
+                } else {
+                    $localAuthError = 'Código inválido ou expirado. Peça um novo código.';
+                }
             }
         } elseif ($action === 'setup_name' && isset($_POST['nome'])) {
             if (!isset($_SESSION['pending_user_setup'])) {
@@ -292,6 +347,9 @@
         } elseif ($action === 'verify_totp' && isset($_POST['totp_code'])) {
             if (!isset($_SESSION['pending_totp_user'])) {
                 $localAuthError = 'A sessão expirou. Por favor inicie sessão de novo.';
+            } elseif (is_blocked('verify_totp')) {
+                // Issue 2: TOTP IP-based lockout after 5 wrong attempts (15 min).
+                $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
             } else {
                 $pendingUser = $_SESSION['pending_totp_user'];
                 $user = get_user_by_email($pendingUser['email']);
@@ -301,22 +359,33 @@
                 } else {
                     $google2fa = new \PragmaRX\Google2FA\Google2FA();
                     if ($google2fa->verifyKey($user['totp_secret'], trim($_POST['totp_code']))) {
+                        clear_attempts('verify_totp');
                         unset($_SESSION['pending_totp_user']);
                         start_authenticated_session($user['id'], $user['nome'], $user['email'], $user['admin']);
                         logaction('Início de sessão via TOTP de administrador', $user['id']);
                         header('Location: /');
                         exit();
                     }
-                    $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
+                    // Record a failed attempt and lock the IP if the threshold
+                    // (5) is exceeded.
+                    record_attempt('verify_totp');
+                    if (!check_rate_limit('verify_totp', 5, 900)) {
+                        block('verify_totp', 900);
+                        $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
+                    } else {
+                        $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
+                    }
                 }
             }
         } elseif ($action === 'verify_totp_setup' && isset($_POST['totp_code'])) {
             if (!isset($_SESSION['pending_totp_user']) || !isset($_SESSION['pending_totp_secret'])) {
                 $localAuthError = 'Sessão expirada. Por favor tente novamente.';
+            } elseif (is_blocked('verify_totp_setup')) {
+                $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
             } else {
                 $pendingUser = $_SESSION['pending_totp_user'];
                 $secret = $_SESSION['pending_totp_secret'];
-                
+
                 $google2fa = new \PragmaRX\Google2FA\Google2FA();
                 if ($google2fa->verifyKey($secret, trim($_POST['totp_code']))) {
                     // Save the secret to the database
@@ -327,18 +396,26 @@
                         $stmt->execute();
                         $stmt->close();
                     }
-                    
+
+                    clear_attempts('verify_totp_setup');
                     // Clear temp session and log in
                     unset($_SESSION['pending_totp_user']);
                     unset($_SESSION['pending_totp_secret']);
-                    
+
                     $user = get_user_by_email($pendingUser['email']);
                     start_authenticated_session($user['id'], $user['nome'], $user['email'], $user['admin']);
                     logaction('TOTP configurado com sucesso', $user['id']);
                     header('Location: /');
                     exit();
                 }
-                $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
+                // Failed verify_totp_setup: record and lock if threshold exceeded.
+                record_attempt('verify_totp_setup');
+                if (!check_rate_limit('verify_totp_setup', 5, 900)) {
+                    block('verify_totp_setup', 900);
+                    $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
+                } else {
+                    $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
+                }
             }
         }
     }
@@ -393,22 +470,40 @@
         
         // Store secret temporarily in session (should be saved to DB after verification)
         $_SESSION['pending_totp_secret'] = $secret;
-        
+
         // Generate QR code URL
         $qrCodeUrl = $google2fa->getQRCodeUrl(
             get_app_config('brand_name', 'ClassLink'),
             $pendingUser['email'],
             $secret
         );
-        
-        // Generate QR code as data URL
-        $qrCodeImage = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($qrCodeUrl);
+
+        // Issue 12 fix: render the QR code locally with the chillerlan/php-qrcode
+        // Composer library. The previous implementation sent the otpauth:// URL
+        // (which contains the TOTP secret) to a third-party service that could
+        // go offline, log the secret, or be MITM'd by a corporate firewall.
+        $qrCodeSvg = '';
+        try {
+            $qrOptions = new \chillerlan\QRCode\QROptions([
+                'outputType'   => \chillerlan\QRCode\Output\QRMarkupSVG::class,
+                'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::H,
+                'scale'        => 8,
+                'outputBase64' => false,
+            ]);
+            $qrCode = new \chillerlan\QRCode\QRCode($qrOptions);
+            $qrCodeSvg = $qrCode->render($qrCodeUrl);
+        } catch (\Throwable $qrErr) {
+            // If QR generation fails for any reason, fall back to the manual code entry.
+            error_log('ClassLink QR generation failed: ' . $qrErr->getMessage());
+        }
 
         $content = '<div class="login-box">';
         $content .= '<h1>Configurar Autenticador</h1>';
         $content .= '<p class="small">Escaneie o código QR com a sua aplicação de autenticação ou introduza o código manualmente.</p>';
         if (!empty($localAuthError)) { $content .= '<div class="error-msg">' . htmlspecialchars($localAuthError) . '</div>'; }
-        $content .= '<div class="qr-container"><img src="' . htmlspecialchars($qrCodeImage) . '" alt="QR Code"></div>';
+        if ($qrCodeSvg !== '') {
+            $content .= '<div class="qr-container">' . $qrCodeSvg . '</div>';
+        }
         $content .= '<div class="info-msg"><strong>Código manual:</strong><br><span class="manual-code">' . htmlspecialchars($secret) . '</span></div>';
         $content .= '<form method="POST" action="/login/index.php">';
         $content .= $csrfTokenField;
@@ -727,12 +822,32 @@
             header('Location: /');
             exit();
         } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-            // Failed to get the access token or user details.
+            // Issue 7 fix: never expose the raw exception message to users.
+            // Log the full message server-side and render a generic page with
+            // a collapsible "Debug" section that the user can open to see the
+            // full error text. This keeps the login page safe to share (e.g.
+            // for support tickets) while still letting curious users
+            // troubleshoot.
+            error_log('ClassLink OAuth callback failed: ' . $e->getMessage());
             if ($e->getMessage() == 'invalid_grant') {
                 session_destroy();
                 header('Location: /login/');
+                exit();
             }
-            exit($e->getMessage());
+            $safeMessage = 'Ocorreu um problema a concluir a autenticação. Por favor tente iniciar sessão novamente.';
+            $debugDetails = htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            $content = '<div class="login-box">';
+            $content .= '<img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;">';
+            $content .= '<h1>Autenticação Falhou</h1>';
+            $content .= '<p>' . htmlspecialchars($safeMessage) . '</p>';
+            $content .= '<details style="margin-top: 1rem; text-align: left; font-size: 0.85rem;">';
+            $content .= '<summary style="cursor: pointer; opacity: 0.7;">Debug</summary>';
+            $content .= '<pre style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.05); border-radius: 6px; white-space: pre-wrap; word-break: break-word;">' . $debugDetails . '</pre>';
+            $content .= '</details>';
+            $content .= '<a href="/login" class="login-btn" style="margin-top: 1rem; display: inline-block;">Voltar ao Início de Sessão</a>';
+            $content .= '</div>';
+            render_login_template('Autenticação Falhou', $content);
+            exit();
         }
     } else if (str_starts_with($_SERVER['REQUEST_URI'], "/login") && $_GET['redirecttoflow']) {
 	    $scopes = [

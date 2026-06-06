@@ -1,4 +1,5 @@
 <?php
+require_once(__DIR__ . '/../func/session_config.php');
 require_once(__DIR__ . '/../func/logaction.php');
 require_once(__DIR__ . '/../func/csrf.php');
 require_once(__DIR__ . '/../src/db.php');

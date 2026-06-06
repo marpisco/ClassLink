@@ -280,59 +280,80 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
     </div>
 
     <?php
-    if (isset($_GET['subaction'])) {
+    if (isset($_GET['subaction']) || isset($_POST['subaction'])) {
+        // Read subaction from either source. State-changing actions must be
+        // POST with CSRF; details is read-only and may use GET.
+        $isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+        $src = $isPost ? $_POST : $_GET;
+        $subaction = $src['subaction'] ?? null;
+
+        $stateChanging = in_array($subaction, ['aprovar', 'rejeitar', 'bulk_approve', 'bulk_reject']);
+        if ($stateChanging && !$isPost) {
+            http_response_code(405);
+            echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
+                    <strong>Erro!</strong> Pedido inválido.
+                    <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                  </div>";
+            echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
+            return;
+        }
+
+        // CSRF check for state-changing POSTs. The global admin/index.php
+        // already checks the token for any POST to /admin/* (excluding
+        // /admin/api/*), so by the time we get here the token is valid.
+
         // For bulk actions, skip individual parameter validation
-        $isBulkAction = in_array($_GET['subaction'], ['bulk_approve', 'bulk_reject']);
-        
-        if (!$isBulkAction && (!isset($_GET['sala']) || !isset($_GET['tempo']) || !isset($_GET['data']))) {
+        $isBulkAction = in_array($subaction, ['bulk_approve', 'bulk_reject']);
+
+        if (!$isBulkAction && (!isset($src['sala']) || !isset($src['tempo']) || !isset($src['data']))) {
             echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
                     <strong>Erro!</strong> Parâmetros inválidos.
                     <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                   </div>";
             echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
         } else {
-            switch ($_GET['subaction']) {
+            switch ($subaction) {
                 case "aprovar":
                     $stmt = $db->prepare("SELECT requisitor FROM reservas WHERE sala=? AND tempo=? AND data=?");
-                    $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
+                    $stmt->bind_param("sss", $src['sala'], $src['tempo'], $src['data']);
                     $stmt->execute();
                     $requisitor = $stmt->get_result()->fetch_assoc()['requisitor'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("UPDATE reservas SET aprovado=1 WHERE sala=? AND tempo=? AND data=?");
-                    $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
+                    $stmt->bind_param("sss", $src['sala'], $src['tempo'], $src['data']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Log the approval
                     require_once(__DIR__ . '/../func/logaction.php');
                     $stmt = $db->prepare("SELECT nome FROM salas WHERE id=?");
-                    $stmt->bind_param("s", $_GET['sala']);
+                    $stmt->bind_param("s", $src['sala']);
                     $stmt->execute();
-                    $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $_GET['sala'];
+                    $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $src['sala'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
-                    $stmt->bind_param("s", $_GET['tempo']);
+                    $stmt->bind_param("s", $src['tempo']);
                     $stmt->execute();
-                    $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $_GET['tempo'];
+                    $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $src['tempo'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT nome FROM cache WHERE id=?");
                     $stmt->bind_param("s", $requisitor);
                     $stmt->execute();
                     $requisitorNome = $stmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
                     $stmt->close();
-                    
-                    logaction("Aprovou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$_GET['data']} às {$tempoNome}", $_SESSION['id']);
-                    
+
+                    logaction("Aprovou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$src['data']} às {$tempoNome}", $_SESSION['id']);
+
                     echo "<div class='card border-success shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
                                 <div class='mb-3' style='font-size: 4rem;'>&#x1F389;</div>
                                 <h4 class='text-success mb-3'>Reserva Aprovada com Sucesso!</h4>
                                 <p class='text-muted mb-4'>O utilizador será notificado por email sobre a aprovação.</p>
                                 <div class='d-flex justify-content-center gap-2'>";
-                    $reservaUrl = "/reservar/manage.php?sala=" . urlencode($_GET['sala']) . "&tempo=" . urlencode($_GET['tempo']) . "&data=" . urlencode($_GET['data']);
+                    $reservaUrl = "/reservar/manage.php?sala=" . urlencode($src['sala']) . "&tempo=" . urlencode($src['tempo']) . "&data=" . urlencode($src['data']);
                     echo "<a href='{$reservaUrl}' class='btn btn-outline-info' target='_blank'>
                             Ver Detalhes
                           </a>
@@ -342,9 +363,9 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         </div>
                       </div>
                     </div>";
-                    
+
                     // Send approval email using the email helper
-                    $emailResult = sendReservationApprovedEmail($db, $requisitor, $_GET['sala'], $_GET['tempo'], $_GET['data']);
+                    $emailResult = sendReservationApprovedEmail($db, $requisitor, $src['sala'], $src['tempo'], $src['data']);
                     if (!$emailResult['success'] && $emailResult['error'] !== 'Email not enabled') {
                         echo "<div class='alert alert-warning alert-dismissible fade show' role='alert'>
                                 <strong>Aviso:</strong> A reserva foi aprovada, mas o email de notificação não foi enviado. Contacte um administrador.
@@ -356,41 +377,41 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
 
                 case "rejeitar":
                     $stmt = $db->prepare("SELECT requisitor FROM reservas WHERE sala=? AND tempo=? AND data=?");
-                    $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
+                    $stmt->bind_param("sss", $src['sala'], $src['tempo'], $src['data']);
                     $stmt->execute();
                     $requisitor = $stmt->get_result()->fetch_assoc()['requisitor'];
                     $stmt->close();
-                    
+
                     // Get details for log before deletion
                     require_once(__DIR__ . '/../func/logaction.php');
                     $stmt = $db->prepare("SELECT nome FROM salas WHERE id=?");
-                    $stmt->bind_param("s", $_GET['sala']);
+                    $stmt->bind_param("s", $src['sala']);
                     $stmt->execute();
-                    $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $_GET['sala'];
+                    $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $src['sala'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
-                    $stmt->bind_param("s", $_GET['tempo']);
+                    $stmt->bind_param("s", $src['tempo']);
                     $stmt->execute();
-                    $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $_GET['tempo'];
+                    $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $src['tempo'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT nome FROM cache WHERE id=?");
                     $stmt->bind_param("s", $requisitor);
                     $stmt->execute();
                     $requisitorNome = $stmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
                     $stmt->close();
-                    
+
                     // Send rejection email BEFORE deleting the reservation
-                    $emailResult = sendReservationRejectedEmail($db, $requisitor, $_GET['sala'], $_GET['tempo'], $_GET['data']);
-                    
+                    $emailResult = sendReservationRejectedEmail($db, $requisitor, $src['sala'], $src['tempo'], $src['data']);
+
                     $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
-                    $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
+                    $stmt->bind_param("sss", $src['sala'], $src['tempo'], $src['data']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Log the rejection
-                    logaction("Rejeitou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$_GET['data']} às {$tempoNome}", $_SESSION['id']);
+                    logaction("Rejeitou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$src['data']} às {$tempoNome}", $_SESSION['id']);
                     
                     echo "<div class='card border-danger shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
@@ -1075,7 +1096,35 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         confirmBtn.className = 'btn btn-success';
         confirmBtn.textContent = 'Aprovar Reserva';
         confirmBtn.onclick = function() {
-            window.location.href = `/admin/pedidos.php?subaction=aprovar&tempo=${tempo}&data=${data}&sala=${sala}`;
+            // Submit a POST form with CSRF token. The CSRF token is auto-injected
+            // by the global script in admin/index.php, so the hidden input is
+            // already present in the form we just create.
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/pedidos.php';
+            form.style.display = 'none';
+            const subInput = document.createElement('input');
+            subInput.type = 'hidden';
+            subInput.name = 'subaction';
+            subInput.value = 'aprovar';
+            form.appendChild(subInput);
+            const salaInput = document.createElement('input');
+            salaInput.type = 'hidden';
+            salaInput.name = 'sala';
+            salaInput.value = sala;
+            form.appendChild(salaInput);
+            const tempoInput = document.createElement('input');
+            tempoInput.type = 'hidden';
+            tempoInput.name = 'tempo';
+            tempoInput.value = tempo;
+            form.appendChild(tempoInput);
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = data;
+            form.appendChild(dataInput);
+            document.body.appendChild(form);
+            form.submit();
         };
     } else {
         modalHeader.className = 'modal-header bg-danger text-white';
@@ -1096,7 +1145,35 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         confirmBtn.className = 'btn btn-danger';
         confirmBtn.textContent = 'Rejeitar Reserva';
         confirmBtn.onclick = function() {
-            window.location.href = `/admin/pedidos.php?subaction=rejeitar&tempo=${tempo}&data=${data}&sala=${sala}`;
+            // Submit a POST form with CSRF token. The CSRF token is auto-injected
+            // by the global script in admin/index.php, so the hidden input is
+            // already present in the form we just create.
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/pedidos.php';
+            form.style.display = 'none';
+            const subInput = document.createElement('input');
+            subInput.type = 'hidden';
+            subInput.name = 'subaction';
+            subInput.value = 'rejeitar';
+            form.appendChild(subInput);
+            const salaInput = document.createElement('input');
+            salaInput.type = 'hidden';
+            salaInput.name = 'sala';
+            salaInput.value = sala;
+            form.appendChild(salaInput);
+            const tempoInput = document.createElement('input');
+            tempoInput.type = 'hidden';
+            tempoInput.name = 'tempo';
+            tempoInput.value = tempo;
+            form.appendChild(tempoInput);
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = data;
+            form.appendChild(dataInput);
+            document.body.appendChild(form);
+            form.submit();
         };
     }
     

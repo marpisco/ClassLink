@@ -8,6 +8,14 @@ function generate_csrf_token() {
     return $_SESSION['csrf_token'];
 }
 
+// Force a new CSRF token. Call this on authentication state changes (login,
+// logout) and on any successful state-mutating action where the resulting
+// form is in a fresh trust context.
+function regenerate_csrf_token() {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    return $_SESSION['csrf_token'];
+}
+
 function verify_csrf_token($token) {
     if (!isset($_SESSION['csrf_token'])) {
         return false;

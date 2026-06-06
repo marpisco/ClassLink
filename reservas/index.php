@@ -1,5 +1,7 @@
 <?php
+require_once(__DIR__ . '/../func/session_config.php');
 require_once(__DIR__ . '/../src/db.php');
+require_once(__DIR__ . '/../func/csrf.php');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (isset($_SESSION['pending_totp_user'])) { header('Location: /login?step=totp'); exit(); }
 if (isset($_SESSION['pending_user_setup'])) { header('Location: /login?step=setup'); exit(); }
@@ -373,6 +375,8 @@ $stmt->close();
         </div>
     </div>
 
+    <script>window.__csrfToken = <?php echo json_encode(generate_csrf_token()); ?>;</script>
+
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -447,7 +451,7 @@ $stmt->close();
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             const modalBody = document.getElementById('deleteModalBody');
             const confirmBtn = document.getElementById('confirmDeleteBtn');
-            
+
             modalBody.innerHTML = `
                 <div class="text-center mb-3">
                     <div style="font-size: 4rem;">&#x26A0;</div>
@@ -462,9 +466,25 @@ $stmt->close();
                     <strong>Atenção:</strong> Esta ação é irreversível.
                 </div>
             `;
-            
-            confirmBtn.href = '/reservar/manage.php?subaction=apagar&tempo=' + tempo + '&sala=' + sala + '&data=' + data;
-            
+
+            // Submit a POST form with CSRF token on confirm. Using a form
+            // submission ensures the destructive action goes through POST
+            // (CSRF-protected) rather than a GET link.
+            confirmBtn.onclick = function(e) {
+                e.preventDefault();
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/reservar/manage.php?subaction=apagar&tempo=' + encodeURIComponent(tempo) + '&sala=' + encodeURIComponent(sala) + '&data=' + encodeURIComponent(data);
+                form.style.display = 'none';
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = window.__csrfToken || '';
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            };
+
             modal.show();
         }
     </script>

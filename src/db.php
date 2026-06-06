@@ -1,7 +1,8 @@
 <?php
     require_once(__DIR__ . '/../vendor/autoload.php');
     require_once(__DIR__ . '/config.php');
-    
+    require_once(__DIR__ . '/../func/session_config.php');
+
     // Start session to check if user has selected a different database
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
@@ -82,6 +83,9 @@
     // Create junction table for reservations and materials
     $db->query("CREATE TABLE IF NOT EXISTS reservas_materiais (reserva_sala VARCHAR(99) NOT NULL, reserva_tempo VARCHAR(99) NOT NULL, reserva_data DATE NOT NULL, material_id VARCHAR(99) NOT NULL, PRIMARY KEY (reserva_sala, reserva_tempo, reserva_data, material_id), FOREIGN KEY (reserva_sala, reserva_tempo, reserva_data) REFERENCES reservas(sala, tempo, data) ON DELETE CASCADE, FOREIGN KEY (material_id) REFERENCES materiais(id) ON DELETE CASCADE);");
 
+    // Create rate_limits table for per-IP rate limiting on authentication flows
+    $db->query("CREATE TABLE IF NOT EXISTS rate_limits (ip VARCHAR(45) NOT NULL, action VARCHAR(50) NOT NULL, attempts INT NOT NULL DEFAULT 0, window_start DATETIME NOT NULL, blocked_until DATETIME DEFAULT NULL, PRIMARY KEY (ip, action));");
+
     // Create config table for application settings
     $db->query("CREATE TABLE IF NOT EXISTS config (config_key VARCHAR(99) UNIQUE, config_value TEXT, PRIMARY KEY (config_key));");
     
@@ -93,7 +97,8 @@
         'blocked_emails_regex' => '',
         'email_account_name' => 'ClassLink',
         'initial_setup_complete' => 'false',
-        'app_mode' => 'production'
+        'app_mode' => 'production',
+        'first_user_admin_id' => ''
     ];
     
     foreach ($defaultConfigs as $key => $value) {
@@ -105,12 +110,20 @@
         }
     }
     
-    // Check if this is first run (no users in cache)
+    // Check if this is first run (no users in cache AND no first-user-admin has been claimed)
     $userCountResult = $db->query("SELECT COUNT(*) as count FROM cache");
     $userCount = $userCountResult->fetch_assoc()['count'];
-    
+    $firstAdminClaimed = false;
+    $firstAdminStmt = $db->prepare("SELECT config_value FROM config WHERE config_key = 'first_user_admin_id'");
+    if ($firstAdminStmt) {
+        $firstAdminStmt->execute();
+        $row = $firstAdminStmt->get_result()->fetch_assoc();
+        $firstAdminStmt->close();
+        $firstAdminClaimed = !empty($row['config_value']);
+    }
+
     // Store whether this is first run in a constant for use elsewhere
-    define('IS_FIRST_RUN', $userCount == 0);
+    define('IS_FIRST_RUN', $userCount == 0 && !$firstAdminClaimed);
     
     // Constant for pre-registered user ID prefix
     define('PRE_REGISTERED_PREFIX', 'pre_');

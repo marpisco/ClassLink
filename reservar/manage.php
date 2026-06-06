@@ -1,4 +1,5 @@
 <?php
+require_once(__DIR__ . '/../func/session_config.php');
 require_once(__DIR__ . '/../func/logaction.php');
 require_once(__DIR__ . '/../func/email_helper.php');
 require_once(__DIR__ . '/../func/get_config.php');
@@ -221,8 +222,9 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
         }
     }
 
-    // apagar - perform delete then redirect
-    if (isset($_GET['subaction']) && $_GET['subaction'] === 'apagar') {
+    // apagar - perform delete then redirect.
+    // Destructive action: requires POST + CSRF token (validated globally at the top of this file).
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['subaction']) && $_POST['subaction'] === 'apagar') {
         $stmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=?");
         $stmt->bind_param("sss", $sala, $tempo, $data);
         $stmt->execute();
