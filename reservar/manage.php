@@ -605,68 +605,13 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                     exit();
                     break;
                 case "apagar":
-                    $stmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=?");
-                    $stmt->bind_param("sss", $sala, $tempo, $data);
-                    $stmt->execute();
-                    $reserva = $stmt->get_result()->fetch_assoc();
-                    $stmt->close();
-                    
-                    if (!($_SESSION['admin']) && ($_SESSION['id'] != $reserva['requisitor'])) {
-                        http_response_code(403);
-                        die("Não tem permissão para apagar esta reserva.");
-                    }
-                    
-                    // Check if reservation is in the past and user is not admin
-                    if (!($_SESSION['admin']) && ($data < $today)) {
-                        http_response_code(403);
-                        die("Não é possível apagar reservas que já ocorreram. Contacte um administrador.");
-                    }
-                    
-                    if (true) {
-                        // Get room name and time for log
-                        $stmt = $db->prepare("SELECT nome FROM salas WHERE id=?");
-                        $stmt->bind_param("s", $sala);
-                        $stmt->execute();
-                        $salaextenso = $stmt->get_result()->fetch_assoc()['nome'];
-                        $stmt->close();
-                        
-                        $stmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
-                        $stmt->bind_param("s", $tempo);
-                        $stmt->execute();
-                        $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $tempo;
-                        $stmt->close();
-                        
-                        // Determine if deleted by admin (someone other than the requisitor)
-                        $deletedByAdmin = ($_SESSION['id'] != $reserva['requisitor']);
-                        
-                        // Log the deletion with improved message
-                        if ($deletedByAdmin) {
-                            // Admin deleting someone else's reservation
-                            $stmt = $db->prepare("SELECT nome FROM cache WHERE id=?");
-                            $stmt->bind_param("s", $reserva['requisitor']);
-                            $stmt->execute();
-                            $requisitorNome = $stmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
-                            $stmt->close();
-                            logAction("Eliminou a reserva do utilizador '{$requisitorNome}': sala '{$salaextenso}' no dia {$data} às {$tempoNome}", $_SESSION['id']);
-                        } else {
-                            // User deleting their own reservation
-                            logAction("Eliminou a sua reserva: sala '{$salaextenso}' no dia {$data} às {$tempoNome}", $_SESSION['id']);
-                        }
-                        
-                        // Send email to the person who made the reservation (not the current user)
-                        $emailResult = sendReservationDeletedEmail($db, $reserva['requisitor'], $sala, $tempo, $data, $deletedByAdmin);
-                        
-                        $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
-                        $stmt->bind_param("sss", $sala, $tempo, $data);
-                        if (!$stmt->execute()) {
-                            http_response_code(500);
-                            die("Houve um problema a apagar a reserva. Contacte um administrador, ou tente novamente mais tarde.");
-                        }
-                        $stmt->close();
-                        
-                        header("Location: /reservar/?sala=" . urlencode($sala));
-                        break;
-                    }
+                    // Note: deletion of reservations is handled by the POST
+                    // handler at the top of this file. The CSRF-protected
+                    // POST path is the only way to delete a reservation —
+                    // this case is intentionally a no-op (fall through to
+                    // the detail view) so that a GET request can never
+                    // trigger a destructive action.
+                    // No-op.
                 case null:
                     $stmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=? AND aprovado!=-1");
                     $stmt->bind_param("sss", $sala, $tempo, $data);
