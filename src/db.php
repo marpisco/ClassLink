@@ -89,7 +89,13 @@
     // Create config table for application settings
     $db->query("CREATE TABLE IF NOT EXISTS config (config_key VARCHAR(99) UNIQUE, config_value TEXT, PRIMARY KEY (config_key));");
     
-    // Insert default config values if not exist
+    // Insert default config values if not exist.
+    // Note: 'first_user_admin_id' is intentionally NOT pre-seeded. The row
+    // is only inserted by create_pending_user() when the first user claims
+    // admin. Pre-seeding it with an empty value would make the atomic
+    // INSERT ... ON DUPLICATE KEY UPDATE in create_pending_user() always
+    // hit "no-op update" (affected_rows = 0), and the first user would
+    // never be granted admin.
     $defaultConfigs = [
         'brand_name' => 'ClassLink',
         'internal_email_domain' => '',
@@ -97,8 +103,7 @@
         'blocked_emails_regex' => '',
         'email_account_name' => 'ClassLink',
         'initial_setup_complete' => 'false',
-        'app_mode' => 'production',
-        'first_user_admin_id' => ''
+        'app_mode' => 'production'
     ];
     
     foreach ($defaultConfigs as $key => $value) {
