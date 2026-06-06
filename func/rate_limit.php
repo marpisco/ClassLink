@@ -32,6 +32,10 @@ function verify_code_attempt_action(string $userId): string {
     return 'verify_code:' . substr(hash('sha256', $userId), 0, 32);
 }
 
+function rl_record_attempt_update_bind_types(): string {
+    return 'sisisss';
+}
+
 /**
  * Look up the rate_limits row for a given (ip, action) pair.
  * Returns the row array or null.
@@ -124,7 +128,7 @@ function record_attempt(string $action, int $windowSeconds = 3600): void {
     // windows (e.g. the 15-minute TOTP lockout) actually roll over.
     $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), ?, window_start) WHERE ip = ? AND action = ?");
     if ($stmt) {
-        $stmt->bind_param("sisissi", $now, $windowSeconds, $now, $windowSeconds, $now, $ip, $action);
+        $stmt->bind_param(rl_record_attempt_update_bind_types(), $now, $windowSeconds, $now, $windowSeconds, $now, $ip, $action);
         $stmt->execute();
         $stmt->close();
     }

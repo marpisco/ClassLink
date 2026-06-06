@@ -1,6 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/../func/trusted_referer.php');
+require_once(__DIR__ . '/../func/request_redaction.php');
 require_once(__DIR__ . '/../func/rate_limit.php');
 
 function assert_same($expected, $actual, string $message): void {
@@ -39,5 +40,22 @@ assert_same($userAAction, verify_code_attempt_action('user_abc'), 'Same user sho
 assert_not_same($userAAction, $userBAction, 'Different users should not share verify_code attempt key');
 assert_true(str_starts_with($userAAction, 'verify_code:'), 'verify_code attempt key should stay namespaced');
 assert_true(strlen($userAAction) <= 50, 'verify_code attempt key must fit rate_limits.action column');
+
+assert_same('sisisss', rl_record_attempt_update_bind_types(), 'record_attempt UPDATE bind types should bind action as string');
+
+$redacted = redact_sensitive_request_data([
+    'email' => 'user@example.test',
+    'csrf_token' => 'abc123',
+    'password' => 'secret',
+    'nested' => [
+        'clientSecret' => 'oauth-secret',
+        'motivo' => 'Reserva normal',
+    ],
+]);
+assert_same('user@example.test', $redacted['email'], 'Non-sensitive log fields should be preserved');
+assert_same('[REDACTED]', $redacted['csrf_token'], 'CSRF token should be redacted from logs');
+assert_same('[REDACTED]', $redacted['password'], 'Password should be redacted from logs');
+assert_same('[REDACTED]', $redacted['nested']['clientSecret'], 'Nested secret should be redacted from logs');
+assert_same('Reserva normal', $redacted['nested']['motivo'], 'Nested non-sensitive field should be preserved');
 
 echo "security_helpers_test passed\n";

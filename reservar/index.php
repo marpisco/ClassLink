@@ -158,9 +158,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         $stmt->execute();
         $salaData = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+
+        if (!$salaData) {
+            echo "<div class='container mt-3'><div class='alert alert-danger' role='alert'>Sala inválida.</div></div>";
+        } else {
         
-        $isAutonomous = ($salaData && $salaData['tipo_sala'] == 2);
-        $isLocked = ($salaData && $salaData['bloqueado'] == 1);
+        $isAutonomous = ($salaData['tipo_sala'] == 2);
+        $isLocked = ($salaData['bloqueado'] == 1);
         $canCreateReservation = (!$isLocked || $_SESSION['admin']);
         
         echo "<div class='container mt-3 d-flex align-items-center justify-content-center flex-column'>";
@@ -444,12 +448,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             </div>
         </div>
         </form>";
-        $currentSalaId = $_POST['sala'] ?? $_GET['sala'];
+        $previousWeekQuery = htmlspecialchars(http_build_query(['before' => $segundadiaantes, 'sala' => $sala]), ENT_QUOTES, 'UTF-8');
+        $currentWeekQuery = htmlspecialchars(http_build_query(['sala' => $sala]), ENT_QUOTES, 'UTF-8');
+        $nextWeekQuery = htmlspecialchars(http_build_query(['before' => $segundadiadepois, 'sala' => $sala]), ENT_QUOTES, 'UTF-8');
         echo "<div class='d-flex gap-2 mt-2'>";
-        echo "<a href='/reservar/?before={$segundadiaantes}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Anterior</a>";
-        echo "<a href='/reservar/?sala={$currentSalaId}' class='btn mb-2 btn-primary'>Semana Atual</a>";
-        echo "<a href='/reservar/?before={$segundadiadepois}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Seguinte</a>";
+        echo "<a href='/reservar/?{$previousWeekQuery}' class='btn mb-2 btn-success'>Semana Anterior</a>";
+        echo "<a href='/reservar/?{$currentWeekQuery}' class='btn mb-2 btn-primary'>Semana Atual</a>";
+        echo "<a href='/reservar/?{$nextWeekQuery}' class='btn mb-2 btn-success'>Semana Seguinte</a>";
         echo "</div></div>";
+        }
     }
     ?>
 </body>

@@ -376,10 +376,13 @@
         // ação executada
         function acaoexecutada($acao) {
             require_once(__DIR__ . '/../func/logaction.php');
+            require_once(__DIR__ . '/../func/request_redaction.php');
             $acao_safe = htmlspecialchars($acao, ENT_QUOTES, 'UTF-8');
             echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>Ação executada. <b>$acao_safe</b>
                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Fechar'></button></div>";
-            logaction($acao . ".\nPOST: " . var_export($_POST, true) . "\nGET: " . var_export($_GET, true), $_SESSION['id']);
+            $safePost = redact_sensitive_request_data($_POST);
+            $safeGet = redact_sensitive_request_data($_GET);
+            logaction($acao . ".\nPOST: " . var_export($safePost, true) . "\nGET: " . var_export($safeGet, true), $_SESSION['id']);
         }    
 ?>
 
