@@ -685,53 +685,51 @@
             $_SESSION['id'] = $_SESSION['resourceOwner']['sub'];
 
             // Check if there's any existing user with this email (pre_, pending_, admin_first_, etc.)
-            // Skip the current Microsoft ID since it was just created
-            $stmt = $db->prepare("SELECT id FROM cache WHERE email = ? AND id != ?");
+            // SECURITY: only merge if the source row has a pre-registered
+            // prefix. Otherwise any existing user (including another admin
+            // or a real OAuth user whose tenant changed) would be silently
+            // absorbed, and the new account would inherit the original's
+            // admin flag — a privilege-escalation vector.
+            $stmt = $db->prepare("SELECT id, admin FROM cache WHERE email = ? AND id != ? AND (id LIKE 'pre\\_%' OR id LIKE 'pending\\_%' OR id LIKE 'admin\\_first\\_%')");
             $stmt->bind_param("ss", $_SESSION['email'], $_SESSION['id']);
             $stmt->execute();
             $preRegisteredUser = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            
+
             if ($preRegisteredUser) {
                 // User was pre-registered, migrate to the real OAuth2 ID
                 // Use a transaction to ensure atomicity
                 $db->begin_transaction();
                 try {
-                    // Get the admin status from the pre-registered user
-                    $stmt = $db->prepare("SELECT admin FROM cache WHERE id = ?");
-                    $stmt->bind_param("s", $preRegisteredUser['id']);
-                    $stmt->execute();
-                    $preRegData = $stmt->get_result()->fetch_assoc();
-                    $stmt->close();
-                    $adminStatus = $preRegData['admin'] ?? 0;
-                    
+                    $adminStatus = $preRegisteredUser['admin'] ?? 0;
+
                     // First, insert a new record with the real OAuth2 ID
                     // This ensures the foreign key target exists before we update references
                     $stmt = $db->prepare("INSERT INTO cache (id, nome, email, admin) VALUES (?, ?, ?, ?)");
                     $stmt->bind_param("sssi", $_SESSION['id'], $_SESSION['nome'], $_SESSION['email'], $adminStatus);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Now update foreign key references in reservas table
                     $stmt = $db->prepare("UPDATE reservas SET requisitor = ? WHERE requisitor = ?");
                     $stmt->bind_param("ss", $_SESSION['id'], $preRegisteredUser['id']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Update foreign key references in logs table
                     $stmt = $db->prepare("UPDATE logs SET userid = ? WHERE userid = ?");
                     $stmt->bind_param("ss", $_SESSION['id'], $preRegisteredUser['id']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Finally, delete the old pre-registered user record
                     $stmt = $db->prepare("DELETE FROM cache WHERE id = ?");
                     $stmt->bind_param("s", $preRegisteredUser['id']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     $db->commit();
-                    
+
                     // Log first sign-on for pre-registered user
                     require_once(__DIR__ . '/../func/logaction.php');
                     logaction("Primeiro início de sessão realizado com sucesso (utilizador pré-registado migrado para conta OAuth2)", $_SESSION['id']);
@@ -746,15 +744,15 @@
                 $stmt->execute();
                 $existingUser = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
-                
+
                 $isNewUser = !$existingUser;
-                
+
                 // Insert new record (existing behavior)
                 $stmt = $db->prepare("INSERT IGNORE INTO cache (id, nome, email) VALUES (?, ?, ?)");
                 $stmt->bind_param("sss", $_SESSION['id'], $_SESSION['nome'], $_SESSION['email']);
                 $stmt->execute();
                 $stmt->close();
-                
+
                 // Log first sign-on for new users
                 if ($isNewUser) {
                     require_once(__DIR__ . '/../func/logaction.php');
