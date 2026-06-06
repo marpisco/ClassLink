@@ -525,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                     $checked = (isset($_POST['tempos']) && in_array($tempo['id'], $_POST['tempos'])) ? 'checked' : '';
                     echo "<div class='time-checkbox-item'>
                         <div class='form-check'>
-                            <input class='form-check-input' type='checkbox' name='tempos[]' value='{$tempo['id']}' id='tempo_{$tempo['id']}' {$checked}>
+                            <input class='form-check-input' type='checkbox' name='tempos[]' value='" . htmlspecialchars($tempo['id'], ENT_QUOTES, 'UTF-8') . "' id='tempo_" . htmlspecialchars($tempo['id'], ENT_QUOTES, 'UTF-8') . "' {$checked}>
                             <label class='form-check-label' for='tempo_{$tempo['id']}'>
                                 " . htmlspecialchars($tempo['horashumanos'], ENT_QUOTES, 'UTF-8') . "
                             </label>

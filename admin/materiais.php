@@ -147,7 +147,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
                     <?php
                     $salas = $db->query("SELECT * FROM salas ORDER BY nome ASC;");
                     while ($sala = $salas->fetch_assoc()) {
-                        echo "<option value='{$sala['id']}'>{$sala['nome']}</option>";
+                        echo "<option value='" . htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8') . "'>" . htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8') . "</option>";
                     }
                     ?>
                 </select>
@@ -224,7 +224,7 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
                     $salas = $db->query("SELECT * FROM salas ORDER BY nome ASC;");
                     while ($sala = $salas->fetch_assoc()) {
                         $selected = ($sala['id'] == $d['sala_id']) ? 'selected' : '';
-                        echo "<option value='{$sala['id']}' {$selected}>{$sala['nome']}</option>";
+                        echo "<option value='" . htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8') . "' {$selected}>" . htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8') . "</option>";
                     }
                     ?>
                 </select>

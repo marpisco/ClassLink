@@ -138,11 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                     }
                     $salas = $db->query("SELECT * FROM salas ORDER BY nome ASC;");
                     while ($sala = $salas->fetch_assoc()) {
-                        if ($_POST['sala'] == $sala['id'] || $_GET['sala'] == $sala['id']) {
-                            echo "<option value='{$sala['id']}' selected>{$sala['nome']}</option>";
-                        } else {
-                            echo "<option value='{$sala['id']}'>{$sala['nome']}</option>";
-                        }
+                        $selected = ($_POST['sala'] == $sala['id'] || $_GET['sala'] == $sala['id']) ? ' selected' : '';
+                        echo "<option value='" . htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8') . "'" . $selected . ">" . htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8') . "</option>";
                     }
                     ?>
                 </select>
