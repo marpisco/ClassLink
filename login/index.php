@@ -215,6 +215,7 @@
                 // Issue 1 fix: send a code for BOTH new and existing users.
                 // Previously the code generation was inside the else branch only,
                 // so newly created users never received a code and were stuck.
+                $sendSucceeded = false;
                 if ($user && isset($user['email'])) {
                     $code = generate_email_code();
                     $otpHash = password_hash($code, PASSWORD_DEFAULT);
@@ -227,13 +228,24 @@
                         $stmt->close();
                     }
 
-                    send_login_code_email($user['email'], $user['nome'], $code);
+                    // Surface SMTP failures to the user. Without this, the
+                    // user is told "check your email" but no email was ever
+                    // sent — they'd be stuck on the verification page.
+                    $emailResult = send_login_code_email($user['email'], $user['nome'], $code);
+                    if (is_array($emailResult) && empty($emailResult['success'])) {
+                        $localAuthError = 'Não foi possível enviar o email com o código. Tente novamente mais tarde.';
+                        $localAuthStage = 'email';
+                    } else {
+                        $sendSucceeded = true;
+                    }
                 }
 
-                // Record the attempt AFTER attempting to send so successful sends
-                // still count against the rate limit (otherwise a flood of
-                // legitimate-looking requests could bypass it).
-                record_attempt('send_code', 3600);
+                // Only consume the rate-limit budget when we actually sent a
+                // code. Otherwise transient DB errors or SMTP failures would
+                // lock the IP out without any email ever being delivered.
+                if ($sendSucceeded) {
+                    record_attempt('send_code', 3600);
+                }
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);
