@@ -158,7 +158,11 @@ if (isset($_GET['subaction']) && $_GET['subaction'] === 'bulk' && $_SERVER['REQU
             $salaData = $salaDataStmt->get_result()->fetch_assoc();
             $salaDataStmt->close();
             if (!empty($salaData['post_reservation_content'])) {
-                $out .= "<div class='card mb-3'><div class='card-body'><h5 class='card-title'>Informações Importantes - " . htmlspecialchars($salaData['nome'], ENT_QUOTES, 'UTF-8') . "</h5><div class='post-reservation-content'>" . $salaData['post_reservation_content'] . "</div></div></div>";
+                // Defense in depth: re-purify on render in case a legacy
+                // row in the DB predates the input-side sanitization.
+                $renderPurifier = new HTMLPurifier(HTMLPurifier_Config::createDefault());
+                $cleanContent = $renderPurifier->purify($salaData['post_reservation_content']);
+                $out .= "<div class='card mb-3'><div class='card-body'><h5 class='card-title'>Informações Importantes - " . htmlspecialchars($salaData['nome'], ENT_QUOTES, 'UTF-8') . "</h5><div class='post-reservation-content'>" . $cleanContent . "</div></div></div>";
             }
         }
         $out .= "<div class='d-grid gap-2 d-md-block'><a href='/reservar' class='btn btn-success me-md-2 mb-2 mb-md-0'>Voltar à página de reserva de salas</a> <a href='/reservas' class='btn btn-primary'>Ver as minhas reservas</a></div></div></div>";
@@ -469,11 +473,13 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                     
                     // Display post-reservation content if available
                     if (!empty($salaData['post_reservation_content'])) {
+                        $renderPurifier = new HTMLPurifier(HTMLPurifier_Config::createDefault());
+                        $cleanContent = $renderPurifier->purify($salaData['post_reservation_content']);
                         echo "<div class='card mb-3'>";
                         echo "<div class='card-body'>";
                         echo "<h5 class='card-title'>Informações Importantes - " . htmlspecialchars($salaData['nome'], ENT_QUOTES, 'UTF-8') . "</h5>";
                         echo "<div class='post-reservation-content'>";
-                        echo $salaData['post_reservation_content']; // Content is already HTML from CKEditor
+                        echo $cleanContent; // Re-purified on render for defense in depth
                         echo "</div>";
                         echo "</div>";
                         echo "</div>";
@@ -848,11 +854,13 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                         
                         // Display post-reservation content if available
                         if (!empty($salaData['post_reservation_content'])) {
+                            $renderPurifier = new HTMLPurifier(HTMLPurifier_Config::createDefault());
+                            $cleanContent = $renderPurifier->purify($salaData['post_reservation_content']);
                             echo "<div class='card mb-3'>";
                             echo "<div class='card-body'>";
                             echo "<h5 class='card-title'>Informações Importantes</h5>";
                             echo "<div class='post-reservation-content'>";
-                            echo $salaData['post_reservation_content']; // Content is already HTML from CKEditor
+                            echo $cleanContent; // Re-purified on render for defense in depth
                             echo "</div>";
                             echo "</div>";
                             echo "</div>";

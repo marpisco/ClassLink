@@ -6,6 +6,7 @@
         "league/oauth2-client": "^2.8",
         "tecnickcom/tcpdf": "^6.7",
         "pragmarx/google2fa": "^9.0",
-        "chillerlan/php-qrcode": "^6.0"
+        "chillerlan/php-qrcode": "^6.0",
+        "ezyang/htmlpurifier": "^4.19"
     }
 }

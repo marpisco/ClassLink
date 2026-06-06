@@ -76,8 +76,21 @@ switch (isset($_GET['action']) ? $_GET['action'] : null){
             echo "<div class='alert alert-danger fade show' role='alert'>Dados inválidos.</div>";
             break;
         }
+        // Sanitize HTML before storing. CKEditor's sanitization runs
+        // client-side only, so a raw POST (or a compromised admin
+        // session) could otherwise store <script> that runs in every
+        // user viewing the affected sala's post-reservation page.
+        $purifierConfig = HTMLPurifier_Config::createDefault();
+        $purifierConfig->set('HTML.Allowed', 'p,b,strong,i,em,u,a[href|title],ul,ol,li,br,h1,h2,h3,h4,blockquote,table,thead,tbody,tr,th[colspan|rowspan],td[colspan|rowspan],span[style],figure,figcaption');
+        $purifierConfig->set('HTML.SafeIframe', true);
+        $purifierConfig->set('URI.AllowedSchemes', ['http' => true, 'https' => true, 'mailto' => true, 'tel' => true]);
+        $purifierConfig->set('Attr.AllowedFrameTargets', ['_blank']);
+        $purifierConfig->set('HTML.TargetBlank', true);
+        $purifier = new HTMLPurifier($purifierConfig);
+        $sanitized = $purifier->purify($_POST['post_reservation_content']);
+
         $stmt = $db->prepare("UPDATE salas SET post_reservation_content = ? WHERE id = ?");
-        $stmt->bind_param("ss", $_POST['post_reservation_content'], $_GET['id']);
+        $stmt->bind_param("ss", $sanitized, $_GET['id']);
         $stmt->execute();
         $stmt->close();
         acaoexecutada("Atualização de Página Pós-Reserva");
