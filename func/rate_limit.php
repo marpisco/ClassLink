@@ -94,9 +94,12 @@ function check_rate_limit(string $action, int $maxAttempts, int $windowSeconds):
 
 /**
  * Record an attempt for the current IP/action. If the existing window has
- * expired, the row is reset. Otherwise the counter is incremented.
+ * expired (per the configured $windowSeconds), the counter is reset.
+ * Otherwise the counter is incremented. Callers must pass the same
+ * $windowSeconds they pass to check_rate_limit(), otherwise the counter
+ * never resets for windows shorter than 1 hour.
  */
-function record_attempt(string $action): void {
+function record_attempt(string $action, int $windowSeconds = 3600): void {
     global $db;
     $ip = rl_get_client_ip();
     $now = rl_now();
@@ -112,10 +115,12 @@ function record_attempt(string $action): void {
         return;
     }
 
-    // Reset the window if it expired (using a 1-hour default upper bound for the window check itself).
-    $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(?, INTERVAL 1 HOUR), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(?, INTERVAL 1 HOUR), ?, window_start) WHERE ip = ? AND action = ?");
+    // Reset the window if it expired. Use the actual configured window
+    // (passed by the caller) instead of a hard-coded 1 HOUR, so shorter
+    // windows (e.g. the 15-minute TOTP lockout) actually roll over.
+    $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), ?, window_start) WHERE ip = ? AND action = ?");
     if ($stmt) {
-        $stmt->bind_param("sssss", $now, $now, $now, $ip, $action);
+        $stmt->bind_param("sisissi", $now, $windowSeconds, $now, $windowSeconds, $now, $ip, $action);
         $stmt->execute();
         $stmt->close();
     }

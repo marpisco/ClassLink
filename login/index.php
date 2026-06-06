@@ -233,7 +233,7 @@
                 // Record the attempt AFTER attempting to send so successful sends
                 // still count against the rate limit (otherwise a flood of
                 // legitimate-looking requests could bypass it).
-                record_attempt('send_code');
+                record_attempt('send_code', 3600);
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);
@@ -305,7 +305,7 @@
                 // a fresh code to continue. No IP lockout here (per the spec),
                 // so legitimate users who mistype a few times aren't penalized.
                 if ($user) {
-                    record_attempt('verify_code');
+                    record_attempt('verify_code', 3600);
                     if (!check_rate_limit('verify_code', 5, 3600)) {
                         invalidate_user_otp($user['id']);
                         clear_attempts('verify_code');
@@ -368,7 +368,7 @@
                     }
                     // Record a failed attempt and lock the IP if the threshold
                     // (5) is exceeded.
-                    record_attempt('verify_totp');
+                    record_attempt('verify_totp', 900);
                     if (!check_rate_limit('verify_totp', 5, 900)) {
                         block('verify_totp', 900);
                         $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
@@ -409,7 +409,7 @@
                     exit();
                 }
                 // Failed verify_totp_setup: record and lock if threshold exceeded.
-                record_attempt('verify_totp_setup');
+                record_attempt('verify_totp_setup', 900);
                 if (!check_rate_limit('verify_totp_setup', 5, 900)) {
                     block('verify_totp_setup', 900);
                     $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
