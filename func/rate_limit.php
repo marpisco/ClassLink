@@ -232,7 +232,7 @@ function record_attempt(string $action, int $windowSeconds = 3600): void {
 
     $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(NOW(), INTERVAL ? SECOND), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(NOW(), INTERVAL ? SECOND), NOW(), window_start) WHERE ip = ? AND action = ?");
     if ($stmt) {
-        $stmt->bind_param("iss", $windowSeconds, $ip, $action);
+        $stmt->bind_param("iiss", $windowSeconds, $windowSeconds, $ip, $action);
         $stmt->execute();
         $stmt->close();
     }
