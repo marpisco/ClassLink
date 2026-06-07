@@ -131,14 +131,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             <?= csrf_token_field(); ?>
             <div class="form-floating me-2">
                 <select class="form-select" id="sala" name="sala" required onchange="this.form.submit();">
-                    <?php if ($_POST['sala'] == "0" | !$_POST['sala']) {
+                    <?php
+                    $currentSala = $_POST['sala'] ?? $_GET['sala'] ?? null;
+                    if (empty($currentSala) || $currentSala === "0") {
                         echo "<option value='0' selected disabled>Escolha uma sala</option>";
                     } else {
                         echo "<option value='0' disabled>Escolha uma sala</option>";
                     }
                     $salas = $db->query("SELECT * FROM salas ORDER BY nome ASC;");
                     while ($sala = $salas->fetch_assoc()) {
-                        $selected = ($_POST['sala'] == $sala['id'] || $_GET['sala'] == $sala['id']) ? ' selected' : '';
+                        $selected = ($currentSala == $sala['id']) ? ' selected' : '';
                         echo "<option value='" . htmlspecialchars($sala['id'], ENT_QUOTES, 'UTF-8') . "'" . $selected . ">" . htmlspecialchars($sala['nome'], ENT_QUOTES, 'UTF-8') . "</option>";
                     }
                     ?>
@@ -150,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
     <?php
     if (isset($_POST['sala']) || isset($_GET['sala'])) {
         // Get the selected room (POST takes precedence over GET for form submissions)
-        $sala = isset($_POST['sala']) ? $_POST['sala'] : $_GET['sala'];
+        $sala = $_POST['sala'] ?? $_GET['sala'] ?? null;
         
         // Query room information to check if it's autonomous and if it's locked
         $stmt = $db->prepare("SELECT nome, tipo_sala, bloqueado FROM salas WHERE id = ?");
