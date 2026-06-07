@@ -376,6 +376,35 @@
                     // Clear pending session
                     unset($_SESSION['pending_user_setup']);
 
+                    // Admin TOTP check. The first administrator reaches
+                    // this point from the `admin_first_*` routing branch
+                    // in verify_code above, which redirects to profile
+                    // setup before the regular admin TOTP check runs.
+                    // Without this, the first admin would receive a fully
+                    // authenticated admin session without configuring
+                    // or verifying TOTP, bypassing the admin_requires_totp
+                    // policy.
+                    if ($user['admin'] == 1 && is_admin_totp_required()) {
+                        if (empty($user['totp_secret'])) {
+                            $_SESSION['pending_totp_user'] = [
+                                'id' => $user['id'],
+                                'nome' => $user['nome'],
+                                'email' => $user['email'],
+                                'admin' => true
+                            ];
+                            header('Location: /login?step=totp_setup');
+                            exit();
+                        }
+                        $_SESSION['pending_totp_user'] = [
+                            'id' => $user['id'],
+                            'nome' => $user['nome'],
+                            'email' => $user['email'],
+                            'admin' => true
+                        ];
+                        header('Location: /login?step=totp');
+                        exit();
+                    }
+
                     // Log the user in
                     start_authenticated_session($user['id'], $user['nome'], $user['email'], $user['admin']);
                     logaction('Conta criada com sucesso via Código por Email', $user['id']);
