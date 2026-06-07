@@ -6,15 +6,19 @@
 <?php
 // Destructive actions must be POST. The CSRF token is validated by the
 // global guard in admin/index.php for any POST to /admin/*.
+// The form posts `action` in the request body, so we resolve it from
+// $_POST first and fall back to $_GET (so existing link-based GET flows
+// like /admin/users.php?action=edit still work).
+$isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+$actionParam = $_POST['action'] ?? $_GET['action'] ?? null;
 $destructiveActions = ['apagar', 'removetotp'];
-$actionParam = $_GET['action'] ?? null;
-if (in_array($actionParam, $destructiveActions, true) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+if (in_array($actionParam, $destructiveActions, true) && !$isPost) {
     http_response_code(405);
     echo "<div class='alert alert-danger fade show' role='alert'>Pedido inválido. As ações destrutivas requerem POST.</div>";
     return;
 }
 
-switch (isset($_GET['action']) ? $_GET['action'] : null){
+switch ($actionParam){
     // caso execute a ação apagar:
     case "apagar":
         if (!isset($_POST['id'])) {
