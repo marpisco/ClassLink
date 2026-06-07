@@ -214,7 +214,7 @@ function loadSalas(reset = false) {
                     <td>${estadoSala}</td>
                     <td>
                         <a href='/admin/salas.php?action=edit&id=${idEnc}' class='btn btn-sm btn-primary'>EDITAR</a>
-                        <form action='/admin/salas.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar a sala? Isto irá causar problemas se a sala tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
+                        <form action='/admin/salas.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar a sala? Isto irá causar problemas se a sala tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${encodeURIComponent(sala.id)}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
                     </td>
                 </tr>`;
                 

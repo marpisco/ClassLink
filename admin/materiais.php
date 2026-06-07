@@ -290,6 +290,7 @@ if ($materiaisQuery->num_rows == 0) {
     
     while ($row = $materiaisQuery->fetch_assoc()) {
         $idEnc = urlencode($row['id']);
+        $idEsc = htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8');
         $nome = htmlspecialchars($row['nome'], ENT_QUOTES, 'UTF-8');
         $descricao = htmlspecialchars($row['descricao'], ENT_QUOTES, 'UTF-8');
         $salaNome = htmlspecialchars($row['sala_nome'], ENT_QUOTES, 'UTF-8');
@@ -302,7 +303,7 @@ if ($materiaisQuery->num_rows == 0) {
         echo "<a href='/admin/materiais.php?action=edit&id={$idEnc}' class='btn btn-sm btn-outline-primary me-1'>Editar</a>";
         echo "<form action='/admin/materiais.php?action=apagar' method='POST' style='display:inline;' onsubmit='return confirm(\"Tem a certeza que pretende apagar este material?\");'>";
         echo csrf_token_field();
-        echo "<input type='hidden' name='id' value='{$idEnc}'>";
+        echo "<input type='hidden' name='id' value='{$idEsc}'>";
         echo "<button type='submit' class='btn btn-sm btn-outline-danger'>Apagar</button>";
         echo "</form>";
         echo "</td>";

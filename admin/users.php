@@ -185,8 +185,15 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
         <div class='alert alert-warning'>Não existem utilizadores.</div>
     <?php else: ?>
         <div class="row" id="userList">
-            <?php while ($row = $utilizadores->fetch_assoc()): 
+            <?php while ($row = $utilizadores->fetch_assoc()):
+                // $idEnc is for query-string links (which must be URL-encoded
+                // because the ID appears in the path/query); $idEsc is for
+                // form value attributes, which carry the raw ID in the POST
+                // body. Browsers do not URL-decode form input values, so
+                // posting the encoded form would mismatch the row in the
+                // database and silently no-op the destructive action.
                 $idEnc = urlencode($row['id']);
+                $idEsc = htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8');
                 $adminStatus = $row['admin'] ? "<span class='badge bg-success'>Admin</span>" : "<span class='badge bg-secondary'>Utilizador</span>";
                 $isPreRegistered = str_starts_with($row['id'], PRE_REGISTERED_PREFIX);
                 $preRegBadge = $isPreRegistered ? " <span class='badge bg-warning text-dark'>Pré-registado</span>" : "";
@@ -214,13 +221,13 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                             <?php if ($hasTotp): ?>
                                 <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'>
                                     <input type='hidden' name='action' value='removetotp'>
-                                    <input type='hidden' name='id' value='<?php echo $idEnc; ?>'>
+                                    <input type='hidden' name='id' value='<?php echo $idEsc; ?>'>
                                     <button type='submit' class='btn btn-sm btn-warning'>Remover TOTP</button>
                                 </form>
                             <?php endif; ?>
                             <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'>
                                 <input type='hidden' name='action' value='apagar'>
-                                <input type='hidden' name='id' value='<?php echo $idEnc; ?>'>
+                                <input type='hidden' name='id' value='<?php echo $idEsc; ?>'>
                                 <button type='submit' class='btn btn-sm btn-danger'>APAGAR</button>
                             </form>
                         </div>
