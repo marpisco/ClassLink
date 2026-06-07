@@ -73,8 +73,6 @@ assert_not_same($userAAction, $userBAction, 'Different users should not share ve
 assert_true(str_starts_with($userAAction, 'verify_code:'), 'verify_code attempt key should stay namespaced');
 assert_true(strlen($userAAction) <= 50, 'verify_code attempt key must fit rate_limits.action column');
 
-assert_same('sisisss', rl_record_attempt_update_bind_types(), 'record_attempt UPDATE bind types should bind action as string');
-
 $redacted = redact_sensitive_request_data([
     'email' => 'user@example.test',
     'csrf_token' => 'abc123',

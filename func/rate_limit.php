@@ -33,10 +33,6 @@ function verify_code_attempt_action(string $userId): string {
     return 'verify_code:' . substr(hash('sha256', $userId), 0, 32);
 }
 
-function rl_record_attempt_update_bind_types(): string {
-    return 'sisisss';
-}
-
 /**
  * Look up the rate_limits row for a given (ip, action) pair.
  * Returns the row array or null.
@@ -111,54 +107,72 @@ function check_rate_limit(string $action, int $maxAttempts, int $windowSeconds):
  * new count is computed in PHP, and the row is updated (or inserted)
  * in the same transaction.
  *
+ * MySQL's NOW() is the single clock for both the row write and the
+ * window comparison. Mixing PHP's date() / time() with MySQL's
+ * UNIX_TIMESTAMP on the same DATETIME column silently breaks when
+ * the two run in different time zones: a row that was just inserted
+ * by PHP can appear to have been written hours earlier (or later)
+ * when read back, which makes the window appear already expired (or
+ * still active hours too long), letting an attacker submit unlimited
+ * requests or locking legitimate users out.
+ *
  * @return bool true if the attempt fits under the (maxAttempts, windowSeconds) budget.
  */
 function reserve_rate_limit_attempt(string $action, int $maxAttempts, int $windowSeconds): bool {
     global $db;
     $ip = rl_get_client_ip();
-    $now = rl_now();
-    $nowTs = time();
 
     $db->begin_transaction();
     try {
-        $selectStmt = $db->prepare("SELECT attempts, UNIX_TIMESTAMP(window_start) AS ws_ts FROM rate_limits WHERE ip = ? AND action = ? FOR UPDATE");
+        $selectStmt = $db->prepare(
+            "SELECT attempts,
+                    (window_start >= DATE_SUB(NOW(), INTERVAL ? SECOND)) AS active
+             FROM rate_limits
+             WHERE ip = ? AND action = ?
+             FOR UPDATE"
+        );
         if (!$selectStmt) {
             $db->rollback();
             return true; // fail open
         }
-        $selectStmt->bind_param("ss", $ip, $action);
+        $selectStmt->bind_param("iss", $windowSeconds, $ip, $action);
         $selectStmt->execute();
         $row = $selectStmt->get_result()->fetch_assoc();
         $selectStmt->close();
 
-        // First ever attempt for this (ip, action): always allowed, insert with attempts=1.
+        // No row: first attempt for this (ip, action). Always allowed.
         if ($row === null) {
-            $insertStmt = $db->prepare("INSERT INTO rate_limits (ip, action, attempts, window_start) VALUES (?, ?, 1, ?)");
+            $insertStmt = $db->prepare(
+                "INSERT INTO rate_limits (ip, action, attempts, window_start) VALUES (?, ?, 1, NOW())"
+            );
             if (!$insertStmt) {
                 $db->rollback();
                 return true;
             }
-            $insertStmt->bind_param("sss", $ip, $action, $now);
+            $insertStmt->bind_param("ss", $ip, $action);
             $insertStmt->execute();
             $insertStmt->close();
             $db->commit();
             return true;
         }
 
-        $windowExpired = ((int)$row['ws_ts'] + $windowSeconds) <= $nowTs;
-        if ($windowExpired) {
-            $resetStmt = $db->prepare("UPDATE rate_limits SET attempts = 1, window_start = ? WHERE ip = ? AND action = ?");
+        // Window expired: reset to 1 using MySQL's clock.
+        if ((int)$row['active'] !== 1) {
+            $resetStmt = $db->prepare(
+                "UPDATE rate_limits SET attempts = 1, window_start = NOW() WHERE ip = ? AND action = ?"
+            );
             if (!$resetStmt) {
                 $db->rollback();
                 return true;
             }
-            $resetStmt->bind_param("sss", $now, $ip, $action);
+            $resetStmt->bind_param("ss", $ip, $action);
             $resetStmt->execute();
             $resetStmt->close();
             $db->commit();
             return true;
         }
 
+        // Window still active. Increment and decide.
         $newCount = (int)$row['attempts'] + 1;
         if ($newCount > $maxAttempts) {
             // Do not increment past the cap. Releasing the lock without
@@ -173,7 +187,7 @@ function reserve_rate_limit_attempt(string $action, int $maxAttempts, int $windo
             $db->rollback();
             return true;
         }
-        $updateStmt->bind_param("sis", $newCount, $ip, $action);
+        $updateStmt->bind_param("iss", $newCount, $ip, $action);
         $updateStmt->execute();
         $updateStmt->close();
         $db->commit();
@@ -191,35 +205,34 @@ function reserve_rate_limit_attempt(string $action, int $maxAttempts, int $windo
 /**
  * Record an attempt for the current IP/action. If the existing window has
  * expired (per the configured $windowSeconds), the counter is reset.
- * Otherwise the counter is incremented. Callers must pass the same
- * $windowSeconds they pass to check_rate_limit(), otherwise the counter
- * never resets for windows shorter than 1 hour.
+ * Otherwise the counter is incremented.
  *
  * Prefer reserve_rate_limit_attempt() for new code: this read-then-write
- * helper has a known TOCTOU window under concurrent bursts.
+ * helper has a known TOCTOU window under concurrent bursts, and the
+ * "did I just claim a slot or did the previous request?" question is
+ * easier to answer with the atomic helper.
+ *
+ * MySQL's NOW() is the single clock for both the write and the window
+ * comparison; see reserve_rate_limit_attempt() for the rationale.
  */
 function record_attempt(string $action, int $windowSeconds = 3600): void {
     global $db;
     $ip = rl_get_client_ip();
-    $now = rl_now();
 
     $row = rl_get_row($ip, $action);
     if ($row === null) {
-        $stmt = $db->prepare("INSERT INTO rate_limits (ip, action, attempts, window_start) VALUES (?, ?, 1, ?)");
+        $stmt = $db->prepare("INSERT INTO rate_limits (ip, action, attempts, window_start) VALUES (?, ?, 1, NOW())");
         if ($stmt) {
-            $stmt->bind_param("sss", $ip, $action, $now);
+            $stmt->bind_param("ss", $ip, $action);
             $stmt->execute();
             $stmt->close();
         }
         return;
     }
 
-    // Reset the window if it expired. Use the actual configured window
-    // (passed by the caller) instead of a hard-coded 1 HOUR, so shorter
-    // windows (e.g. the 15-minute TOTP lockout) actually roll over.
-    $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(?, INTERVAL ? SECOND), ?, window_start) WHERE ip = ? AND action = ?");
+    $stmt = $db->prepare("UPDATE rate_limits SET attempts = IF(window_start < DATE_SUB(NOW(), INTERVAL ? SECOND), 1, attempts + 1), window_start = IF(window_start < DATE_SUB(NOW(), INTERVAL ? SECOND), NOW(), window_start) WHERE ip = ? AND action = ?");
     if ($stmt) {
-        $stmt->bind_param(rl_record_attempt_update_bind_types(), $now, $windowSeconds, $now, $windowSeconds, $now, $ip, $action);
+        $stmt->bind_param("iss", $windowSeconds, $ip, $action);
         $stmt->execute();
         $stmt->close();
     }
