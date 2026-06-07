@@ -83,22 +83,35 @@
     function create_pending_user($email) {
         global $db;
 
-        // Race-safe first-user admin assignment. The first thread to atomically
-        // claim the `first_user_admin_id` config row gets admin; concurrent
-        // threads will see the existing value and lose. This is enforced by
-        // MySQL's INSERT ... ON DUPLICATE KEY UPDATE semantics — only one row
-        // can be inserted, all other attempts update the existing row.
-        $claimId = 'first_user_claim_' . bin2hex(random_bytes(8));
-        $stmt = $db->prepare("INSERT INTO config (config_key, config_value) VALUES ('first_user_admin_id', ?) ON DUPLICATE KEY UPDATE config_value = config_value");
-        if (!$stmt) {
-            return null;
-        }
-        $stmt->bind_param("s", $claimId);
-        $stmt->execute();
-        $claimed = $stmt->affected_rows === 1; // 1 = inserted (we won the race), 2 = updated (someone else got there first)
-        $stmt->close();
+        // The first-user admin claim is only valid on a brand-new
+        // installation. On an upgraded deployment, the cache table may
+        // already contain users (with their own admin status) while the
+        // first_user_admin_id config row has never been written. If we
+        // race-conditioned purely on the config row, the first
+        // previously-unknown email submitted through local auth would
+        // win the claim and be silently promoted to admin — a privilege
+        // escalation on the first day of the upgrade. The atomic claim
+        // is only meaningful when there are no users yet.
+        $userCountRow = $db->query("SELECT COUNT(*) AS c FROM cache")->fetch_assoc();
+        $cacheIsEmpty = ((int)($userCountRow['c'] ?? 0)) === 0;
 
-        $isFirstUser = $claimed;
+        $isFirstUser = false;
+        if ($cacheIsEmpty) {
+            // Race-safe first-user admin assignment. The first thread to
+            // atomically claim the `first_user_admin_id` config row gets
+            // admin; concurrent threads will see the existing value and
+            // lose. This is enforced by MySQL's INSERT ... ON DUPLICATE
+            // KEY UPDATE semantics — only one row can be inserted, all
+            // other attempts update the existing row.
+            $claimId = 'first_user_claim_' . bin2hex(random_bytes(8));
+            $stmt = $db->prepare("INSERT INTO config (config_key, config_value) VALUES ('first_user_admin_id', ?) ON DUPLICATE KEY UPDATE config_value = config_value");
+            if ($stmt) {
+                $stmt->bind_param("s", $claimId);
+                $stmt->execute();
+                $isFirstUser = $stmt->affected_rows === 1; // 1 = inserted (we won the race), 0 = updated (someone else got there first)
+                $stmt->close();
+            }
+        }
 
         // Generate ID based on whether this is first user
         if ($isFirstUser) {
