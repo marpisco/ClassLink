@@ -34,6 +34,37 @@ assert_same('/reservar?x=1', trusted_referer_path('/reservar?x=1', '/reservar', 
 assert_same('/reservar', trusted_referer_path('https://evil.test/phish', '/reservar', 'classlink.test'), 'External referer should use fallback');
 assert_same('/reservar', trusted_referer_path('javascript:alert(1)', '/reservar', 'classlink.test'), 'Non-http referer should use fallback');
 
+// Port handling: HTTP_HOST typically includes a port (classlink.test:8080)
+// while parse_url($referer)['host'] strips it. A direct string compare
+// would reject these as untrusted. Mismatched ports are not the same
+// origin and must be rejected.
+assert_same(
+    '/admin/pedidos.php',
+    trusted_referer_path('https://classlink.test:8080/admin/pedidos.php', '/reservar', 'classlink.test:8080'),
+    'Same-origin referer with matching port should be accepted'
+);
+assert_same(
+    '/reservar',
+    trusted_referer_path('https://classlink.test:8080/admin/pedidos.php', '/reservar', 'classlink.test:9090'),
+    'Same host but different port should be rejected'
+);
+assert_same(
+    '/reservar',
+    trusted_referer_path('https://classlink.test:8080/admin/pedidos.php', '/reservar', 'classlink.test'),
+    'Referer with port and host without port should be rejected'
+);
+assert_same(
+    '/reservar',
+    trusted_referer_path('https://classlink.test/admin/pedidos.php', '/reservar', 'classlink.test:8080'),
+    'Host without port and HTTP_HOST with port should be rejected'
+);
+
+assert_same(['host' => 'classlink.test', 'port' => 8080], parse_host_and_port('classlink.test:8080'), 'Plain host:port parses');
+assert_same(['host' => 'classlink.test', 'port' => null], parse_host_and_port('classlink.test'), 'Host without port parses with null port');
+assert_same(['host' => '::1', 'port' => 8080], parse_host_and_port('[::1]:8080'), 'Bracketed IPv6 with port parses');
+assert_same(['host' => '::1', 'port' => null], parse_host_and_port('[::1]'), 'Bracketed IPv6 without port parses');
+assert_same(['host' => 'classlink.test', 'port' => 80], parse_host_and_port('ClassLink.Test:80'), 'Host and port are lowercased');
+
 $userAAction = verify_code_attempt_action('user_abc');
 $userBAction = verify_code_attempt_action('pre_123');
 assert_same($userAAction, verify_code_attempt_action('user_abc'), 'Same user should get stable verify_code key');
