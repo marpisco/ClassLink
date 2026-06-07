@@ -231,7 +231,6 @@
                 // Issue 1 fix: send a code for BOTH new and existing users.
                 // Previously the code generation was inside the else branch only,
                 // so newly created users never received a code and were stuck.
-                $sendSucceeded = false;
                 if ($user && isset($user['email'])) {
                     $code = generate_email_code();
                     $otpHash = password_hash($code, PASSWORD_DEFAULT);
@@ -251,17 +250,19 @@
                     if (is_array($emailResult) && empty($emailResult['success'])) {
                         $localAuthError = 'Não foi possível enviar o email com o código. Tente novamente mais tarde.';
                         $localAuthStage = 'email';
-                    } else {
-                        $sendSucceeded = true;
                     }
                 }
 
-                // Reserve already counted this attempt. Release the slot
-                // when we never actually delivered a code, so transient
-                // SMTP/DB errors do not penalise the user.
-                if (!$sendSucceeded) {
-                    clear_attempts('send_code');
-                }
+                // The reserve already counted this attempt. We do NOT
+                // release it on SMTP/DB failure: a release would either
+                // need to delete the whole rate-limit row (which lets an
+                // attacker submit undeliverable addresses to reset the
+                // shared counter) or decrement by one (which races with
+                // other concurrent reservations and can drop a legitimate
+                // attempt). The reservation stands, so transient upstream
+                // failures correctly rate-limit the IP, the same as if
+                // the email had been delivered. The lockout expires in
+                // one hour.
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);

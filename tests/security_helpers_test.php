@@ -3,6 +3,7 @@
 require_once(__DIR__ . '/../func/trusted_referer.php');
 require_once(__DIR__ . '/../func/request_redaction.php');
 require_once(__DIR__ . '/../func/rate_limit.php');
+require_once(__DIR__ . '/../func/logaction.php');
 
 function assert_same($expected, $actual, string $message): void {
     if ($expected !== $actual) {
@@ -88,5 +89,62 @@ assert_same('[REDACTED]', $redacted['csrf_token'], 'CSRF token should be redacte
 assert_same('[REDACTED]', $redacted['password'], 'Password should be redacted from logs');
 assert_same('[REDACTED]', $redacted['nested']['clientSecret'], 'Nested secret should be redacted from logs');
 assert_same('Reserva normal', $redacted['nested']['motivo'], 'Nested non-sensitive field should be preserved');
+
+// Client IP resolution. Even when REMOTE_ADDR is on the trusted
+// allowlist, the resolver must walk X-Forwarded-For from the right and
+// skip any trusted hops, returning the rightmost untrusted address. The
+// non-standard HTTP_CLIENT_IP header is never trusted, and an empty
+// allowlist always falls back to REMOTE_ADDR.
+$trusted = ['10.0.0.1' => true, '10.0.0.2' => true];
+
+assert_same('203.0.113.7', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7'],
+    $trusted
+), 'Single-hop chain returns the forwarded client');
+
+assert_same('198.51.100.4', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7, 198.51.100.4, 10.0.0.2'],
+    $trusted
+), 'Multi-hop chain returns the rightmost untrusted address, skipping trusted hops on the right');
+
+assert_same('203.0.113.7', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7, 10.0.0.2, 10.0.0.1'],
+    $trusted
+), 'All hops on the right are trusted so the next untrusted address on the left is returned');
+
+assert_same('10.0.0.1', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '10.0.0.2, 10.0.0.1'],
+    $trusted
+), 'When every forwarded entry is a trusted proxy, fall back to REMOTE_ADDR');
+
+assert_same('203.0.113.7', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_CLIENT_IP' => '198.51.100.99', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7'],
+    $trusted
+), 'HTTP_CLIENT_IP is non-standard and is ignored; the result follows XFF');
+
+assert_same('10.0.0.1', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_CLIENT_IP' => '198.51.100.99'],
+    $trusted
+), 'HTTP_CLIENT_IP is never trusted, even alone');
+
+assert_same('198.51.100.4', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7, , 198.51.100.4'],
+    $trusted
+), 'Empty entries between forwarded addresses are skipped; the rightmost untrusted address is returned');
+
+assert_same('203.0.113.7', resolve_client_ip(
+    ['REMOTE_ADDR' => '203.0.113.7', 'HTTP_X_FORWARDED_FOR' => '198.51.100.4'],
+    $trusted
+), 'When REMOTE_ADDR is not trusted, XFF is ignored and REMOTE_ADDR is returned');
+
+assert_same('203.0.113.7', resolve_client_ip(
+    ['REMOTE_ADDR' => '203.0.113.7', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7, 198.51.100.4'],
+    $trusted
+), 'Without trusted proxies configured, XFF is ignored and REMOTE_ADDR is returned');
+
+assert_same('198.51.100.4', resolve_client_ip(
+    ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => 'not-an-ip, 198.51.100.4'],
+    $trusted
+), 'Invalid entries in XFF are skipped; the rightmost untrusted address is returned');
 
 echo "security_helpers_test passed\n";
