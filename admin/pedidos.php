@@ -1099,9 +1099,9 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         confirmBtn.className = 'btn btn-success';
         confirmBtn.textContent = 'Aprovar Reserva';
         confirmBtn.onclick = function() {
-            // Submit a POST form with CSRF token. The CSRF token is auto-injected
-            // by the global script in admin/index.php, so the hidden input is
-            // already present in the form we just create.
+            // Build the POST form dynamically. The CSRF token is auto-injected
+            // by the global script in admin/index.php on the submit event,
+            // so we must use requestSubmit() (not form.submit()) to fire it.
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/admin/pedidos.php';
@@ -1127,7 +1127,7 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
             dataInput.value = data;
             form.appendChild(dataInput);
             document.body.appendChild(form);
-            form.submit();
+            window.__submitFormWithCsrf(form);
         };
     } else {
         modalHeader.className = 'modal-header bg-danger text-white';
@@ -1148,9 +1148,9 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         confirmBtn.className = 'btn btn-danger';
         confirmBtn.textContent = 'Rejeitar Reserva';
         confirmBtn.onclick = function() {
-            // Submit a POST form with CSRF token. The CSRF token is auto-injected
-            // by the global script in admin/index.php, so the hidden input is
-            // already present in the form we just create.
+            // Build the POST form dynamically. Use requestSubmit() so the
+            // global CSRF injector in admin/index.php runs and appends
+            // the csrf_token field.
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/admin/pedidos.php';
@@ -1176,7 +1176,7 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
             dataInput.value = data;
             form.appendChild(dataInput);
             document.body.appendChild(form);
-            form.submit();
+            window.__submitFormWithCsrf(form);
         };
     }
     
@@ -1391,7 +1391,9 @@ function submitBulkAction(action, reservations) {
 
     form.appendChild(input);
     document.body.appendChild(form);
-    form.submit();
+    // Use the global helper so the submit event fires and the CSRF
+    // token is injected by the admin/index.php auto-injector.
+    window.__submitFormWithCsrf(form);
 }
 
 // Initialize Twemoji to parse all emojis on the page

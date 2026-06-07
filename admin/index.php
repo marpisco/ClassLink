@@ -225,6 +225,20 @@
             document.addEventListener('submit', function(event) {
                 ensureCsrf(event.target);
             }, true);
+
+            // Programmatic submission helper. Plain form.submit() bypasses
+            // the submit event so the global CSRF injector above never
+            // runs. requestSubmit() does fire the submit event, so the
+            // token gets appended. Fall back to manual injection + submit()
+            // on browsers without requestSubmit.
+            window.__submitFormWithCsrf = function(form) {
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    ensureCsrf(form);
+                    form.submit();
+                }
+            };
         })();
     </script>";
 
