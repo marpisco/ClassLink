@@ -229,7 +229,15 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
 
     // apagar - perform delete then redirect.
     // Destructive action: requires POST + CSRF token (validated globally at the top of this file).
-    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['subaction']) && $_POST['subaction'] === 'apagar') {
+    // The form posts tempo/sala/data in the body but the originating
+    // modal also passes subaction=apagar in the query string for clarity.
+    // We accept it from either POST or GET as long as the request method
+    // is POST — the POST+CSRF guard above is the real safety check.
+    $isPostRequest = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+    $requestedSubaction = $isPostRequest
+        ? ($_POST['subaction'] ?? $_GET['subaction'] ?? null)
+        : null;
+    if ($isPostRequest && $requestedSubaction === 'apagar') {
         $stmt = $db->prepare("SELECT * FROM reservas WHERE sala=? AND tempo=? AND data=?");
         $stmt->bind_param("sss", $sala, $tempo, $data);
         $stmt->execute();

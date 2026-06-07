@@ -481,6 +481,14 @@ $stmt->close();
                 csrfInput.name = 'csrf_token';
                 csrfInput.value = window.__csrfToken || '';
                 form.appendChild(csrfInput);
+                // Include subaction in the POST body too so the handler
+                // does not depend on the query string for the destructive
+                // action. tempo/sala/data remain in the URL for clarity.
+                const subInput = document.createElement('input');
+                subInput.type = 'hidden';
+                subInput.name = 'subaction';
+                subInput.value = 'apagar';
+                form.appendChild(subInput);
                 document.body.appendChild(form);
                 form.submit();
             };
