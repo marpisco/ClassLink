@@ -103,7 +103,13 @@
         'blocked_emails_regex' => '',
         'email_account_name' => 'ClassLink',
         'initial_setup_complete' => 'false',
-        'app_mode' => 'production'
+        'app_mode' => 'production',
+        // Comma-separated list of trusted reverse proxies. Only requests
+        // arriving from these IPs may have their X-Forwarded-For / Client-IP
+        // headers honoured for client identification. When this list is
+        // empty (the default), the application always uses REMOTE_ADDR
+        // for rate limiting and audit logging.
+        'trusted_proxies' => '',
     ];
     
     foreach ($defaultConfigs as $key => $value) {

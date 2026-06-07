@@ -184,8 +184,11 @@
             if (!filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
                 $localAuthError = 'Endereço de email inválido.';
                 $localAuthStage = 'email';
-            } elseif (!check_rate_limit('send_code', 10, 3600)) {
-                // Issue 2: rate limit send_code per IP (10/hour)
+            } elseif (!reserve_rate_limit_attempt('send_code', 10, 3600)) {
+                // Issue 2: rate limit send_code per IP (10/hour). The reserve
+                // is atomic so concurrent bursts cannot exceed the limit;
+                // the rejected request is also declined before we spend
+                // any SMTP budget.
                 $localAuthError = 'Demasiados pedidos. Por favor aguarde antes de tentar novamente.';
                 $localAuthStage = 'email';
             } else {
@@ -240,11 +243,11 @@
                     }
                 }
 
-                // Only consume the rate-limit budget when we actually sent a
-                // code. Otherwise transient DB errors or SMTP failures would
-                // lock the IP out without any email ever being delivered.
-                if ($sendSucceeded) {
-                    record_attempt('send_code', 3600);
+                // Reserve already counted this attempt. Release the slot
+                // when we never actually delivered a code, so transient
+                // SMTP/DB errors do not penalise the user.
+                if (!$sendSucceeded) {
+                    clear_attempts('send_code');
                 }
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
@@ -314,12 +317,11 @@
             } else {
                 // Issue 2: record a failed verify_code attempt. After 5 failed
                 // attempts, invalidate the OTP for the user — they must request
-                // a fresh code to continue. No IP lockout here (per the spec),
-                // so legitimate users who mistype a few times aren't penalized.
+                // a fresh code to continue. The reserve is atomic so concurrent
+                // bursts cannot slip past the per-user limit.
                 if ($user) {
                     $verifyCodeAction = verify_code_attempt_action($user['id']);
-                    record_attempt($verifyCodeAction, 3600);
-                    if (!check_rate_limit($verifyCodeAction, 5, 3600)) {
+                    if (!reserve_rate_limit_attempt($verifyCodeAction, 5, 3600)) {
                         invalidate_user_otp($user['id']);
                         clear_attempts($verifyCodeAction);
                         $localAuthError = 'Demasiadas tentativas inválidas. O código atual foi invalidado; por favor solicite um novo código.';
@@ -363,6 +365,10 @@
             } elseif (is_blocked('verify_totp')) {
                 // Issue 2: TOTP IP-based lockout after 5 wrong attempts (15 min).
                 $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
+            } elseif (!reserve_rate_limit_attempt('verify_totp', 5, 900)) {
+                // Atomic reserve: the IP has hit the cap for this window.
+                block('verify_totp', 900);
+                $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
             } else {
                 $pendingUser = $_SESSION['pending_totp_user'];
                 $user = get_user_by_email($pendingUser['email']);
@@ -379,21 +385,16 @@
                         header('Location: /');
                         exit();
                     }
-                    // Record a failed attempt and lock the IP if the threshold
-                    // (5) is exceeded.
-                    record_attempt('verify_totp', 900);
-                    if (!check_rate_limit('verify_totp', 5, 900)) {
-                        block('verify_totp', 900);
-                        $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
-                    } else {
-                        $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
-                    }
+                    $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
                 }
             }
         } elseif ($action === 'verify_totp_setup' && isset($_POST['totp_code'])) {
             if (!isset($_SESSION['pending_totp_user']) || !isset($_SESSION['pending_totp_secret'])) {
                 $localAuthError = 'Sessão expirada. Por favor tente novamente.';
             } elseif (is_blocked('verify_totp_setup')) {
+                $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
+            } elseif (!reserve_rate_limit_attempt('verify_totp_setup', 5, 900)) {
+                block('verify_totp_setup', 900);
                 $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
             } else {
                 $pendingUser = $_SESSION['pending_totp_user'];
@@ -421,14 +422,7 @@
                     header('Location: /');
                     exit();
                 }
-                // Failed verify_totp_setup: record and lock if threshold exceeded.
-                record_attempt('verify_totp_setup', 900);
-                if (!check_rate_limit('verify_totp_setup', 5, 900)) {
-                    block('verify_totp_setup', 900);
-                    $localAuthError = 'Demasiadas tentativas inválidas. Por favor aguarde 15 minutos antes de tentar novamente.';
-                } else {
-                    $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
-                }
+                $localAuthError = 'Código TOTP inválido. Por favor tente novamente.';
             }
         }
     }

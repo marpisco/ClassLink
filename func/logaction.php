@@ -1,29 +1,66 @@
 <?php
 /**
- * Get the client's IP address
- * Handles proxies and load balancers by checking multiple headers
+ * Get the client's IP address for rate limiting and audit logging.
+ *
+ * By default this returns REMOTE_ADDR verbatim. The X-Forwarded-For and
+ * Client-IP headers are only honoured when the immediate peer
+ * (REMOTE_ADDR) is on the configured `trusted_proxies` allowlist, which
+ * prevents attackers from forging a different IP on every request to
+ * bypass per-IP rate limits on authentication.
  */
 function get_client_ip() {
-    $ip = '';
-    
-    // Check for proxy headers first
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        // HTTP_X_FORWARDED_FOR can contain multiple IPs (client, proxy1, proxy2, ...)
-        // We want the first one (the client's real IP)
-        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $ip = trim($ips[0]);
-    } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-        $ip = $_SERVER['REMOTE_ADDR'];
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    if (is_trusted_proxy($remoteAddr)) {
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])
+            && filter_var($_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP)) {
+            return $_SERVER['HTTP_CLIENT_IP'];
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // X-Forwarded-For can contain a chain: client, proxy1, proxy2, ...
+            // The first entry is the original client.
+            foreach (explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']) as $candidate) {
+                $candidate = trim($candidate);
+                if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                    return $candidate;
+                }
+            }
+        }
     }
-    
-    // Validate IP address format (IPv4 or IPv6)
-    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-        return $ip;
+
+    if (filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+        return $remoteAddr;
     }
-    
+
     return 'Unknown';
+}
+
+/**
+ * Return true if $remoteAddr is one of the configured trusted proxies.
+ * Reads the comma-separated `trusted_proxies` config. The comparison is
+ * exact (no CIDR matching) because the typical deployment runs a small,
+ * well-known set of reverse proxies.
+ */
+function is_trusted_proxy(?string $remoteAddr): bool {
+    if ($remoteAddr === null || $remoteAddr === '') {
+        return false;
+    }
+
+    if (!function_exists('get_app_config')) {
+        return false;
+    }
+
+    $configured = get_app_config('trusted_proxies', '');
+    if (!is_string($configured) || $configured === '') {
+        return false;
+    }
+
+    $allowed = array_filter(array_map('trim', explode(',', $configured)), 'strlen');
+    if (empty($allowed)) {
+        return false;
+    }
+
+    return in_array($remoteAddr, $allowed, true);
 }
 
 function logaction(string $loginfo, string $userid){
