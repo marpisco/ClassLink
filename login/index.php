@@ -271,7 +271,7 @@
 
             if ($user && !empty($user['otp_code_hash']) && !empty($user['otp_expires']) && strtotime($user['otp_expires']) >= time() && password_verify(trim($_POST['otp_code']), $user['otp_code_hash'])) {
                 // Issue 2: clear rate-limit state on success and reset the OTP
-                clear_attempts(verify_code_attempt_action($user['id']));
+                clear_attempts(verify_code_attempt_action($user['id']), clientIp: '0.0.0.0');
                 clear_user_otp($user['id']);
 
                 // Check if this is a pending or first-admin user (needs to
@@ -345,10 +345,10 @@
                 // from the same session) is acceptable.
                 if ($user) {
                     $verifyCodeAction = verify_code_attempt_action($user['id']);
-                    record_attempt($verifyCodeAction, 3600);
-                    if (!check_rate_limit($verifyCodeAction, 5, 3600)) {
+                    record_attempt($verifyCodeAction, 3600, '0.0.0.0');
+                    if (!check_rate_limit($verifyCodeAction, 5, 3600, '0.0.0.0')) {
                         invalidate_user_otp($user['id']);
-                        clear_attempts($verifyCodeAction);
+                        clear_attempts($verifyCodeAction, '0.0.0.0');
                         $localAuthError = 'Demasiadas tentativas inválidas. O código atual foi invalidado; por favor solicite um novo código.';
                     } else {
                         $localAuthError = 'Código inválido ou expirado. Peça um novo código.';

@@ -276,6 +276,13 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
             ? " <span class='badge bg-info'>Externo</span>" 
             : "";
         const idEnc = encodeURIComponent(user.id);
+        // idAttr is HTML-attribute-safe for the form value attributes below.
+        // encodeURIComponent translates URL-special chars like '/' and '+',
+        // but browsers do NOT URL-decode form input values, so the POST
+        // body would carry the percent-encoded form and not match the raw
+        // cache.id.  Use escapeHtml (which escapes &, <, >) and also
+        // replace the single-quote delimiter used in the attribute.
+        const idAttr = escapeHtml(user.id).replace(/'/g, '&#39;');
         
         return `
             <div class="col-md-6 col-lg-4 mb-3">
@@ -288,8 +295,8 @@ $utilizadores = $db->query("SELECT * FROM cache ORDER BY nome ASC LIMIT 20;");
                     </div>
                     <div class="card-footer bg-transparent">
                         <a href='/admin/users.php?action=edit&id=${idEnc}' class='btn btn-sm btn-primary'>EDITAR</a>
-                        ${user.hasTotp ? `<form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'><input type='hidden' name='action' value='removetotp'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-warning'>Remover TOTP</button></form>` : ''}
-                        <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${idEnc}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
+                        ${user.hasTotp ? `<form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende remover o TOTP deste utilizador?");'><input type='hidden' name='action' value='removetotp'><input type='hidden' name='id' value='${idAttr}'><button type='submit' class='btn btn-sm btn-warning'>Remover TOTP</button></form>` : ''}
+                        <form action='/admin/users.php' method='POST' style='display:inline;' onsubmit='return confirm("Tem a certeza que pretende apagar o utilizador? Isto irá causar problemas se o utilizador tiver reservas passadas.");'><input type='hidden' name='action' value='apagar'><input type='hidden' name='id' value='${idAttr}'><button type='submit' class='btn btn-sm btn-danger'>APAGAR</button></form>
                     </div>
                 </div>
             </div>

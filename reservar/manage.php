@@ -881,7 +881,13 @@ if (isset($_GET['tempo']) && isset($_GET['data']) && isset($_GET['sala'])) {
                         $isPastReservation = ($data < $today);
                         $canDeleteReservation = ($_SESSION['id'] == $detalhesreserva['requisitor'] || $_SESSION['admin']) && (!$isPastReservation || $_SESSION['admin']);
                         if ($canDeleteReservation) {
-                            echo "<a href='/reservar/manage.php?subaction=apagar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' class='btn btn-danger me-md-2 mb-2 mb-md-0' onclick='return confirm(\"Tem a certeza que pretende apagar esta reserva?\");'>Apagar Reserva</a> ";
+                            // Submit via POST+CSRF so the destructive action
+                            // reaches the POST-only handler.
+                            echo "<form action='/reservar/manage.php?subaction=apagar&tempo=" . urlencode($tempo) . "&data=" . urlencode($data) . "&sala=" . urlencode($sala) . "' method='POST' style='display:inline;' onsubmit='return confirm(\"Tem a certeza que pretende apagar esta reserva?\");'>";
+                            echo csrf_token_field();
+                            echo "<input type='hidden' name='subaction' value='apagar'>";
+                            echo "<button type='submit' class='btn btn-danger me-md-2 mb-2 mb-md-0'>Apagar Reserva</button>";
+                            echo "</form> ";
                         }
                         echo "<a href='/reservar' class='btn btn-success me-md-2 mb-2 mb-md-0'>Voltar à página de reserva de salas</a> ";
                         if (str_starts_with(trusted_referer_path_from_server(''), '/admin/pedidos.php')) {

@@ -78,8 +78,8 @@ function is_blocked(string $action, int $windowSeconds = 900): bool {
  *
  * @return bool true if allowed, false if rate-limited
  */
-function check_rate_limit(string $action, int $maxAttempts, int $windowSeconds): bool {
-    $ip = rl_get_client_ip();
+function check_rate_limit(string $action, int $maxAttempts, int $windowSeconds, ?string $clientIp = null): bool {
+    $ip = $clientIp ?? rl_get_client_ip();
 
     // Respect an explicit block first.
     if (is_blocked($action, $windowSeconds)) {
@@ -215,9 +215,9 @@ function reserve_rate_limit_attempt(string $action, int $maxAttempts, int $windo
  * MySQL's NOW() is the single clock for both the write and the window
  * comparison; see reserve_rate_limit_attempt() for the rationale.
  */
-function record_attempt(string $action, int $windowSeconds = 3600): void {
+function record_attempt(string $action, int $windowSeconds = 3600, ?string $clientIp = null): void {
     global $db;
-    $ip = rl_get_client_ip();
+    $ip = $clientIp ?? rl_get_client_ip();
 
     $row = rl_get_row($ip, $action);
     if ($row === null) {
@@ -259,9 +259,9 @@ function block(string $action, int $seconds): void {
 /**
  * Clear all attempt and block state for the current IP/action (e.g. on success).
  */
-function clear_attempts(string $action): void {
+function clear_attempts(string $action, ?string $clientIp = null): void {
     global $db;
-    $ip = rl_get_client_ip();
+    $ip = $clientIp ?? rl_get_client_ip();
     $stmt = $db->prepare("DELETE FROM rate_limits WHERE ip = ? AND action = ?");
     if ($stmt) {
         $stmt->bind_param("ss", $ip, $action);
