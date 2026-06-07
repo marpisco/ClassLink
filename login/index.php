@@ -274,8 +274,14 @@
                 clear_attempts(verify_code_attempt_action($user['id']));
                 clear_user_otp($user['id']);
 
-                // Check if this is a pending user (needs to set their name)
-                if (str_starts_with($user['id'], 'pending_')) {
+                // Check if this is a pending or first-admin user (needs to
+                // set their name). Both `pending_*` and `admin_first_*`
+                // IDs are created with the placeholder name 'Pendente'
+                // by create_pending_user(); both need to land on the
+                // profile-setup step before the authenticated session
+                // is started, otherwise the first admin would log in
+                // permanently named 'Pendente'.
+                if (str_starts_with($user['id'], 'pending_') || str_starts_with($user['id'], 'admin_first_')) {
                     // Store user info in session and redirect to name entry
                     $_SESSION['pending_user_setup'] = [
                         'id' => $user['id'],
@@ -364,17 +370,35 @@
                 } else {
                     $pendingUser = $_SESSION['pending_user_setup'];
                     update_pending_user_name($pendingUser['id'], $nome);
-                    
+
                     // Get the updated user
                     $user = get_user_by_email($pendingUser['email']);
-                    
+
                     // Clear pending session
                     unset($_SESSION['pending_user_setup']);
-                    
+
                     // Log the user in
                     start_authenticated_session($user['id'], $user['nome'], $user['email'], $user['admin']);
                     logaction('Conta criada com sucesso via Código por Email', $user['id']);
-                    
+
+                    // Issue (P1): the blocked-emails policy must apply to
+                    // newly created accounts too. Without this, a user
+                    // whose address matches blocked_emails_regex can
+                    // complete the local-auth flow (request a code,
+                    // verify it, set a name) and bypass the policy that
+                    // applies to existing local and OAuth users in the
+                    // verify_code success path below. Admins are
+                    // exempt from the policy, same as in verify_code.
+                    if (!$_SESSION['admin']) {
+                        $alunoRegex = get_app_config('blocked_emails_regex', '');
+                        if (!empty($alunoRegex) && @preg_match($alunoRegex, $_SESSION['email']) === 1) {
+                            session_destroy();
+                            $content = '<div class="login-box"><h1>Acesso Bloqueado</h1><p>Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
+                            render_login_template('Acesso Bloqueado', $content);
+                            die();
+                        }
+                    }
+
                     header('Location: /');
                     exit();
                 }
