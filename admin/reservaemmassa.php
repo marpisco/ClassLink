@@ -523,10 +523,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 $tempos = $db->query("SELECT * FROM tempos ORDER BY horashumanos ASC;");
                 while ($tempo = $tempos->fetch_assoc()) {
                     $checked = (isset($_POST['tempos']) && in_array($tempo['id'], $_POST['tempos'])) ? 'checked' : '';
+                    $tempoIdSafe = htmlspecialchars($tempo['id'], ENT_QUOTES, 'UTF-8');
                     echo "<div class='time-checkbox-item'>
                         <div class='form-check'>
-                            <input class='form-check-input' type='checkbox' name='tempos[]' value='" . htmlspecialchars($tempo['id'], ENT_QUOTES, 'UTF-8') . "' id='tempo_" . htmlspecialchars($tempo['id'], ENT_QUOTES, 'UTF-8') . "' {$checked}>
-                            <label class='form-check-label' for='tempo_{$tempo['id']}'>
+                            <input class='form-check-input' type='checkbox' name='tempos[]' value='{$tempoIdSafe}' id='tempo_{$tempoIdSafe}' {$checked}>
+                            <label class='form-check-label' for='tempo_{$tempoIdSafe}'>
                                 " . htmlspecialchars($tempo['horashumanos'], ENT_QUOTES, 'UTF-8') . "
                             </label>
                         </div>
