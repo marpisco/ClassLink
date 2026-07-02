@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'app_mode'
         ];
         
+        $_POST['admin_requires_totp'] = isset($_POST['admin_requires_totp']) ? 'true' : 'false';
+
         $successCount = 0;
         foreach ($keys as $key) {
             if (isset($_POST[$key])) {
