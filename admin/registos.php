@@ -7,6 +7,12 @@
         width: 100%;
         table-layout: fixed;
     }
+    #logsTable th,
+    #logsTable td {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        vertical-align: middle;
+    }
     #logsTable th:nth-child(1),
     #logsTable td:nth-child(1) {
         width: 20%;
@@ -56,8 +62,16 @@
         color: #6c757d;
         font-style: italic;
     }
+    .log-cell-wrap {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
     .ip-visible {
+        display: inline-block;
+        max-width: 100%;
         font-family: monospace;
+        overflow-wrap: anywhere;
+        word-break: break-all;
     }
 </style>
 
@@ -146,17 +160,19 @@
                     
                     // Utilizador column (name + email)
                     const userCell = document.createElement('td');
+                    userCell.className = 'log-cell-wrap';
                     userCell.innerHTML = '<strong>' + escapeHtml(log.nome || 'Utilizador removido') + '</strong><br><small class="text-muted">' + escapeHtml(log.email || 'N/A') + '</small>';
                     tr.appendChild(userCell);
                     
                     // Action column
                     const actionCell = document.createElement('td');
+                    actionCell.className = 'log-cell-wrap';
                     actionCell.innerHTML = createActionCell(log.id, log.loginfo);
                     tr.appendChild(actionCell);
                     
                     // IP Address column (hidden by default)
                     const ipCell = document.createElement('td');
-                    ipCell.className = 'ip-cell';
+                    ipCell.className = 'ip-cell log-cell-wrap';
                     ipCell.setAttribute('data-ip', log.ip_address || 'N/A');
                     if (showIPs) {
                         ipCell.innerHTML = '<span class="ip-visible">' + escapeHtml(log.ip_address || 'N/A') + '</span>';
@@ -167,6 +183,7 @@
                     
                     // Timestamp column
                     const timestampCell = document.createElement('td');
+                    timestampCell.className = 'log-cell-wrap';
                     timestampCell.textContent = log.timestamp;
                     tr.appendChild(timestampCell);
                     
