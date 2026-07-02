@@ -33,6 +33,12 @@
     );
 
     // Configuração do Fornecedor de Autenticação (OAuth 2.0)
+    // Defina 'enabled' como false para ocultar e bloquear o início de sessão OAuth2.
+    // Quando omitido em configurações antigas, o OAuth2 permanece ativo por compatibilidade.
+    $provider_config = array(
+        'enabled' => true
+    );
+
     // IMPORTANTE: Manter o clientSecret confidencial e nunca o expor publicamente.
     // O redirectUri deve ser um URL estático/configurado explicitamente — não use $_SERVER['HTTP_HOST']
     // diretamente pois pode ser manipulado (Host Header Injection).

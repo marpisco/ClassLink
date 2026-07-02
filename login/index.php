@@ -38,7 +38,21 @@
     // --- Helper Functions for OTP/TOTP ---
 
     function is_admin_totp_required() {
-        return filter_var(get_app_config('admin_requires_totp', true), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
+        $setting = filter_var(get_app_config('admin_requires_totp', true), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        return $setting !== false;
+    }
+
+    function is_oauth_enabled() {
+        global $provider_config;
+        if (!isset($provider_config) || !is_array($provider_config) || !array_key_exists('enabled', $provider_config)) {
+            return true;
+        }
+        return filter_var($provider_config['enabled'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
+    }
+
+    function is_email_otp_enabled() {
+        global $mail;
+        return isset($mail['ativado']) && filter_var($mail['ativado'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
     }
 
     // --- Login Page Template Helper ---
@@ -159,42 +173,61 @@
 
         if ($action === 'send_code' && isset($_POST['email'])) {
             $emailValue = trim($_POST['email']);
-            
-            $localAuthStage = 'code';
-            $user = get_user_by_email($emailValue);
-            
-            // If user doesn't exist, create a pending user
-            if (!$user) {
-                $userId = create_pending_user($emailValue);
-                if ($userId) {
-                    $user = [
-                        'id' => $userId,
-                        'nome' => 'Pendente',
-                        'email' => $emailValue,
-                        'admin' => 0,
-                        'totp_secret' => null
-                    ];
-                    $localAuthInfo = 'Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.';
-                } else {
-                    $localAuthError = 'Erro ao criar utilizador. Tente novamente.';
-                    $localAuthStage = 'email';
-                }
+
+            if (!is_email_otp_enabled()) {
+                $localAuthError = 'O início de sessão por código de email está desativado. Utilize outro método de autenticação ou contacte o administrador.';
+                $localAuthStage = 'email';
             } else {
-                $localAuthInfo = 'Introduza o código que recebeu no email para validar-se.';
-                
+                $localAuthStage = 'code';
+                $user = get_user_by_email($emailValue);
+
+                // If user doesn't exist, create a pending user
+                if (!$user) {
+                    $userId = create_pending_user($emailValue);
+                    if ($userId) {
+                        $user = [
+                            'id' => $userId,
+                            'nome' => 'Pendente',
+                            'email' => $emailValue,
+                            'admin' => 0,
+                            'totp_secret' => null
+                        ];
+                        $localAuthInfo = 'Bem-vindo ao ClassLink pela primeira vez! Valide o código que recebeu no email para criar a sua conta.';
+                    } else {
+                        $localAuthError = 'Erro ao criar utilizador. Tente novamente.';
+                        $localAuthStage = 'email';
+                    }
+                } else {
+                    $localAuthInfo = 'Introduza o código que recebeu no email para validar-se.';
+                }
+
                 if ($user && $localAuthStage === 'code') {
                     $code = generate_email_code();
                     $otpHash = password_hash($code, PASSWORD_DEFAULT);
                     $expiresAt = date('Y-m-d H:i:s', time() + 600);
+                    $otpStored = false;
 
                     $stmt = $db->prepare("UPDATE cache SET otp_code_hash = ?, otp_expires = ? WHERE id = ?");
                     if ($stmt) {
                         $stmt->bind_param("sss", $otpHash, $expiresAt, $user['id']);
-                        $stmt->execute();
+                        $otpStored = $stmt->execute();
                         $stmt->close();
                     }
 
-                    send_login_code_email($user['email'], $user['nome'], $code);
+                    if (!$otpStored) {
+                        $localAuthError = 'Não foi possível preparar o código de acesso. Tente novamente mais tarde ou contacte o administrador.';
+                        $localAuthInfo = null;
+                        $localAuthStage = 'email';
+                    } else {
+                        $emailResult = send_login_code_email($user['email'], $user['nome'], $code);
+
+                        if (!($emailResult['success'] ?? false)) {
+                            clear_user_otp($user['id']);
+                            $localAuthError = 'Não foi possível enviar o código por email. Tente novamente mais tarde ou contacte o administrador.';
+                            $localAuthInfo = null;
+                            $localAuthStage = 'email';
+                        }
+                    }
                 }
             }
         } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
@@ -490,45 +523,54 @@
                     <div class="info-msg"><?= htmlspecialchars($localAuthInfo) ?></div>
                 <?php endif; ?>
 
-                <?php if ($localAuthStage === 'email'): ?>
-                <form method="POST" action="/login/index.php">
-                    <?= $csrfTokenField ?>
-                    <input type="hidden" name="action" value="send_code">
-                    <div class="form-group">
-                        <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" required>
-                    </div>
-                    <button type="submit">Enviar código</button>
-                </form>
-                <?php else: ?>
-                <form method="POST" action="/login/index.php">
-                    <?= $csrfTokenField ?>
-                    <input type="hidden" name="action" value="verify_code">
-                    <div class="form-group">
-                        <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" readonly style="opacity: 0.7;">
-                    </div>
-                    <div class="form-group">
-                        <input type="text" name="otp_code" placeholder="Código de 6 dígitos" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required>
-                    </div>
-                    <button type="submit">Validar código</button>
-                </form>
+                <?php $emailOtpEnabled = is_email_otp_enabled(); $oauthEnabled = is_oauth_enabled(); ?>
+                <?php if (!$emailOtpEnabled && !$oauthEnabled): ?>
+                    <div class="error-msg">Nenhum método de autenticação está ativo. Contacte o administrador.</div>
                 <?php endif; ?>
 
-                <div class="divider">ou</div>
-
-                <?php
-                $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/');
-                ?>
-                <a href="/login?redirecttoflow=1" class="login-btn">
-                    <?php if ($isMicrosoft): ?>
-                    <svg class="ms-logo" width="21" height="21" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
-                        <rect class="ms-rect1" x="1" y="1" width="9" height="9" fill="white"/>
-                        <rect class="ms-rect2" x="11" y="1" width="9" height="9" fill="white"/>
-                        <rect class="ms-rect3" x="1" y="11" width="9" height="9" fill="white"/>
-                        <rect class="ms-rect4" x="11" y="11" width="9" height="9" fill="white"/>
-                    </svg>
+                <?php if ($emailOtpEnabled): ?>
+                    <?php if ($localAuthStage === 'email'): ?>
+                    <form method="POST" action="/login/index.php">
+                        <?= $csrfTokenField ?>
+                        <input type="hidden" name="action" value="send_code">
+                        <div class="form-group">
+                            <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" required>
+                        </div>
+                        <button type="submit">Enviar código</button>
+                    </form>
+                    <?php else: ?>
+                    <form method="POST" action="/login/index.php">
+                        <?= $csrfTokenField ?>
+                        <input type="hidden" name="action" value="verify_code">
+                        <div class="form-group">
+                            <input type="email" name="email" placeholder="Endereço Eletrónico" value="<?= htmlspecialchars($emailValue) ?>" readonly style="opacity: 0.7;">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="otp_code" placeholder="Código de 6 dígitos" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required>
+                        </div>
+                        <button type="submit">Validar código</button>
+                    </form>
                     <?php endif; ?>
-                    <?= $isMicrosoft ? 'Iniciar Sessão com Microsoft' : 'Iniciar Sessão com Fornecedor de Identidade' ?>
-                </a>
+                <?php endif; ?>
+
+                <?php if ($emailOtpEnabled && $oauthEnabled): ?>
+                    <div class="divider">ou</div>
+                <?php endif; ?>
+
+                <?php if ($oauthEnabled): ?>
+                    <?php $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/'); ?>
+                    <a href="/login?redirecttoflow=1" class="login-btn">
+                        <?php if ($isMicrosoft): ?>
+                        <svg class="ms-logo" width="21" height="21" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                            <rect class="ms-rect1" x="1" y="1" width="9" height="9" fill="white"/>
+                            <rect class="ms-rect2" x="11" y="1" width="9" height="9" fill="white"/>
+                            <rect class="ms-rect3" x="1" y="11" width="9" height="9" fill="white"/>
+                            <rect class="ms-rect4" x="11" y="11" width="9" height="9" fill="white"/>
+                        </svg>
+                        <?php endif; ?>
+                        <?= $isMicrosoft ? 'Iniciar Sessão com Microsoft' : 'Iniciar Sessão com Fornecedor de Identidade' ?>
+                    </a>
+                <?php endif; ?>
             </div>
             <script>
                 particlesJS("particles-js", {
@@ -555,7 +597,14 @@
     } else if (isset($_GET['error'])) {
 	?>
 <?php
-    }else if (isset($_GET['code'])){        $now = time();
+    }else if (isset($_GET['code'])){
+        if (!is_oauth_enabled()) {
+            unset($_SESSION['oauth2state']);
+            $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Autenticação indisponível</h1><p class="small">O início de sessão por fornecedor de identidade está desativado. Contacte o administrador.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
+            render_login_template('Autenticação indisponível', $content);
+            die();
+        }
+        $now = time();
         if (!isset($_GET['state']) || !isset($_SESSION['oauth2state']) || $_GET['state'] === '' || $_SESSION['oauth2state'] === '' || !hash_equals($_SESSION['oauth2state'], $_GET['state'])) {
             $clientIp = get_client_ip();
             $sessionHash = substr(hash('sha256', session_id()), 0, 8);
@@ -691,8 +740,7 @@
             }
 
             // --- Admin TOTP Check for OAuth Flow ---
-            $adminRequiresTotp = get_app_config('admin_requires_totp', true);
-            if ($adminRequiresTotp && $_SESSION['admin']) {
+            if ($_SESSION['admin'] && is_admin_totp_required()) {
                 $stmt = $db->prepare("SELECT totp_secret FROM cache WHERE id = ? AND admin = 1");
                 if ($stmt) {
                     $stmt->bind_param("s", $_SESSION['id']);
@@ -735,9 +783,14 @@
             exit($e->getMessage());
         }
     } else if (str_starts_with($_SERVER['REQUEST_URI'], "/login") && $_GET['redirecttoflow']) {
-	    $scopes = [
-    		'scope' => ['openid profile email']
-    	];
+        if (!is_oauth_enabled()) {
+            $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Autenticação indisponível</h1><p class="small">O início de sessão por fornecedor de identidade está desativado. Contacte o administrador.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
+            render_login_template('Autenticação indisponível', $content);
+            die();
+        }
+        $scopes = [
+            'scope' => ['openid profile email']
+        ];
         $authorizationUrl = $provider->getAuthorizationUrl($scopes);
         $_SESSION['oauth2state'] = $provider->getState();
         header('Location: ' . $authorizationUrl);
@@ -748,11 +801,15 @@
         $content .= '<h1>Iniciar Sessão no ClassLink</h1>';
         $content .= '<p class="small">Para aceder à plataforma, deve autenticar-se com a sua conta institucional.</p>';
 
-        $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/');
-        if ($isMicrosoft) {
-            $content .= '<a href="/login?redirecttoflow=1" class="login-btn"><svg class="ms-logo" width="21" height="21" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><rect class="ms-rect1" x="1" y="1" width="9" height="9" fill="white"/><rect class="ms-rect2" x="11" y="1" width="9" height="9" fill="white"/><rect class="ms-rect3" x="1" y="11" width="9" height="9" fill="white"/><rect class="ms-rect4" x="11" y="11" width="9" height="9" fill="white"/></svg>Iniciar Sessão com Microsoft</a>';
-        } else {
-            $content .= '<a href="/login?redirecttoflow=1" class="login-btn">Iniciar Sessão com Fornecedor de Identidade</a>';
+        if (is_oauth_enabled()) {
+            $isMicrosoft = str_starts_with($provider->getBaseAuthorizationUrl(), 'https://login.microsoftonline.com/');
+            if ($isMicrosoft) {
+                $content .= '<a href="/login?redirecttoflow=1" class="login-btn"><svg class="ms-logo" width="21" height="21" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><rect class="ms-rect1" x="1" y="1" width="9" height="9" fill="white"/><rect class="ms-rect2" x="11" y="1" width="9" height="9" fill="white"/><rect class="ms-rect3" x="1" y="11" width="9" height="9" fill="white"/><rect class="ms-rect4" x="11" y="11" width="9" height="9" fill="white"/></svg>Iniciar Sessão com Microsoft</a>';
+            } else {
+                $content .= '<a href="/login?redirecttoflow=1" class="login-btn">Iniciar Sessão com Fornecedor de Identidade</a>';
+            }
+        } else if (!is_email_otp_enabled()) {
+            $content .= '<div class="error-msg">Nenhum método de autenticação está ativo. Contacte o administrador.</div>';
         }
 
         $content .= '</div>';
