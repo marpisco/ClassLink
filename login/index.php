@@ -782,7 +782,7 @@
             }
             exit($e->getMessage());
         }
-    } else if (str_starts_with($_SERVER['REQUEST_URI'], "/login") && $_GET['redirecttoflow']) {
+    } else if (str_starts_with($_SERVER['REQUEST_URI'], "/login") && !empty($_GET['redirecttoflow'])) {
         if (!is_oauth_enabled()) {
             $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Autenticação indisponível</h1><p class="small">O início de sessão por fornecedor de identidade está desativado. Contacte o administrador.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
             render_login_template('Autenticação indisponível', $content);
