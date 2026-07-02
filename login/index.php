@@ -79,8 +79,15 @@
 
     // Note: Email domain restrictions are now handled via blocked_emails_regex
 
-    function is_pending_profile_user($userId) {
-        return str_starts_with($userId, 'pending_') || str_starts_with($userId, 'admin_first_');
+    function is_pending_profile_user($user) {
+        $userId = is_array($user) ? ($user['id'] ?? '') : $user;
+        $userName = is_array($user) ? ($user['nome'] ?? '') : null;
+
+        if (!str_starts_with($userId, 'pending_') && !str_starts_with($userId, 'admin_first_')) {
+            return false;
+        }
+
+        return $userName === null || $userName === 'Pendente';
     }
 
     function is_first_user_registration() {
@@ -96,7 +103,7 @@
         }
 
         $blockedEmailRegex = get_app_config('blocked_emails_regex', '');
-        return !empty($blockedEmailRegex) && preg_match($blockedEmailRegex, $email);
+        return !empty($blockedEmailRegex) && @preg_match($blockedEmailRegex, $email) === 1;
     }
 
     function render_blocked_email_page() {
@@ -220,7 +227,7 @@
                         }
                     }
                 } else {
-                    if (is_pending_profile_user($user['id']) && is_email_blocked_for_login($user['email'], (bool)$user['admin'])) {
+                    if (is_email_blocked_for_login($user['email'], (bool)$user['admin'])) {
                         $localAuthError = 'Não tem permissão para aceder a esta plataforma. Contacte o administrador do sistema.';
                         $localAuthStage = 'email';
                     } else {
@@ -266,7 +273,7 @@
                 clear_user_otp($user['id']);
 
                 // Check if this is a pending user (needs to set their name)
-                if (is_pending_profile_user($user['id'])) {
+                if (is_pending_profile_user($user)) {
                     // Store user info in session and redirect to name entry
                     $_SESSION['pending_user_setup'] = [
                         'id' => $user['id'],
@@ -329,16 +336,18 @@
                     $localAuthStage = 'setup';
                 } else {
                     $pendingUser = $_SESSION['pending_user_setup'];
-                    update_pending_user_name($pendingUser['id'], $nome);
-                    
-                    // Get the updated user
                     $user = get_user_by_email($pendingUser['email']);
 
-                    if (is_email_blocked_for_login($user['email'], (bool)$user['admin'])) {
+                    if (!$user || is_email_blocked_for_login($user['email'], (bool)$user['admin'])) {
                         unset($_SESSION['pending_user_setup']);
                         render_blocked_email_page();
                         die();
                     }
+
+                    update_pending_user_name($pendingUser['id'], $nome);
+
+                    // Get the updated user
+                    $user = get_user_by_email($pendingUser['email']);
                     
                     // Clear pending session
                     unset($_SESSION['pending_user_setup']);
@@ -759,25 +768,10 @@
             // Regenerate session ID for security
             session_regenerate_id(true);
 
-            // MPISCO 11/12: Verificar se o email cai dentro de um regex (se não for considerado Administrador), e não permitir login caso o regex bata.
-            // Check blocked emails regex
-            if (!$_SESSION['admin']) {
-                $alunoRegex = get_app_config('blocked_emails_regex', '');
-                if (!empty($alunoRegex) && preg_match($alunoRegex, $_SESSION['email'])) {
-                    // Email corresponde ao regex de alunos - negar acesso
-                    session_destroy();
-                    // Devolver página de Login ClassLink
-                    echo "<!DOCTYPE html>";
-                    echo "<html lang=\"pt\">";
-                    echo "<head>";
-                    echo "<meta charset=\"UTF-8\">";
-                    echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-                    echo "<title>Iniciar Sessão - ClassLink</title>";
-                    $content = '<div class="login-box"><img src="/assets/logo.png" alt="Logotipo ClassLink" style="max-width:25%;"><h1>Sem permissão</h1><p class="small">Não tem autorização para entrar nesta página.</p><a href="/login" class="login-btn">Voltar atrás</a></div>';
-                    
-                    render_login_template('Iniciar Sessão', $content);
-                    die();
-                }
+            if (is_email_blocked_for_login($_SESSION['email'], $_SESSION['admin'])) {
+                session_destroy();
+                render_blocked_email_page();
+                die();
             }
 
             // --- Admin TOTP Check for OAuth Flow ---
