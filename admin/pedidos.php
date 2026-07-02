@@ -1302,6 +1302,17 @@ function submitBulkAction(action, reservations) {
     input.value = JSON.stringify(reservations);
     
     form.appendChild(input);
+
+    const tokenSource = document.getElementById('global-csrf-token');
+    const csrfToken = tokenSource ? tokenSource.value : '';
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+    }
+
     document.body.appendChild(form);
     form.submit();
 }
