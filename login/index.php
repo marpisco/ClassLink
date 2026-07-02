@@ -230,7 +230,7 @@
                     }
                 }
             }
-        } elseif ($action === 'verify_code' && isset($_POST['email'], $_POST['otp_code'])) {
+        } elseif ($action === 'verify_code' && is_email_otp_enabled() && isset($_POST['email'], $_POST['otp_code'])) {
             $emailValue = trim($_POST['email']);
             $localAuthStage = 'code';
             $user = get_user_by_email($emailValue);
