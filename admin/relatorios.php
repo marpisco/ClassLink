@@ -3,11 +3,11 @@ require_once(__DIR__ . '/../func/logaction.php');
 require_once(__DIR__ . '/../func/csrf.php');
 require_once(__DIR__ . '/../src/db.php');
 
-// TCPDF 7 loads fonts through tc-lib-pdf-font assets generated under vendor/.
-// Define the path before Composer autoloads TCPDF so its autoconfig does not
-// fall back to TCPDF's package-relative vendor path.
+// TCPDF 7 resolves fonts through tc-lib-pdf-font JSON descriptors.
+// Keep the descriptors used by this report in the application tree so Composer
+// installs do not need to build or download font assets at deploy time.
 if (!defined('K_PATH_FONTS')) {
-    define('K_PATH_FONTS', __DIR__ . '/../vendor/tecnickcom/tc-lib-pdf-font/target/fonts/');
+    define('K_PATH_FONTS', __DIR__ . '/../assets/tcpdf-fonts/');
 }
 
 require_once(__DIR__ . '/../vendor/autoload.php');

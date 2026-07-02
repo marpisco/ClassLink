@@ -6,14 +6,5 @@
         "league/oauth2-client": "^2.8",
         "tecnickcom/tcpdf": "^7.0",
         "pragmarx/google2fa": "^9.0"
-    },
-    "scripts": {
-        "tc-lib-pdf-fonts": "if [ -d vendor/tecnickcom/tc-lib-pdf-font ] && [ ! -f vendor/tecnickcom/tc-lib-pdf-font/target/fonts/core/helvetica.json ]; then composer --working-dir=vendor/tecnickcom/tc-lib-pdf-font install --no-dev --no-interaction && make -C vendor/tecnickcom/tc-lib-pdf-font fonts; fi",
-        "post-install-cmd": [
-            "@tc-lib-pdf-fonts"
-        ],
-        "post-update-cmd": [
-            "@tc-lib-pdf-fonts"
-        ]
     }
 }
