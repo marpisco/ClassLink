@@ -56,6 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             overflow-x: auto;
             width: 100%;
         }
+        .bulk-checkbox {
+            display: none;
+        }
+        #bulkReservationForm.bulk-mode-active .bulk-checkbox {
+            display: inline-block;
+        }
+        .bulk-reservation-toggle {
+            width: 100%;
+            max-width: 70%;
+            margin: 0 auto 0.5rem auto;
+            text-align: right;
+        }
     </style>
     <script>
         function updateBulkControls() {
@@ -75,6 +87,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             const checkboxes = document.querySelectorAll('.bulk-checkbox');
             checkboxes.forEach(cb => cb.checked = false);
             updateBulkControls();
+        }
+
+        function toggleBulkReservation(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('bulkReservationForm');
+            const toggle = document.getElementById('bulkReservationToggle');
+            if (!form || !toggle) {
+                return;
+            }
+
+            clearBulkSelection();
+            form.classList.toggle('bulk-mode-active');
+
+            const bulkModeActive = form.classList.contains('bulk-mode-active');
+            toggle.setAttribute('aria-expanded', bulkModeActive ? 'true' : 'false');
+            toggle.textContent = bulkModeActive ? 'Ocultar reserva em massa' : 'Fazer reserva em massa';
         }
         
         // User selection modal functions for bulk reservations
@@ -192,6 +221,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         echo (
             "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
             " . csrf_token_field() . "
+            <div class='bulk-reservation-toggle'>
+                <a href='#' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-expanded='false'>Fazer reserva em massa</a>
+            </div>
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );
