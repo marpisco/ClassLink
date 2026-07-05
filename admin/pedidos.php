@@ -1296,6 +1296,11 @@ function renderPedidos(data, append) {
     const results = document.getElementById('pedidosResults');
     if (!results) return;
 
+    const focusedSearch = document.activeElement && document.activeElement.id === 'tableSearch';
+    const searchSelectionStart = focusedSearch ? document.activeElement.selectionStart : null;
+    const searchSelectionEnd = focusedSearch ? document.activeElement.selectionEnd : null;
+    const showTools = data.total > 0 || pedidosState.search !== '';
+
     if (!append) {
         results.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1303,7 +1308,7 @@ function renderPedidos(data, append) {
                 <span class="badge bg-secondary fs-6">${data.total} resultado(s)</span>
             </div>
             <div id="pedidosEmpty"></div>
-            <div id="pedidosTools" class="${data.total > 0 ? '' : 'd-none'}">
+            <div id="pedidosTools" class="${showTools ? '' : 'd-none'}">
                 <div class="mb-3"><input type="text" class="form-control search-box" id="tableSearch" placeholder="Pesquisar nos resultados..." value="${escapeHtml(pedidosState.search)}" oninput="filterTable()"></div>
                 <div class="mb-3 d-flex gap-2 align-items-center">
                     <button type="button" class="btn btn-success" onclick="bulkApprove()" id="bulkApproveBtn" disabled><span>&#x2705;</span> Aprovar Selecionados</button>
@@ -1317,7 +1322,11 @@ function renderPedidos(data, append) {
     }
 
     if (data.total === 0) {
-        document.getElementById('pedidosEmpty').innerHTML = '<div class="card shadow-sm"><div class="card-body empty-state"><div class="empty-state-icon">&#x1F4ED;</div><h5>Nenhum pedido encontrado</h5><p class="mb-0">Não existem pedidos pendentes para os filtros selecionados.</p></div></div>';
+        const emptyDescription = pedidosState.search !== ''
+            ? 'Não existem pedidos pendentes que correspondam à pesquisa atual.'
+            : 'Não existem pedidos pendentes para os filtros selecionados.';
+        document.getElementById('pedidosEmpty').innerHTML = `<div class="card shadow-sm"><div class="card-body empty-state"><div class="empty-state-icon">&#x1F4ED;</div><h5>Nenhum pedido encontrado</h5><p class="mb-0">${emptyDescription}</p></div></div>`;
+        restoreSearchFocus(focusedSearch, searchSelectionStart, searchSelectionEnd);
         updatePedidosStats(data.stats);
         return;
     }
@@ -1327,6 +1336,19 @@ function renderPedidos(data, append) {
     updateBulkButtons();
     updatePedidosStats(data.stats);
     if (window.twemoji) twemoji.parse(results, { folder: 'svg', ext: '.svg' });
+    restoreSearchFocus(focusedSearch, searchSelectionStart, searchSelectionEnd);
+}
+
+function restoreSearchFocus(shouldFocus, selectionStart, selectionEnd) {
+    if (!shouldFocus) return;
+
+    const searchInput = document.getElementById('tableSearch');
+    if (!searchInput) return;
+
+    searchInput.focus({ preventScroll: true });
+    if (selectionStart !== null && selectionEnd !== null) {
+        searchInput.setSelectionRange(selectionStart, selectionEnd);
+    }
 }
 
 async function loadPedidos(reset = false) {
@@ -1342,7 +1364,9 @@ async function loadPedidos(reset = false) {
     if (reset) {
         pedidosState.page = 1;
         pedidosState.hasMore = true;
-        showPedidosSkeleton();
+        if (!document.activeElement || document.activeElement.id !== 'tableSearch') {
+            showPedidosSkeleton();
+        }
     } else {
         document.getElementById('pedidosLoadingMore')?.classList.remove('d-none');
     }
