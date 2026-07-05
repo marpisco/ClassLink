@@ -105,7 +105,7 @@
         // Ensure navbar has an opaque background so page content doesn't show through when scrolling
         echo "<nav class='navbar navbar-expand-lg border-bottom navbar-dark bg-dark' id='admin-navbar' style='position: sticky; top: {$stickyOffset}; z-index: 1000;'>
     <div class='container-fluid'>
-        <span class='navbar-brand mb-0 h1'>Dashboard de Administração</span>
+        <span class='navbar-brand mb-0 h1'><img src='/assets/logo.png' alt='ClassLink' class='d-inline-block align-text-top me-2' style='height: 1.2em; width: auto;'>Dashboard de Administração</span>
         <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav' aria-controls='navbarNav' aria-expanded='false' aria-label='Toggle navigation'>
             <span class='navbar-toggler-icon'></span>
         </button>
