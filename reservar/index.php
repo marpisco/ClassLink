@@ -65,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         #bulkReservationForm.bulk-mode-active .bulk-checkbox {
             display: inline-block;
         }
+        #bulkReservationForm:not(.bulk-mode-active) .availability-cell[data-href] {
+            cursor: pointer;
+        }
         .bulk-reservation-toggle {
             width: 100%;
             max-width: 70%;
@@ -159,11 +162,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             document.getElementById('bulkSelectedUserDisplay').placeholder = 'Reservar para mim mesmo';
         }
         
+        function handleAvailabilityCellClick(event) {
+            const cell = event.target.closest('.availability-cell[data-href]');
+            if (!cell) {
+                return;
+            }
+
+            if (event.target.closest('input, button, select, textarea, label')) {
+                return;
+            }
+
+            const form = document.getElementById('bulkReservationForm');
+            if (form && form.classList.contains('bulk-mode-active')) {
+                event.preventDefault();
+                return;
+            }
+
+            if (event.target.closest('a')) {
+                return;
+            }
+
+            window.location.href = cell.getAttribute('data-href');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const checkboxes = document.querySelectorAll('.bulk-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', updateBulkControls);
             });
+
+            document.addEventListener('click', handleAvailabilityCellClick);
         });
     </script>
 </head>
@@ -304,10 +332,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                             if ($isPast) {
                                 $innerStyle .= ' opacity: 0.5;';
                             }
-                            echo "<td class='bg-success text-white text-center' style='{$cellStyle}'>
+                            $manageUrl = '/reservar/manage.php?tempo=' . urlencode($row['id']) . '&sala=' . urlencode($sala) . '&data=' . urlencode($diacheckdb);
+                            $manageUrlAttr = htmlspecialchars($manageUrl, ENT_QUOTES, 'UTF-8');
+                            echo "<td class='bg-success text-white text-center availability-cell' data-href='{$manageUrlAttr}' style='{$cellStyle}'>
                             <div style='{$innerStyle}'>
                             <input type='checkbox' name='slots[]' value='" . urlencode($row['id']) . "|" . urlencode($sala) . "|" . urlencode($diacheckdb) . "' class='bulk-checkbox' style='width: 16px; height: 16px;'>
-                            <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='display: block; font-size: 0.75rem; word-break: break-word;'>
+                            <a class='reserva' href='{$manageUrlAttr}' style='display: block; font-size: 0.75rem; word-break: break-word;'>
                             Livre
                             </a>
                             </div></td>";
