@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
     <link rel='icon' href='/assets/logo.png'>
     <script src="/assets/theme-switcher.js"></script>
     <script src="/assets/disable-double-submit.js"></script>
+    <script src="/assets/reservation-statuses.js"></script>
     <style>
         @media (max-width: 1366px) {
             .table {
@@ -270,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                 <button type='button' class='bulk-reservation-toggle-button' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-pressed='false'>Fazer reserva em massa</button>
             </div>
             <div class='reservation-table-container'>
-            <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
+            <table id='reservationTable' data-sala='" . htmlspecialchars($sala, ENT_QUOTES, 'UTF-8') . "' data-before='" . htmlspecialchars($_GET['before'] ?? '', ENT_QUOTES, 'UTF-8') . "' class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );
         $today = date("Y-m-d");
         for ($i = 0; $i < 7; $i++) {
@@ -294,9 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             } elseif ($isHeaderPast) {
                 $headerStyle .= ' opacity: 0.5;';
             }
-            echo "<th scope='col' style='{$headerStyle}'>{$diaFormatted}</th>";
+            echo "<th scope='col' class='reservation-day-header' style='{$headerStyle}'>{$diaFormatted}</th>";
         };
-        echo "</tr></thead><tbody>";
+        echo "</tr></thead><tbody id='reservationTableBody'>";
         $tempos = $db->query("SELECT * FROM tempos ORDER BY horashumanos ASC;");
         // por cada tempo:
         for ($i = 1; $i <= $tempos->num_rows; $i++) {
@@ -527,9 +528,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         </form>";
         $currentSalaId = $_POST['sala'] ?? $_GET['sala'];
         echo "<div class='d-flex gap-2 mt-2'>";
-        echo "<a href='/reservar/?before={$segundadiaantes}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Anterior</a>";
-        echo "<a href='/reservar/?sala={$currentSalaId}' class='btn mb-2 btn-primary'>Semana Atual</a>";
-        echo "<a href='/reservar/?before={$segundadiadepois}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Seguinte</a>";
+        echo "<a id='previousWeekLink' data-week-before='{$segundadiaantes}' href='/reservar/?before={$segundadiaantes}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Anterior</a>";
+        echo "<a id='currentWeekLink' data-week-before='' href='/reservar/?sala={$currentSalaId}' class='btn mb-2 btn-primary'>Semana Atual</a>";
+        echo "<a id='nextWeekLink' data-week-before='{$segundadiadepois}' href='/reservar/?before={$segundadiadepois}&sala={$currentSalaId}' class='btn mb-2 btn-success'>Semana Seguinte</a>";
         echo "</div></div>";
     }
     ?>
