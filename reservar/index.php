@@ -71,8 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             margin: 0 auto 0.5rem auto;
             text-align: right;
         }
-<<<<<<< ours
-=======
         .bulk-reservation-toggle-button {
             background: none;
             border: 0;
@@ -85,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         .bulk-reservation-toggle-button:focus {
             color: var(--accent-color);
         }
->>>>>>> theirs
     </style>
     <script>
         function updateBulkControls() {
