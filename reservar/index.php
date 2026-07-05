@@ -83,6 +83,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         .bulk-reservation-toggle-button:focus {
             color: var(--accent-color);
         }
+        .availability-table thead th,
+        .availability-table tbody th,
+        .availability-table td {
+            padding: 2px 4px !important;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .availability-cell-content {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 4px;
+            min-height: 32px;
+        }
+        .availability-cell-content .reserva,
+        .availability-cell-content span {
+            font-size: 0.75rem;
+            word-break: break-word;
+        }
+        .bulk-mode-label {
+            display: none;
+        }
+        #bulkReservationForm.bulk-mode-active .bulk-mode-label {
+            display: inline;
+        }
+        #bulkReservationForm.bulk-mode-active .bulk-mode-link {
+            display: none;
+        }
     </style>
     <script>
         function updateBulkControls() {
@@ -242,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                 <button type='button' class='bulk-reservation-toggle-button' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-pressed='false'>Fazer reserva em massa</button>
             </div>
             <div class='reservation-table-container'>
-            <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
+            <table class='table table-bordered availability-table' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );
         $today = date("Y-m-d");
         for ($i = 0; $i < 7; $i++) {
@@ -260,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             $headerDate = date("Y-m-d", $diaObj);
             $isHeaderToday = ($headerDate === $today);
             $isHeaderPast = ($headerDate < $today);
-            $headerStyle = 'text-align: center; font-size: 0.75rem; padding: 4px;';
+            $headerStyle = 'font-size: 0.75rem;';
             if ($isHeaderToday) {
                 $headerStyle .= ' box-shadow: inset 0 0 0 3px #0d6efd; background-color: rgba(13, 110, 253, 0.1);';
             } elseif ($isHeaderPast) {
@@ -273,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         // por cada tempo:
         for ($i = 1; $i <= $tempos->num_rows; $i++) {
             while ($row = $tempos->fetch_assoc()) {
-                echo "<tr><th scope='row' style='font-size: 0.75rem; padding: 4px;'>{$row['horashumanos']}</td>";
+                echo "<tr><th scope='row' style='font-size: 0.75rem;'>{$row['horashumanos']}</th>";
                 // por cada dia da semana:
                 for ($j = 0; $j < 7; $j++) {
                     $diacheckdb = $segunda + ($j * 86400);
@@ -293,31 +321,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                     $stmt->close();
                     
                     // Build cell style with highlighting for today and graying out for past days
-                    $cellStyle = 'padding: 4px; overflow: hidden; position: relative;';
+                    $cellStyle = 'overflow: hidden; position: relative;';
                     if ($isToday) {
                         $cellStyle .= ' box-shadow: inset 0 0 0 3px #0d6efd;';
                     }
                     
                     if (!$tempoatualdb || $tempoatualdb['aprovado'] == -1) {
                         if ($canCreateReservation && $canInteract) {
-                            $innerStyle = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;';
+                            $innerStyle = '';
                             if ($isPast) {
                                 $innerStyle .= ' opacity: 0.5;';
                             }
-                            echo "<td class='bg-success text-white text-center' style='{$cellStyle}'>
-                            <div style='{$innerStyle}'>
+                            echo "<td class='bg-success text-white' style='{$cellStyle}'>
+                            <div class='availability-cell-content' style='{$innerStyle}'>
                             <input type='checkbox' name='slots[]' value='" . urlencode($row['id']) . "|" . urlencode($sala) . "|" . urlencode($diacheckdb) . "' class='bulk-checkbox' style='width: 16px; height: 16px;'>
-                            <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='display: block; font-size: 0.75rem; word-break: break-word;'>
+                            <a class='reserva bulk-mode-link' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "'>
                             Livre
                             </a>
+                            <span class='bulk-mode-label'>Livre</span>
                             </div></td>";
                         } else {
-                            $innerStyle = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;';
+                            $innerStyle = '';
                             if ($isPast) {
                                 $innerStyle .= ' opacity: 0.5;';
                             }
-                            echo "<td class='bg-success text-white text-center' style='{$cellStyle}'>
-                            <div style='{$innerStyle}'>
+                            echo "<td class='bg-success text-white' style='{$cellStyle}'>
+                            <div class='availability-cell-content' style='{$innerStyle}'>
                             <span style='font-size: 0.75rem;'>Livre</span>
                             </div></td>";
                         }
@@ -337,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                         if ($tempoatualdb['aprovado'] == 0) {
                             if ($canInteract) {
                                 echo "<td class='bg-warning text-white text-center' style='{$cellStyleWithHeight}'>
-                                <div style='{$innerStyle}'>
+                                <div class='availability-cell-content' style='{$innerStyle}'>
                                 <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word;'>
                                 Pendente
                                 <br>
@@ -345,7 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                                 </a></div></td>";
                             } else {
                                 echo "<td class='bg-warning text-white text-center' style='{$cellStyleWithHeight}'>
-                                <div style='{$innerStyle}'>
+                                <div class='availability-cell-content' style='{$innerStyle}'>
                                 <span style='font-size: 0.75rem; word-break: break-word;'>
                                 Pendente
                                 <br>
@@ -355,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                         } else if ($tempoatualdb['aprovado'] == 1) {
                             if ($canInteract) {
                                 echo "<td class='bg-danger text-white text-center' style='{$cellStyleWithHeight}'>
-                                <div style='{$innerStyle}'>
+                                <div class='availability-cell-content' style='{$innerStyle}'>
                                 <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word;'>
                                 Ocupado
                                 <br>
@@ -363,7 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                                 </a></div></td>";
                             } else {
                                 echo "<td class='bg-danger text-white text-center' style='{$cellStyleWithHeight}'>
-                                <div style='{$innerStyle}'>
+                                <div class='availability-cell-content' style='{$innerStyle}'>
                                 <span style='font-size: 0.75rem; word-break: break-word;'>
                                 Ocupado
                                 <br>
