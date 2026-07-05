@@ -1307,7 +1307,6 @@ function renderPedidos(data, append) {
                 <h5 class="mb-0">${escapeHtml(data.title)}</h5>
                 <span class="badge bg-secondary fs-6">${data.total} resultado(s)</span>
             </div>
-            <div id="pedidosEmpty"></div>
             <div id="pedidosTools" class="${showTools ? '' : 'd-none'}">
                 <div class="mb-3"><input type="text" class="form-control search-box" id="tableSearch" placeholder="Pesquisar nos resultados..." value="${escapeHtml(pedidosState.search)}" oninput="filterTable()"></div>
                 <div class="mb-3 d-flex gap-2 align-items-center">
@@ -1317,6 +1316,7 @@ function renderPedidos(data, append) {
                 </div>
                 <div class="table-responsive"><table class="table table-hover align-middle" id="pedidosTable"><thead class="table-dark"><tr><th scope="col" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()"></th><th scope="col">Data</th><th scope="col">Horário</th><th scope="col">Sala</th><th scope="col">Requisitor</th><th scope="col">Motivo</th><th scope="col" class="text-center">Ações</th></tr></thead><tbody></tbody></table></div>
             </div>
+            <div id="pedidosEmpty"></div>
             <div id="pedidosLoadingMore" class="text-center my-3 d-none"><div class="spinner-border spinner-border-sm" role="status"></div> A carregar...</div>
         `;
     }
