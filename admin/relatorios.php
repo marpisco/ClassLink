@@ -166,7 +166,7 @@ require 'index.php';
 ?>
 <div style="margin-left: 10%; margin-right: 10%; text-align: center;">
     <h3>Relatório de Utilização de Salas</h3>
-    <p>Gere um relatório em PDF da utilização de salas para um dia específico.</p>
+    <p>Gerar um relatório em PDF da utilização de salas para um dia específico.</p>
     
     <form method="POST" style="max-width: 500px; margin: 20px auto;">
         <?= csrf_token_field(); ?>
@@ -191,9 +191,4 @@ require 'index.php';
         
         <button type="submit" name="gerar_pdf" class="btn btn-primary">Gerar PDF</button>
     </form>
-    
-    <div class="alert alert-info mt-4">
-        <p><strong>Nota:</strong> Este relatório mostra as reservações para a data e sala(s) selecionada(s).</p>
-        <p>O PDF incluirá a data e hora de impressão no rodapé.</p>
-    </div>
 </div>
