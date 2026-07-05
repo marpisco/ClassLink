@@ -153,15 +153,40 @@ $stmt->close();
             to { opacity: 1; transform: translateY(0); }
         }
         .filter-btn {
+            border-color: #0d6efd;
             border-radius: 20px;
+            color: #0a58ca;
             padding: 0.4rem 1rem;
             font-size: 0.9rem;
             transition: all 0.2s ease;
+            background: transparent;
         }
-        .filter-btn.active {
+        .filter-btn:hover {
+            background-color: #e7f1ff;
+            border-color: #0a58ca;
+            color: #084298;
+        }
+        .filter-btn.active,
+        .filter-btn.active:hover {
             background-color: #0d6efd;
-            color: white;
+            color: #fff;
             border-color: #0d6efd;
+            font-weight: 700;
+        }
+        [data-bs-theme="dark"] .filter-btn {
+            border-color: #6ea8fe;
+            color: #9ec5fe;
+        }
+        [data-bs-theme="dark"] .filter-btn:hover {
+            background-color: #0d6efd;
+            border-color: #9ec5fe;
+            color: #fff;
+        }
+        [data-bs-theme="dark"] .filter-btn.active,
+        [data-bs-theme="dark"] .filter-btn.active:hover {
+            background-color: #0d6efd;
+            border-color: #6ea8fe;
+            color: #fff;
         }
         .reservations-container {
             max-width: 1200px;
@@ -252,10 +277,10 @@ $stmt->close();
                 <div class="row g-3 align-items-center">
                     <div class="col-md-6">
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-secondary filter-btn active" onclick="filterReservations('all', event)">Todas</button>
-                            <button type="button" class="btn btn-outline-warning filter-btn" onclick="filterReservations('pending', event)">Pendentes</button>
-                            <button type="button" class="btn btn-outline-success filter-btn" onclick="filterReservations('approved', event)">Aprovadas</button>
-                            <button type="button" class="btn btn-outline-primary filter-btn" onclick="filterReservations('future', event)">Futuras</button>
+                            <button type="button" class="btn filter-btn active" onclick="filterReservations('all', event)">Todas</button>
+                            <button type="button" class="btn filter-btn" onclick="filterReservations('pending', event)">Pendentes</button>
+                            <button type="button" class="btn filter-btn" onclick="filterReservations('approved', event)">Aprovadas</button>
+                            <button type="button" class="btn filter-btn" onclick="filterReservations('future', event)">Futuras</button>
                         </div>
                     </div>
                     <div class="col-md-6">
