@@ -49,6 +49,37 @@ $stmt->close();
             border: none;
             border-radius: 12px;
         }
+        .stat-card-pending {
+            background: linear-gradient(135deg, var(--stat-pending-start) 0%, var(--stat-pending-end) 100%);
+        }
+        .stat-card-approved {
+            background: linear-gradient(135deg, var(--stat-approved-start) 0%, var(--stat-approved-end) 100%);
+        }
+        .stat-card-future {
+            background: linear-gradient(135deg, var(--stat-future-start) 0%, var(--stat-future-end) 100%);
+        }
+        .stat-card-content {
+            color: var(--stat-card-text);
+        }
+        :root,
+        html[data-bs-theme="light"] {
+            --stat-pending-start: #fff9e6;
+            --stat-pending-end: #fff3cd;
+            --stat-approved-start: #e8f5e9;
+            --stat-approved-end: #c8e6c9;
+            --stat-future-start: #e3f2fd;
+            --stat-future-end: #bbdefb;
+            --stat-card-text: #212529;
+        }
+        html[data-bs-theme="dark"] {
+            --stat-pending-start: #4d3800;
+            --stat-pending-end: #7a5700;
+            --stat-approved-start: #0f3d21;
+            --stat-approved-end: #1f5c35;
+            --stat-future-start: #083352;
+            --stat-future-end: #0d4f7a;
+            --stat-card-text: #f8f9fa;
+        }
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
@@ -176,40 +207,40 @@ $stmt->close();
 
         <div class="row mb-4 g-3">
             <div class="col-md-4">
-                <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);">
+                <div class="card stat-card stat-card-pending shadow-sm h-100">
                     <div class="card-body d-flex align-items-center">
                         <div class="stat-icon bg-warning text-white me-3">
                             &#x23F3;
                         </div>
-                        <div>
-                            <div class="stat-number" style="color: #856404;"><?php echo $totalPendentes; ?></div>
-                            <div class="small" style="color: #856404;">Pendentes</div>
+                        <div class="stat-card-content">
+                            <div class="stat-number"><?php echo $totalPendentes; ?></div>
+                            <div class="small">Pendentes</div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                <div class="card stat-card stat-card-approved shadow-sm h-100">
                     <div class="card-body d-flex align-items-center">
                         <div class="stat-icon bg-success text-white me-3">
                             &#x2705;
                         </div>
-                        <div>
-                            <div class="stat-number" style="color: #155724;"><?php echo $totalAprovadas; ?></div>
-                            <div class="small" style="color: #155724;">Aprovadas</div>
+                        <div class="stat-card-content">
+                            <div class="stat-number"><?php echo $totalAprovadas; ?></div>
+                            <div class="small">Aprovadas</div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                <div class="card stat-card stat-card-future shadow-sm h-100">
                     <div class="card-body d-flex align-items-center">
                         <div class="stat-icon bg-info text-white me-3">
                             &#x1F4C5;
                         </div>
-                        <div>
-                            <div class="stat-number" style="color: #004085;"><?php echo $totalFuturas; ?></div>
-                            <div class="small" style="color: #004085;">Futuras</div>
+                        <div class="stat-card-content">
+                            <div class="stat-number"><?php echo $totalFuturas; ?></div>
+                            <div class="small">Futuras</div>
                         </div>
                     </div>
                 </div>
