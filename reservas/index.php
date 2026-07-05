@@ -61,6 +61,13 @@ $stmt->close();
         .stat-card-content {
             color: var(--stat-card-text);
         }
+        .classlink-page-title {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        [data-bs-theme="dark"] .classlink-page-title {
+            color: var(--secondary-color);
+        }
         :root,
         html[data-bs-theme="light"] {
             --stat-pending-start: #fff9e6;
@@ -249,9 +256,7 @@ $stmt->close();
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
                         <h2 class="mb-1">
-                            <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                                As Minhas Reservas
-                            </span>
+                            <span class="classlink-page-title">As Minhas Reservas</span>
                         </h2>
                         <p class="text-muted mb-0">Gerir e acompanhar as suas reservas de salas</p>
                     </div>
