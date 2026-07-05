@@ -17,9 +17,35 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         vertical-align: -0.1em;
     }
     .stat-card {
+        --stat-card-text: #212529;
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         border: none;
         border-radius: 12px;
+        color: var(--stat-card-text);
+    }
+    .stat-card-warning {
+        --stat-card-text: #5f4700;
+        background: linear-gradient(135deg, #fff4cc 0%, #ffd766 100%);
+    }
+    .stat-card-success {
+        --stat-card-text: #0f5132;
+        background: linear-gradient(135deg, #d1e7dd 0%, #75b798 100%);
+    }
+    .stat-card-info {
+        --stat-card-text: #084298;
+        background: linear-gradient(135deg, #cff4fc 0%, #6edff6 100%);
+    }
+    [data-bs-theme="dark"] .stat-card-warning {
+        --stat-card-text: #fff3cd;
+        background: linear-gradient(135deg, #4d3800 0%, #8a6700 100%);
+    }
+    [data-bs-theme="dark"] .stat-card-success {
+        --stat-card-text: #d1e7dd;
+        background: linear-gradient(135deg, #0f3324 0%, #146c43 100%);
+    }
+    [data-bs-theme="dark"] .stat-card-info {
+        --stat-card-text: #cff4fc;
+        background: linear-gradient(135deg, #073642 0%, #087990 100%);
     }
     .stat-card:hover {
         transform: translateY(-5px);
@@ -133,14 +159,14 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
 
     <div class="row mb-4 g-3">
         <div class="col-md-4">
-            <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);">
+            <div class="card stat-card stat-card-warning shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="stat-icon bg-warning text-white me-3">
                         &#x23F3;
                     </div>
                     <div>
-                        <div class="stat-number" style="color: #856404;"><?php echo $totalPendentes; ?></div>
-                        <div class="small" style="color: #856404;">Pedidos Pendentes</div>
+                        <div class="stat-number"><?php echo $totalPendentes; ?></div>
+                        <div class="small">Pedidos Pendentes</div>
                     </div>
                     <?php if ($totalPendentes > 0): ?>
                     <div class="ms-auto">
@@ -151,27 +177,27 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+            <div class="card stat-card stat-card-success shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="stat-icon bg-success text-white me-3">
                         &#x2705;
                     </div>
                     <div>
-                        <div class="stat-number" style="color: #155724;"><?php echo $totalAprovadas; ?></div>
-                        <div class="small" style="color: #155724;">Reservas Aprovadas</div>
+                        <div class="stat-number"><?php echo $totalAprovadas; ?></div>
+                        <div class="small">Reservas Aprovadas</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card stat-card shadow-sm h-100" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+            <div class="card stat-card stat-card-info shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="stat-icon bg-info text-white me-3">
                         &#x1F4C5;
                     </div>
                     <div>
-                        <div class="stat-number" style="color: #004085;"><?php echo $totalHoje; ?></div>
-                        <div class="small" style="color: #004085;">Pendentes para Hoje</div>
+                        <div class="stat-number"><?php echo $totalHoje; ?></div>
+                        <div class="small">Pendentes para Hoje</div>
                     </div>
                     <?php if ($totalHoje > 0): ?>
                     <div class="ms-auto">
