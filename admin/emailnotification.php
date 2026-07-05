@@ -25,9 +25,7 @@ use PHPMailer\PHPMailer\Exception;
 </style>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
 <h1>Notificar por Email</h1>
-<p>Este script permite enviar um email para utilizadores com reservas de sala numa semana específica.</p>
-<p>Pode filtrar por sala específica ou enviar para todos os utilizadores com reservas.</p>
-<p>O email será enviado em BCC (cópia oculta) para preservar a privacidade dos destinatários.</p>
+<p>Enviar um email aos utilizadores com reservas numa semana específica.</p>
 
 <style>
     body {
