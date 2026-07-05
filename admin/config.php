@@ -92,9 +92,6 @@ $dbConfigs = get_app_config('db_configs', [
                         <input type="text" class="form-control" id="internal_email_domain" name="internal_email_domain" value="<?= htmlspecialchars($internalDomain) ?>" placeholder="exemplo.pt">
                         <div class="form-text">Domínio para reservas autónomas (sem aprovação). Deixe vazio para desativar.</div>
                     </div>
-                </div>
-                
-                <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="blocked_emails_regex" class="form-label">Regex de Emails Bloqueados</label>
                         <div class="input-group">
