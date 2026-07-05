@@ -201,6 +201,16 @@ $stmt->close();
             margin: 0 auto;
             padding: 20px;
         }
+        .horario-badge {
+            background-color: #f8f9fa;
+            color: #212529;
+            border: 1px solid #dee2e6;
+        }
+        html[data-bs-theme="dark"] .horario-badge {
+            background-color: var(--bs-tertiary-bg);
+            color: var(--bs-body-color);
+            border-color: var(--bs-border-color);
+        }
         .reservations-table-head th {
             --bs-table-bg: var(--bs-card-bg);
             --bs-table-color: var(--bs-body-color);
@@ -397,7 +407,7 @@ $stmt->close();
                         echo "</td>";
                         
                         // Time column
-                        echo "<td><span class='badge bg-light text-dark border'>" . htmlspecialchars($tempoName, ENT_QUOTES, 'UTF-8') . "</span></td>";
+                        echo "<td><span class='badge horario-badge'>" . htmlspecialchars($tempoName, ENT_QUOTES, 'UTF-8') . "</span></td>";
                         
                         // Status column
                         echo "<td>";
