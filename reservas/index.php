@@ -61,13 +61,6 @@ $stmt->close();
         .stat-card-content {
             color: var(--stat-card-text);
         }
-        .classlink-page-title {
-            color: var(--primary-color);
-            font-weight: 700;
-        }
-        [data-bs-theme="dark"] .classlink-page-title {
-            color: var(--secondary-color);
-        }
         :root,
         html[data-bs-theme="light"] {
             --stat-pending-start: #fff9e6;
@@ -255,9 +248,7 @@ $stmt->close();
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
-                        <h2 class="mb-1">
-                            <span class="classlink-page-title">As Minhas Reservas</span>
-                        </h2>
+                        <p class="h2 fw-light mb-1">As Minhas Reservas</p>
                         <p class="text-muted mb-0">Gerir e acompanhar as suas reservas de salas</p>
                     </div>
                     <div>
