@@ -546,7 +546,7 @@ $emailMode = isset($_POST['email_mode']) ? $_POST['email_mode'] : ''; // no defa
         </div>
         
         <div class="row mb-3">
-            <div class="col-md-12 text-start">
+            <div class="col-md-12 text-center">
                 <div class="form-check d-inline-flex align-items-center gap-2">
                     <input class="form-check-input m-0" type="checkbox" id="identify_sender" name="identify_sender" value="1" <?php echo (isset($_POST['identify_sender']) && $_POST['identify_sender'] == '1') ? 'checked' : ''; ?>>
                     <label class="form-check-label" for="identify_sender">
