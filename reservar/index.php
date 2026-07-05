@@ -239,11 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
             " . csrf_token_field() . "
             <div class='bulk-reservation-toggle'>
-<<<<<<< ours
-                <a href='#' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-expanded='false'>Fazer reserva em massa</a>
-=======
                 <button type='button' class='bulk-reservation-toggle-button' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-pressed='false'>Fazer reserva em massa</button>
->>>>>>> theirs
             </div>
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
