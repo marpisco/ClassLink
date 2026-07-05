@@ -193,6 +193,22 @@ $stmt->close();
             margin: 0 auto;
             padding: 20px;
         }
+        .reservations-table-head th {
+            --bs-table-bg: var(--bs-card-bg);
+            --bs-table-color: var(--bs-body-color);
+            --bs-table-border-color: var(--bs-border-color);
+            background-color: var(--bs-card-bg);
+            color: var(--bs-body-color);
+            border-color: var(--bs-border-color);
+        }
+        [data-bs-theme="dark"] .reservations-table-head th {
+            --bs-table-bg: var(--bs-tertiary-bg);
+            --bs-table-color: var(--bs-body-color);
+            --bs-table-border-color: var(--bs-border-color);
+            background-color: var(--bs-tertiary-bg);
+            color: var(--bs-body-color);
+            border-color: var(--bs-border-color);
+        }
         @media (max-width: 768px) {
             .stat-number {
                 font-size: 1.5rem;
@@ -317,7 +333,7 @@ $stmt->close();
                 } else {
                     echo "<div class='table-responsive'>
                             <table class='table table-hover align-middle mb-0' id='reservationsTable'>
-                                <thead class='table-light'>
+                                <thead class='reservations-table-head'>
                                     <tr>
                                         <th scope='col'>Sala</th>
                                         <th scope='col'>Data</th>
