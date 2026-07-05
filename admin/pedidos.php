@@ -316,6 +316,15 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
     </div>
 
     <div id="pedidosAlerts"></div>
+    <div id="pedidosAsyncHeader" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0" id="pedidosAsyncTitle"></h5>
+            <span class="badge bg-secondary fs-6" id="pedidosAsyncCount"></span>
+        </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" id="tableSearch" placeholder="Pesquisar nos resultados..." oninput="filterTable()">
+        </div>
+    </div>
     <div id="pedidosResults">
     <?php
     if (isset($_GET['subaction'])) {
@@ -1302,13 +1311,9 @@ function renderPedidos(data, append) {
     const showTools = data.total > 0 || pedidosState.search !== '';
 
     if (!append) {
+        updatePedidosAsyncHeader(data);
         results.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">${escapeHtml(data.title)}</h5>
-                <span class="badge bg-secondary fs-6">${data.total} resultado(s)</span>
-            </div>
             <div id="pedidosTools" class="${showTools ? '' : 'd-none'}">
-                <div class="mb-3"><input type="text" class="form-control search-box" id="tableSearch" placeholder="Pesquisar nos resultados..." value="${escapeHtml(pedidosState.search)}" oninput="filterTable()"></div>
                 <div class="mb-3 d-flex gap-2 align-items-center">
                     <button type="button" class="btn btn-success" onclick="bulkApprove()" id="bulkApproveBtn" disabled><span>&#x2705;</span> Aprovar Selecionados</button>
                     <button type="button" class="btn btn-danger" onclick="bulkReject()" id="bulkRejectBtn" disabled><span style="color: white; font-weight: bold;">✕</span> Rejeitar Selecionados</button>
@@ -1339,6 +1344,14 @@ function renderPedidos(data, append) {
     restoreSearchFocus(focusedSearch, searchSelectionStart, searchSelectionEnd);
 }
 
+function updatePedidosAsyncHeader(data) {
+    const header = document.getElementById('pedidosAsyncHeader');
+    if (!header) return;
+
+    document.getElementById('pedidosAsyncTitle').textContent = data.title;
+    document.getElementById('pedidosAsyncCount').textContent = data.total + ' resultado(s)';
+}
+
 function restoreSearchFocus(shouldFocus, selectionStart, selectionEnd) {
     if (!shouldFocus) return;
 
@@ -1366,6 +1379,8 @@ async function loadPedidos(reset = false) {
         pedidosState.hasMore = true;
         if (!document.activeElement || document.activeElement.id !== 'tableSearch') {
             showPedidosSkeleton();
+        } else {
+            document.getElementById('pedidosLoadingMore')?.classList.remove('d-none');
         }
     } else {
         document.getElementById('pedidosLoadingMore')?.classList.remove('d-none');
@@ -1632,6 +1647,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const hasServerAction = new URLSearchParams(window.location.search).has('subaction');
     if (!hasServerAction) {
+        document.getElementById('pedidosAsyncHeader')?.classList.remove('d-none');
         loadPedidos(true);
     }
 
