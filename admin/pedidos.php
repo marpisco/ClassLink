@@ -134,6 +134,16 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         background-color: #0d6efd;
         color: white;
     }
+    .classlink-page-title {
+        display: inline-block;
+        margin: 0 0 0.25rem;
+        line-height: 1.2;
+        text-align: left;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 </style>
 
 <div class="container-fluid px-4 fade-in">
@@ -141,11 +151,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2 class="mb-1">
-                        <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                            Gestão de Pedidos
-                        </span>
-                    </h2>
+                    <h2 class="classlink-page-title">Gestão de Pedidos</h2>
                     <p class="text-muted mb-0">Gerir e aprovar pedidos de reserva de salas</p>
                 </div>
                 <div>
