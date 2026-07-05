@@ -125,6 +125,14 @@ $stmt->close();
         .action-btn:hover {
             transform: scale(1.05);
         }
+        .action-btn.btn-outline-primary:hover {
+            color: #fff;
+            transition: all 0.2s ease;
+        }
+        .action-btn.btn-outline-danger:hover {
+            color: #fff;
+            transition: all 0.2s ease;
+        }
         .search-box {
             border-radius: 25px;
             padding-left: 1rem;
