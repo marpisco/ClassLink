@@ -51,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                 width: 12px !important;
                 height: 12px !important;
             }
+            .bulk-reservation-toggle {
+                max-width: 100%;
+            }
         }
         .reservation-table-container {
             overflow-x: auto;
@@ -68,6 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             margin: 0 auto 0.5rem auto;
             text-align: right;
         }
+<<<<<<< ours
+=======
+        .bulk-reservation-toggle-button {
+            background: none;
+            border: 0;
+            color: var(--link-color);
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+        }
+        .bulk-reservation-toggle-button:hover,
+        .bulk-reservation-toggle-button:focus {
+            color: var(--accent-color);
+        }
+>>>>>>> theirs
     </style>
     <script>
         function updateBulkControls() {
@@ -90,7 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         }
 
         function toggleBulkReservation(event) {
+<<<<<<< ours
             event.preventDefault();
+=======
+            if (event) {
+                event.preventDefault();
+            }
+>>>>>>> theirs
 
             const form = document.getElementById('bulkReservationForm');
             const toggle = document.getElementById('bulkReservationToggle');
@@ -102,7 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             form.classList.toggle('bulk-mode-active');
 
             const bulkModeActive = form.classList.contains('bulk-mode-active');
+<<<<<<< ours
             toggle.setAttribute('aria-expanded', bulkModeActive ? 'true' : 'false');
+=======
+            toggle.setAttribute('aria-pressed', bulkModeActive ? 'true' : 'false');
+>>>>>>> theirs
             toggle.textContent = bulkModeActive ? 'Ocultar reserva em massa' : 'Fazer reserva em massa';
         }
         
@@ -222,7 +250,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
             " . csrf_token_field() . "
             <div class='bulk-reservation-toggle'>
+<<<<<<< ours
                 <a href='#' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-expanded='false'>Fazer reserva em massa</a>
+=======
+                <button type='button' class='bulk-reservation-toggle-button' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-pressed='false'>Fazer reserva em massa</button>
+>>>>>>> theirs
             </div>
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
