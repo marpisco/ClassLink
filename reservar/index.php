@@ -105,13 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         }
 
         function toggleBulkReservation(event) {
-<<<<<<< ours
-            event.preventDefault();
-=======
             if (event) {
                 event.preventDefault();
             }
->>>>>>> theirs
 
             const form = document.getElementById('bulkReservationForm');
             const toggle = document.getElementById('bulkReservationToggle');
@@ -123,11 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             form.classList.toggle('bulk-mode-active');
 
             const bulkModeActive = form.classList.contains('bulk-mode-active');
-<<<<<<< ours
-            toggle.setAttribute('aria-expanded', bulkModeActive ? 'true' : 'false');
-=======
             toggle.setAttribute('aria-pressed', bulkModeActive ? 'true' : 'false');
->>>>>>> theirs
             toggle.textContent = bulkModeActive ? 'Ocultar reserva em massa' : 'Fazer reserva em massa';
         }
         
