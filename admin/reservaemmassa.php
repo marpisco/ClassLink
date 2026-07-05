@@ -6,7 +6,8 @@ require_once(__DIR__ . '/../func/validation.php');
 ?>
 <div style="margin-left: 20%; margin-right: 20%; text-align: center;">
 <h1>Reserva em Massa</h1>
-<p>Este script permite criar reservas em massa de salas ao longo de várias semanas.</p>
+<p>Criar reservas em massa de salas ao longo de várias semanas.</p>
+<p class="small" style="color:red;font-weight:bold;">Deve de consultar o manual do administrador para mais informações.</p>
 <p>Selecione a sala, o utilizador, os tempos desejados e o intervalo de datas para criar as reservas.</p>
 
 <style>
