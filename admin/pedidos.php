@@ -145,6 +145,17 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
     .pedidos-admin-header h3 {
         margin-bottom: 0;
     }
+    .skeleton-line {
+        height: 1rem;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+        background-size: 200% 100%;
+        animation: skeletonLoading 1.2s infinite;
+    }
+    @keyframes skeletonLoading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
 </style>
 
 <div class="pedidos-admin-shell fade-in">
@@ -168,14 +179,12 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         &#x23F3;
                     </div>
                     <div>
-                        <div class="stat-number"><?php echo $totalPendentes; ?></div>
+                        <div class="stat-number" id="statPendentes"><?php echo $totalPendentes; ?></div>
                         <div class="small">Pedidos Pendentes</div>
                     </div>
-                    <?php if ($totalPendentes > 0): ?>
-                    <div class="ms-auto">
+                    <div class="ms-auto <?php echo $totalPendentes > 0 ? '' : 'd-none'; ?>" id="statPendentesBadge">
                         <span class="badge bg-warning text-dark pulse">Requer Atenção</span>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -186,7 +195,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         &#x2705;
                     </div>
                     <div>
-                        <div class="stat-number"><?php echo $totalAprovadas; ?></div>
+                        <div class="stat-number" id="statAprovadas"><?php echo $totalAprovadas; ?></div>
                         <div class="small">Reservas Aprovadas</div>
                     </div>
                 </div>
@@ -199,14 +208,12 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         &#x1F4C5;
                     </div>
                     <div>
-                        <div class="stat-number"><?php echo $totalHoje; ?></div>
+                        <div class="stat-number" id="statHoje"><?php echo $totalHoje; ?></div>
                         <div class="small">Pendentes para Hoje</div>
                     </div>
-                    <?php if ($totalHoje > 0): ?>
-                    <div class="ms-auto">
+                    <div class="ms-auto <?php echo $totalHoje > 0 ? '' : 'd-none'; ?>" id="statHojeBadge">
                         <span class="badge bg-info">Urgente</span>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -219,8 +226,8 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label for="sala" class="form-label fw-bold">Filtrar por Sala</label>
-                        <select class="form-select" id="sala" name="sala" onchange="this.form.submit();">
-                            <?php 
+                        <select class="form-select" id="sala" name="sala">
+                            <?php
                             $selectedSala = isset($_POST['sala']) ? $_POST['sala'] : (isset($_GET['sala']) ? $_GET['sala'] : "0");
                             if ($selectedSala == "0") {
                                 echo "<option value='0' selected>Todas as salas</option>";
@@ -238,9 +245,9 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Filtrar por Requisitor</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="selectedUserDisplay" 
+                            <input type="text" class="form-control" id="selectedUserDisplay"
                                    placeholder="Todos os utilizadores" readonly
-                                   value="<?php 
+                                   value="<?php
                                    if (isset($_POST['requisitor']) && !empty($_POST['requisitor'])) {
                                        $userStmt = $db->prepare("SELECT nome FROM cache WHERE id = ?");
                                        $userStmt->bind_param("s", $_POST['requisitor']);
@@ -289,9 +296,9 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             $userId = htmlspecialchars($user['id'], ENT_QUOTES, 'UTF-8');
                             $userName = htmlspecialchars($user['nome'], ENT_QUOTES, 'UTF-8');
                             $userEmail = htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8');
-                            echo "<button type='button' class='list-group-item list-group-item-action user-item' 
-                                data-user-id='{$userId}' 
-                                data-user-name='{$userName}' 
+                            echo "<button type='button' class='list-group-item list-group-item-action user-item'
+                                data-user-id='{$userId}'
+                                data-user-name='{$userName}'
                                 data-user-email='{$userEmail}'
                                 onclick='selectUser(this)'>
                                 <strong>{$userName}</strong><br>
@@ -308,11 +315,13 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         </div>
     </div>
 
+    <div id="pedidosAlerts"></div>
+    <div id="pedidosResults">
     <?php
     if (isset($_GET['subaction'])) {
         // For bulk actions, skip individual parameter validation
         $isBulkAction = in_array($_GET['subaction'], ['bulk_approve', 'bulk_reject']);
-        
+
         if (!$isBulkAction && (!isset($_GET['sala']) || !isset($_GET['tempo']) || !isset($_GET['data']))) {
             echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
                     <strong>Erro!</strong> Parâmetros inválidos.
@@ -327,12 +336,12 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     $stmt->execute();
                     $requisitor = $stmt->get_result()->fetch_assoc()['requisitor'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("UPDATE reservas SET aprovado=1 WHERE sala=? AND tempo=? AND data=?");
                     $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Log the approval
                     require_once(__DIR__ . '/../func/logaction.php');
                     $stmt = $db->prepare("SELECT nome FROM salas WHERE id=?");
@@ -340,21 +349,21 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     $stmt->execute();
                     $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $_GET['sala'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
                     $stmt->bind_param("s", $_GET['tempo']);
                     $stmt->execute();
                     $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $_GET['tempo'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT nome FROM cache WHERE id=?");
                     $stmt->bind_param("s", $requisitor);
                     $stmt->execute();
                     $requisitorNome = $stmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
                     $stmt->close();
-                    
+
                     logaction("Aprovou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$_GET['data']} às {$tempoNome}", $_SESSION['id']);
-                    
+
                     echo "<div class='card border-success shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
                                 <div class='mb-3' style='font-size: 4rem;'>&#x1F389;</div>
@@ -371,7 +380,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         </div>
                       </div>
                     </div>";
-                    
+
                     // Send approval email using the email helper
                     $emailResult = sendReservationApprovedEmail($db, $requisitor, $_GET['sala'], $_GET['tempo'], $_GET['data']);
                     if (!$emailResult['success'] && $emailResult['error'] !== 'Email not enabled') {
@@ -389,7 +398,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     $stmt->execute();
                     $requisitor = $stmt->get_result()->fetch_assoc()['requisitor'];
                     $stmt->close();
-                    
+
                     // Get details for log before deletion
                     require_once(__DIR__ . '/../func/logaction.php');
                     $stmt = $db->prepare("SELECT nome FROM salas WHERE id=?");
@@ -397,30 +406,30 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     $stmt->execute();
                     $salaNome = $stmt->get_result()->fetch_assoc()['nome'] ?? $_GET['sala'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
                     $stmt->bind_param("s", $_GET['tempo']);
                     $stmt->execute();
                     $tempoNome = $stmt->get_result()->fetch_assoc()['horashumanos'] ?? $_GET['tempo'];
                     $stmt->close();
-                    
+
                     $stmt = $db->prepare("SELECT nome FROM cache WHERE id=?");
                     $stmt->bind_param("s", $requisitor);
                     $stmt->execute();
                     $requisitorNome = $stmt->get_result()->fetch_assoc()['nome'] ?? 'Utilizador';
                     $stmt->close();
-                    
+
                     // Send rejection email BEFORE deleting the reservation
                     $emailResult = sendReservationRejectedEmail($db, $requisitor, $_GET['sala'], $_GET['tempo'], $_GET['data']);
-                    
+
                     $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
                     $stmt->bind_param("sss", $_GET['sala'], $_GET['tempo'], $_GET['data']);
                     $stmt->execute();
                     $stmt->close();
-                    
+
                     // Log the rejection
                     logaction("Rejeitou a reserva do utilizador '{$requisitorNome}': sala '{$salaNome}' no dia {$_GET['data']} às {$tempoNome}", $_SESSION['id']);
-                    
+
                     echo "<div class='card border-danger shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
                                 <div class='mb-3' style='font-size: 4rem;'>&#x1F6AB;</div>
@@ -431,7 +440,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                                 </a>
                             </div>
                           </div>";
-                    
+
                     if (!$emailResult['success'] && $emailResult['error'] !== 'Email not enabled') {
                         echo "<div class='alert alert-warning alert-dismissible fade show' role='alert'>
                                 <strong>Aviso:</strong> A reserva foi rejeitada, mas o email de notificação não foi enviado. Contacte um administrador.
@@ -443,7 +452,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
 
                 case "detalhes":
                     break;
-                
+
                 case "bulk_approve":
                     if (!isset($_POST['reservations']) || empty($_POST['reservations'])) {
                         echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
@@ -453,7 +462,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
                         break;
                     }
-                    
+
                     $reservations = json_decode($_POST['reservations'], true);
                     if (!is_array($reservations) || json_last_error() !== JSON_ERROR_NONE) {
                         echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
@@ -463,33 +472,33 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
                         break;
                     }
-                    
+
                     $approved = 0;
                     $failed = 0;
                     $approvedReservations = []; // Track approved reservations for email
                     $requisitorsByUser = []; // Group by requisitor
-                    
+
                     foreach ($reservations as $res) {
                         if (isset($res['sala']) && isset($res['tempo']) && isset($res['data'])) {
                             try {
                                 // Get requisitor and reservation details
-                                $stmt = $db->prepare("SELECT r.requisitor, s.nome as sala_nome, t.horashumanos as tempo_nome 
-                                                      FROM reservas r 
-                                                      LEFT JOIN salas s ON r.sala = s.id 
-                                                      LEFT JOIN tempos t ON r.tempo = t.id 
+                                $stmt = $db->prepare("SELECT r.requisitor, s.nome as sala_nome, t.horashumanos as tempo_nome
+                                                      FROM reservas r
+                                                      LEFT JOIN salas s ON r.sala = s.id
+                                                      LEFT JOIN tempos t ON r.tempo = t.id
                                                       WHERE r.sala=? AND r.tempo=? AND r.data=?");
                                 $stmt->bind_param("sss", $res['sala'], $res['tempo'], $res['data']);
                                 $stmt->execute();
                                 $result = $stmt->get_result()->fetch_assoc();
                                 $stmt->close();
-                                
+
                                 if ($result && $result['requisitor']) {
                                     // Approve reservation
                                     $stmt = $db->prepare("UPDATE reservas SET aprovado=1 WHERE sala=? AND tempo=? AND data=?");
                                     $stmt->bind_param("sss", $res['sala'], $res['tempo'], $res['data']);
                                     $stmt->execute();
                                     $stmt->close();
-                                    
+
                                     // Group by requisitor
                                     $reqId = $result['requisitor'];
                                     if (!isset($requisitorsByUser[$reqId])) {
@@ -501,7 +510,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                                         'tempo_nome' => $result['tempo_nome'],
                                         'data' => $res['data']
                                     ];
-                                    
+
                                     $approved++;
                                 } else {
                                     $failed++;
@@ -513,7 +522,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             $failed++;
                         }
                     }
-                    
+
                     // Send bulk emails grouped by user
                     $emailErrors = [];
                     foreach ($requisitorsByUser as $reqId => $userReservations) {
@@ -522,11 +531,11 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             $emailErrors[] = "Utilizador ID: {$reqId}";
                         }
                     }
-                    
+
                     // Log bulk approval
                     require_once(__DIR__ . '/../func/logaction.php');
                     logaction("Aprovou {$approved} reserva(s) em massa através da funcionalidade de aprovação em massa", $_SESSION['id']);
-                    
+
                     echo "<div class='card border-success shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
                                 <div class='mb-3' style='font-size: 4rem;'>&#x1F389;</div>
@@ -536,7 +545,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo " <br><strong>{$failed}</strong> reserva(s) falharam.";
                     }
                     echo "</p>";
-                    
+
                     if (!empty($emailErrors)) {
                         echo "<div class='alert alert-warning text-start'>
                                 <strong>Aviso:</strong> Algumas reservas foram aprovadas mas os emails não foram enviados:
@@ -546,14 +555,14 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         }
                         echo "</ul></div>";
                     }
-                    
+
                     echo "<a href='/admin/pedidos.php' class='btn btn-primary'>
                             Voltar aos Pedidos
                           </a>
                         </div>
                       </div>";
                     break;
-                
+
                 case "bulk_reject":
                     if (!isset($_POST['reservations']) || empty($_POST['reservations'])) {
                         echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
@@ -563,7 +572,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
                         break;
                     }
-                    
+
                     $reservations = json_decode($_POST['reservations'], true);
                     if (!is_array($reservations) || json_last_error() !== JSON_ERROR_NONE) {
                         echo "<div class='alert alert-danger alert-dismissible fade show shadow-sm' role='alert'>
@@ -573,26 +582,26 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo "<a href='/admin/pedidos.php' class='btn btn-primary'>Voltar aos Pedidos</a>";
                         break;
                     }
-                    
+
                     $rejected = 0;
                     $failed = 0;
                     $rejectedReservations = []; // Track rejected reservations for email
                     $requisitorsByUser = []; // Group by requisitor
-                    
+
                     foreach ($reservations as $res) {
                         if (isset($res['sala']) && isset($res['tempo']) && isset($res['data'])) {
                             try {
                                 // Get requisitor and reservation details BEFORE deleting
-                                $stmt = $db->prepare("SELECT r.requisitor, s.nome as sala_nome, t.horashumanos as tempo_nome 
-                                                      FROM reservas r 
-                                                      LEFT JOIN salas s ON r.sala = s.id 
-                                                      LEFT JOIN tempos t ON r.tempo = t.id 
+                                $stmt = $db->prepare("SELECT r.requisitor, s.nome as sala_nome, t.horashumanos as tempo_nome
+                                                      FROM reservas r
+                                                      LEFT JOIN salas s ON r.sala = s.id
+                                                      LEFT JOIN tempos t ON r.tempo = t.id
                                                       WHERE r.sala=? AND r.tempo=? AND r.data=?");
                                 $stmt->bind_param("sss", $res['sala'], $res['tempo'], $res['data']);
                                 $stmt->execute();
                                 $result = $stmt->get_result()->fetch_assoc();
                                 $stmt->close();
-                                
+
                                 if ($result && $result['requisitor']) {
                                     // Group by requisitor for email
                                     $reqId = $result['requisitor'];
@@ -605,13 +614,13 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                                         'tempo_nome' => $result['tempo_nome'],
                                         'data' => $res['data']
                                     ];
-                                    
+
                                     // Delete reservation
                                     $stmt = $db->prepare("DELETE FROM reservas WHERE sala=? AND tempo=? AND data=?");
                                     $stmt->bind_param("sss", $res['sala'], $res['tempo'], $res['data']);
                                     $stmt->execute();
                                     $stmt->close();
-                                    
+
                                     $rejected++;
                                 } else {
                                     $failed++;
@@ -623,7 +632,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             $failed++;
                         }
                     }
-                    
+
                     // Send bulk rejection emails grouped by user
                     $emailErrors = [];
                     foreach ($requisitorsByUser as $reqId => $userReservations) {
@@ -632,11 +641,11 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             $emailErrors[] = "Utilizador ID: {$reqId}";
                         }
                     }
-                    
+
                     // Log bulk rejection
                     require_once(__DIR__ . '/../func/logaction.php');
                     logaction("Rejeitou {$rejected} reserva(s) em massa através da funcionalidade de rejeição em massa", $_SESSION['id']);
-                    
+
                     echo "<div class='card border-danger shadow-sm mb-4'>
                             <div class='card-body text-center py-4'>
                                 <div class='mb-3' style='font-size: 4rem;'>&#x1F6AB;</div>
@@ -646,7 +655,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         echo " <br><strong>{$failed}</strong> reserva(s) falharam.";
                     }
                     echo "</p>";
-                    
+
                     if (!empty($emailErrors)) {
                         echo "<div class='alert alert-warning text-start'>
                                 <strong>Aviso:</strong> Algumas reservas foram rejeitadas mas os emails não foram enviados:
@@ -656,7 +665,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                         }
                         echo "</ul></div>";
                     }
-                    
+
                     echo "<a href='/admin/pedidos.php' class='btn btn-primary'>
                             Voltar aos Pedidos
                           </a>
@@ -668,7 +677,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
     } elseif (isset($_POST['sala']) || isset($_GET['sala']) || isset($_POST['requisitor'])) {
         // Determine what to show
         $showAllPending = (isset($_POST['sala']) && $_POST['sala'] == "0") || (!isset($_POST['sala']) && !isset($_GET['sala']) && !isset($_POST['requisitor']));
-        
+
         if (isset($_POST['sala']) && $_POST['sala'] != "0") {
             $sala = $_POST['sala'];
         } elseif (isset($_GET['sala'])) {
@@ -676,9 +685,9 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         } else {
             $sala = null;
         }
-        
+
         $pedidosArray = [];
-        
+
         if (isset($_POST['requisitor']) && !empty($_POST['requisitor'])) {
             // Search by requisitor - only show pending requests
             $stmt = $db->prepare("SELECT * FROM reservas WHERE requisitor=? AND aprovado=0 ORDER BY data ASC");
@@ -709,9 +718,9 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
             $stmt->close();
             $searchMode = "room";
         }
-        
+
         $totalResults = count($pedidosArray);
-        
+
         // Results Header
         echo "<div class='d-flex justify-content-between align-items-center mb-3'>";
         echo "<h5 class='mb-0'>";
@@ -737,7 +746,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         echo "</h5>";
         echo "<span class='badge bg-secondary fs-6'>{$totalResults} resultado(s)</span>";
         echo "</div>";
-        
+
         if ($totalResults == 0) {
             echo "<div class='card shadow-sm'>
                     <div class='card-body empty-state'>
@@ -749,10 +758,10 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         } else {
             // Search within results
             echo "<div class='mb-3'>
-                    <input type='text' class='form-control search-box' id='tableSearch' 
+                    <input type='text' class='form-control search-box' id='tableSearch'
                            placeholder='Pesquisar nos resultados...' onkeyup='filterTable()'>
                   </div>";
-            
+
             // Bulk action buttons
             echo "<div class='mb-3 d-flex gap-2 align-items-center'>
                     <button type='button' class='btn btn-success' onclick='bulkApprove()' id='bulkApproveBtn' disabled>
@@ -763,7 +772,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     </button>
                     <span class='text-muted ms-2' id='selectedCount'>0 selecionados</span>
                   </div>";
-            
+
             echo "<div class='table-responsive'>
                     <table class='table table-hover align-middle' id='pedidosTable'>
                         <thead class='table-dark'>
@@ -780,7 +789,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             </tr>
                         </thead>
                         <tbody>";
-            
+
             foreach ($pedidosArray as $pedido) {
                 // Get room name
                 $stmt2 = $db->prepare("SELECT nome FROM salas WHERE id=?");
@@ -789,7 +798,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 $salaResult = $stmt2->get_result()->fetch_assoc();
                 $salaextenso = $salaResult ? $salaResult['nome'] : 'N/A';
                 $stmt2->close();
-                
+
                 // Get requisitor name
                 $stmt2 = $db->prepare("SELECT nome FROM cache WHERE id=?");
                 $stmt2->bind_param("s", $pedido['requisitor']);
@@ -797,7 +806,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 $reqResult = $stmt2->get_result()->fetch_assoc();
                 $requisitorextenso = $reqResult ? $reqResult['nome'] : 'N/A';
                 $stmt2->close();
-                
+
                 // Get time slot
                 $stmt2 = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
                 $stmt2->bind_param("s", $pedido['tempo']);
@@ -805,36 +814,36 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 $tempoResult = $stmt2->get_result()->fetch_assoc();
                 $horastempo = $tempoResult ? $tempoResult['horashumanos'] : 'N/A';
                 $stmt2->close();
-                
+
                 $tempoEnc = urlencode($pedido['tempo']);
                 $dataEnc = urlencode($pedido['data']);
                 $salaEnc = urlencode($pedido['sala']);
-                
+
                 // Format date nicely
                 $dataFormatted = date('d/m/Y', strtotime($pedido['data']));
                 $isToday = ($pedido['data'] == date('Y-m-d'));
                 $isPast = (strtotime($pedido['data']) < strtotime(date('Y-m-d')));
-                
+
                 $rowClass = "";
                 if ($isPast && $pedido['aprovado'] == 0) {
                     $rowClass = "table-danger";
                 } elseif ($isToday) {
                     $rowClass = "table-warning";
                 }
-                
-                echo "<tr class='{$rowClass}' data-search='" . 
+
+                echo "<tr class='{$rowClass}' data-search='" .
                      htmlspecialchars(strtolower($salaextenso . ' ' . $requisitorextenso . ' ' . $pedido['motivo'] . ' ' . $pedido['data']), ENT_QUOTES, 'UTF-8') . "'>";
-                
+
                 // Checkbox column
                 echo "<td>";
-                echo "<input type='checkbox' class='form-check-input row-checkbox' 
-                      data-sala='{$salaEnc}' data-tempo='{$tempoEnc}' data-data='{$dataEnc}' 
-                      data-salaname='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "' 
-                      data-dataformatted='" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "' 
-                      data-horasname='" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "' 
+                echo "<input type='checkbox' class='form-check-input row-checkbox'
+                      data-sala='{$salaEnc}' data-tempo='{$tempoEnc}' data-data='{$dataEnc}'
+                      data-salaname='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "'
+                      data-dataformatted='" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "'
+                      data-horasname='" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "'
                       onchange='updateBulkButtons()'>";
                 echo "</td>";
-                
+
                 // Date column
                 echo "<td>";
                 echo "<strong>" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "</strong>";
@@ -844,13 +853,13 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     echo " <span class='badge bg-danger'>Passado</span>";
                 }
                 echo "</td>";
-                
+
                 // Time column
                 echo "<td><span class='badge bg-light text-dark border'>" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "</span></td>";
-                
+
                 // Room column
                 echo "<td>" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "</td>";
-                
+
                 // Requisitor column
                 echo "<td><span class='d-inline-flex align-items-center'>";
                 echo "<span class='bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2' style='width: 30px; height: 30px; font-size: 0.8rem;'>";
@@ -858,35 +867,35 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 echo "</span>";
                 echo htmlspecialchars($requisitorextenso, ENT_QUOTES, 'UTF-8');
                 echo "</span></td>";
-                
+
                 // Motivo column
                 $motivoTruncated = strlen($pedido['motivo']) > 50 ? substr($pedido['motivo'], 0, 50) . '...' : $pedido['motivo'];
                 echo "<td title='" . htmlspecialchars($pedido['motivo'], ENT_QUOTES, 'UTF-8') . "'>" . htmlspecialchars($motivoTruncated, ENT_QUOTES, 'UTF-8') . "</td>";
-                
+
                 // Actions column
                 echo "<td class='text-center'>";
                 echo "<div class='btn-group' role='group'>";
-                
-                echo "<button type='button' class='btn btn-success btn-sm action-btn' 
-                      onclick='confirmAction(\"aprovar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")' 
+
+                echo "<button type='button' class='btn btn-success btn-sm action-btn'
+                      onclick='confirmAction(\"aprovar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")'
                       title='Aprovar'>
                     &#x2705;
                 </button>";
-                echo "<button type='button' class='btn btn-danger btn-sm action-btn' 
-                      onclick='confirmAction(\"rejeitar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")' 
+                echo "<button type='button' class='btn btn-danger btn-sm action-btn'
+                      onclick='confirmAction(\"rejeitar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")'
                       title='Rejeitar'>
                     <span style='color: white; font-weight: bold;'>✕</span>
                 </button>";
-                echo "<a href='/reservar/manage.php?tempo={$tempoEnc}&data={$dataEnc}&sala={$salaEnc}' 
+                echo "<a href='/reservar/manage.php?tempo={$tempoEnc}&data={$dataEnc}&sala={$salaEnc}'
                       class='btn btn-outline-secondary btn-sm action-btn' title='Ver Detalhes' target='_blank'>
                     &#x1F441;
                   </a>";
                 echo "</div>";
                 echo "</td>";
-                
+
                 echo "</tr>";
             }
-            
+
             echo "</tbody></table></div>";
         }
     } else {
@@ -897,12 +906,12 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
             $pendingArray[] = $p;
         }
         $totalPending = count($pendingArray);
-        
+
         echo "<div class='d-flex justify-content-between align-items-center mb-3'>";
         echo "<h5 class='mb-0'>Todos os Pedidos Pendentes</h5>";
         echo "<span class='badge bg-secondary fs-6'>{$totalPending} pedido(s)</span>";
         echo "</div>";
-        
+
         if ($totalPending == 0) {
             echo "<div class='card shadow-sm'>
                     <div class='card-body empty-state'>
@@ -913,10 +922,10 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                   </div>";
         } else {
             echo "<div class='mb-3'>
-                    <input type='text' class='form-control search-box' id='tableSearch' 
+                    <input type='text' class='form-control search-box' id='tableSearch'
                            placeholder='Pesquisar nos resultados...' onkeyup='filterTable()'>
                   </div>";
-            
+
             // Bulk action buttons
             echo "<div class='mb-3 d-flex gap-2 align-items-center'>
                     <button type='button' class='btn btn-success' onclick='bulkApprove()' id='bulkApproveBtn' disabled>
@@ -927,7 +936,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     </button>
                     <span class='text-muted ms-2' id='selectedCount'>0 selecionados</span>
                   </div>";
-            
+
             echo "<div class='table-responsive'>
                     <table class='table table-hover align-middle' id='pedidosTable'>
                         <thead class='table-dark'>
@@ -944,7 +953,7 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                             </tr>
                         </thead>
                         <tbody>";
-            
+
             foreach ($pendingArray as $pedido) {
                 $stmt2 = $db->prepare("SELECT nome FROM salas WHERE id=?");
                 $stmt2->bind_param("s", $pedido['sala']);
@@ -952,49 +961,49 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 $salaResult = $stmt2->get_result()->fetch_assoc();
                 $salaextenso = $salaResult ? $salaResult['nome'] : 'N/A';
                 $stmt2->close();
-                
+
                 $stmt2 = $db->prepare("SELECT nome FROM cache WHERE id=?");
                 $stmt2->bind_param("s", $pedido['requisitor']);
                 $stmt2->execute();
                 $reqResult = $stmt2->get_result()->fetch_assoc();
                 $requisitorextenso = $reqResult ? $reqResult['nome'] : 'N/A';
                 $stmt2->close();
-                
+
                 $stmt2 = $db->prepare("SELECT horashumanos FROM tempos WHERE id=?");
                 $stmt2->bind_param("s", $pedido['tempo']);
                 $stmt2->execute();
                 $tempoResult = $stmt2->get_result()->fetch_assoc();
                 $horastempo = $tempoResult ? $tempoResult['horashumanos'] : 'N/A';
                 $stmt2->close();
-                
+
                 $tempoEnc = urlencode($pedido['tempo']);
                 $dataEnc = urlencode($pedido['data']);
                 $salaEnc = urlencode($pedido['sala']);
-                
+
                 $dataFormatted = date('d/m/Y', strtotime($pedido['data']));
                 $isToday = ($pedido['data'] == date('Y-m-d'));
                 $isPast = (strtotime($pedido['data']) < strtotime(date('Y-m-d')));
-                
+
                 $rowClass = "";
                 if ($isPast) {
                     $rowClass = "table-danger";
                 } elseif ($isToday) {
                     $rowClass = "table-warning";
                 }
-                
-                echo "<tr class='{$rowClass}' data-search='" . 
+
+                echo "<tr class='{$rowClass}' data-search='" .
                      htmlspecialchars(strtolower($salaextenso . ' ' . $requisitorextenso . ' ' . $pedido['motivo'] . ' ' . $pedido['data']), ENT_QUOTES, 'UTF-8') . "'>";
-                
+
                 // Checkbox column
                 echo "<td>";
-                echo "<input type='checkbox' class='form-check-input row-checkbox' 
-                      data-sala='{$salaEnc}' data-tempo='{$tempoEnc}' data-data='{$dataEnc}' 
-                      data-salaname='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "' 
-                      data-dataformatted='" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "' 
-                      data-horasname='" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "' 
+                echo "<input type='checkbox' class='form-check-input row-checkbox'
+                      data-sala='{$salaEnc}' data-tempo='{$tempoEnc}' data-data='{$dataEnc}'
+                      data-salaname='" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "'
+                      data-dataformatted='" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "'
+                      data-horasname='" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "'
                       onchange='updateBulkButtons()'>";
                 echo "</td>";
-                
+
                 echo "<td><strong>" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "</strong>";
                 if ($isToday) {
                     echo " <span class='badge bg-warning text-dark'>Hoje</span>";
@@ -1002,33 +1011,33 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                     echo " <span class='badge bg-danger'>Passado</span>";
                 }
                 echo "</td>";
-                
+
                 echo "<td><span class='badge bg-light text-dark border'>" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "</span></td>";
                 echo "<td>" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "</td>";
-                
+
                 echo "<td><span class='d-inline-flex align-items-center'>";
                 echo "<span class='bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2' style='width: 30px; height: 30px; font-size: 0.8rem;'>";
                 echo strtoupper(substr($requisitorextenso, 0, 1));
                 echo "</span>";
                 echo htmlspecialchars($requisitorextenso, ENT_QUOTES, 'UTF-8');
                 echo "</span></td>";
-                
+
                 $motivoTruncated = strlen($pedido['motivo']) > 50 ? substr($pedido['motivo'], 0, 50) . '...' : $pedido['motivo'];
                 echo "<td title='" . htmlspecialchars($pedido['motivo'], ENT_QUOTES, 'UTF-8') . "'>" . htmlspecialchars($motivoTruncated, ENT_QUOTES, 'UTF-8') . "</td>";
-                
+
                 echo "<td class='text-center'>";
                 echo "<div class='btn-group' role='group'>";
-                echo "<button type='button' class='btn btn-success btn-sm action-btn' 
-                      onclick='confirmAction(\"aprovar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")' 
+                echo "<button type='button' class='btn btn-success btn-sm action-btn'
+                      onclick='confirmAction(\"aprovar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")'
                       title='Aprovar'>
                     &#x2705;
                 </button>";
-                echo "<button type='button' class='btn btn-danger btn-sm action-btn' 
-                      onclick='confirmAction(\"rejeitar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")' 
+                echo "<button type='button' class='btn btn-danger btn-sm action-btn'
+                      onclick='confirmAction(\"rejeitar\", \"{$tempoEnc}\", \"{$dataEnc}\", \"{$salaEnc}\", \"" . htmlspecialchars($salaextenso, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($dataFormatted, ENT_QUOTES, 'UTF-8') . "\", \"" . htmlspecialchars($horastempo, ENT_QUOTES, 'UTF-8') . "\")'
                       title='Rejeitar'>
                     <span style='color: white; font-weight: bold;'>✕</span>
                 </button>";
-                echo "<a href='/reservar/manage.php?tempo={$tempoEnc}&data={$dataEnc}&sala={$salaEnc}' 
+                echo "<a href='/reservar/manage.php?tempo={$tempoEnc}&data={$dataEnc}&sala={$salaEnc}'
                       class='btn btn-outline-secondary btn-sm action-btn' title='Ver Detalhes' target='_blank'>
                     &#x1F441;
                   </a>";
@@ -1036,11 +1045,12 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
                 echo "</td>";
                 echo "</tr>";
             }
-            
+
             echo "</tbody></table></div>";
         }
     }
     ?>
+    </div>
 </div>
 
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
@@ -1064,29 +1074,23 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
 function filterTable() {
     const searchInput = document.getElementById('tableSearch');
     if (!searchInput) return;
-    
-    const filter = searchInput.value.toLowerCase();
-    const table = document.getElementById('pedidosTable');
-    if (!table) return;
-    
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    
-    for (let i = 0; i < rows.length; i++) {
-        const searchData = rows[i].getAttribute('data-search');
-        if (searchData && searchData.includes(filter)) {
-            rows[i].style.display = '';
-        } else {
-            rows[i].style.display = 'none';
-        }
-    }
+
+    pedidosState.search = searchInput.value.trim();
+    clearTimeout(pedidosState.searchTimer);
+    pedidosState.searchTimer = setTimeout(function() {
+        loadPedidos(true);
+    }, 250);
 }
 
 function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horasNome) {
+    salaNome = decodeURIComponent(salaNome);
+    dataFormatted = decodeURIComponent(dataFormatted);
+    horasNome = decodeURIComponent(horasNome);
     const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
     const modalHeader = document.getElementById('modalHeader');
     const modalBody = document.getElementById('modalBody');
     const confirmBtn = document.getElementById('confirmBtn');
-    
+
     if (action === 'aprovar') {
         modalHeader.className = 'modal-header bg-success text-white';
         modalBody.innerHTML = `
@@ -1103,8 +1107,15 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         `;
         confirmBtn.className = 'btn btn-success';
         confirmBtn.textContent = 'Aprovar Reserva';
-        confirmBtn.onclick = function() {
-            window.location.href = `/admin/pedidos.php?subaction=aprovar&tempo=${tempo}&data=${data}&sala=${sala}`;
+        confirmBtn.onclick = async function() {
+            try {
+                const result = await submitPedidosAction('aprovar', [{ sala: decodeURIComponent(sala), tempo: decodeURIComponent(tempo), data: decodeURIComponent(data) }]);
+                bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+                showPedidosActionResult(result);
+                loadPedidos(true);
+            } catch (error) {
+                window.location.href = `/admin/pedidos.php?subaction=aprovar&tempo=${tempo}&data=${data}&sala=${sala}`;
+            }
         };
     } else {
         modalHeader.className = 'modal-header bg-danger text-white';
@@ -1124,11 +1135,18 @@ function confirmAction(action, tempo, data, sala, salaNome, dataFormatted, horas
         `;
         confirmBtn.className = 'btn btn-danger';
         confirmBtn.textContent = 'Rejeitar Reserva';
-        confirmBtn.onclick = function() {
-            window.location.href = `/admin/pedidos.php?subaction=rejeitar&tempo=${tempo}&data=${data}&sala=${sala}`;
+        confirmBtn.onclick = async function() {
+            try {
+                const result = await submitPedidosAction('rejeitar', [{ sala: decodeURIComponent(sala), tempo: decodeURIComponent(tempo), data: decodeURIComponent(data) }]);
+                bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+                showPedidosActionResult(result);
+                loadPedidos(true);
+            } catch (error) {
+                window.location.href = `/admin/pedidos.php?subaction=rejeitar&tempo=${tempo}&data=${data}&sala=${sala}`;
+            }
         };
     }
-    
+
     modal.show();
 }
 
@@ -1136,7 +1154,7 @@ function filterUsersModal() {
     const searchInput = document.getElementById('userSearchInput');
     const filter = searchInput.value.toLowerCase();
     const userItems = document.querySelectorAll('.user-item');
-    
+
     userItems.forEach(function(item) {
         const name = item.getAttribute('data-user-name').toLowerCase();
         const email = item.getAttribute('data-user-email').toLowerCase();
@@ -1151,57 +1169,254 @@ function filterUsersModal() {
 function selectUser(element) {
     const userId = element.getAttribute('data-user-id');
     const userName = element.getAttribute('data-user-name');
-    
+
     document.getElementById('requisitor').value = userId;
     document.getElementById('selectedUserDisplay').value = userName;
-    
+
     // Close the modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('userSelectModal'));
     modal.hide();
-    
-    // Submit the form
-    document.getElementById('filterForm').submit();
+
+    loadPedidos(true);
 }
 
 function clearUserSelection() {
     document.getElementById('requisitor').value = '';
     document.getElementById('selectedUserDisplay').value = '';
-    document.getElementById('filterForm').submit();
+    loadPedidos(true);
+}
+
+
+const pedidosState = {
+    page: 1,
+    hasMore: true,
+    loading: false,
+    initialized: false,
+    search: '',
+    searchTimer: null,
+    requestController: null,
+    requestId: 0
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#039;',
+        '"': '&quot;'
+    }[char]));
+}
+
+function getFilterParams() {
+    const form = document.getElementById('filterForm');
+    const params = new URLSearchParams(new FormData(form));
+    params.delete('csrf_token');
+    if (pedidosState.search !== '') {
+        params.set('q', pedidosState.search);
+    }
+    return params;
+}
+
+function updatePedidosStats(stats) {
+    if (!stats) return;
+
+    document.getElementById('statPendentes').textContent = stats.pendentes;
+    document.getElementById('statAprovadas').textContent = stats.aprovadas;
+    document.getElementById('statHoje').textContent = stats.hoje;
+    document.getElementById('statPendentesBadge').classList.toggle('d-none', Number(stats.pendentes) <= 0);
+    document.getElementById('statHojeBadge').classList.toggle('d-none', Number(stats.hoje) <= 0);
+}
+
+function showPedidosActionResult(result) {
+    const errors = Array.isArray(result.emailErrors) ? result.emailErrors : [];
+    const warning = errors.length
+        ? `<div class="mt-2"><strong>Aviso:</strong> Alguns emails não foram enviados.<ul class="mb-0">${errors.map(error => `<li>${escapeHtml(error)}</li>`).join('')}</ul></div>`
+        : '';
+
+    document.getElementById('pedidosAlerts').innerHTML = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            ${escapeHtml(result.message)} ${Number(result.processed || 0)} processada(s), ${Number(result.failed || 0)} falhada(s).
+            ${warning}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
+
+function showPedidosSkeleton() {
+    const results = document.getElementById('pedidosResults');
+    if (!results) return;
+
+    let rows = '';
+    for (let i = 0; i < 5; i++) {
+        rows += `<tr><td colspan="7"><div class="skeleton-line"></div></td></tr>`;
+    }
+
+    results.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">A carregar pedidos...</h5>
+            <span class="badge bg-secondary fs-6">...</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle"><tbody>${rows}</tbody></table>
+        </div>
+    `;
+}
+
+function renderPedidoRow(pedido) {
+    const rowClass = pedido.is_past ? 'table-danger' : (pedido.is_today ? 'table-warning' : '');
+    const sala = encodeURIComponent(pedido.sala);
+    const tempo = encodeURIComponent(pedido.tempo);
+    const data = encodeURIComponent(pedido.data);
+    const salaNome = encodeURIComponent(pedido.sala_nome);
+    const dataFormatada = encodeURIComponent(pedido.data_formatada);
+    const tempoNome = encodeURIComponent(pedido.tempo_nome);
+    const motivo = pedido.motivo || '';
+    const motivoCurto = motivo.length > 50 ? motivo.substring(0, 50) + '...' : motivo;
+    const inicial = (pedido.requisitor_nome || 'N').substring(0, 1).toUpperCase();
+    const search = `${pedido.sala_nome} ${pedido.requisitor_nome} ${motivo} ${pedido.data}`.toLowerCase();
+
+    return `
+        <tr class="${rowClass}" data-search="${escapeHtml(search)}">
+            <td><input type="checkbox" class="form-check-input row-checkbox" data-sala="${sala}" data-tempo="${tempo}" data-data="${data}" data-salaname="${escapeHtml(pedido.sala_nome)}" data-dataformatted="${escapeHtml(pedido.data_formatada)}" data-horasname="${escapeHtml(pedido.tempo_nome)}" onchange="updateBulkButtons()"></td>
+            <td><strong>${escapeHtml(pedido.data_formatada)}</strong> ${pedido.is_today ? '<span class="badge bg-warning text-dark">Hoje</span>' : ''} ${pedido.is_past ? '<span class="badge bg-danger">Passado</span>' : ''}</td>
+            <td><span class="badge bg-light text-dark border">${escapeHtml(pedido.tempo_nome)}</span></td>
+            <td>${escapeHtml(pedido.sala_nome)}</td>
+            <td><span class="d-inline-flex align-items-center"><span class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">${escapeHtml(inicial)}</span>${escapeHtml(pedido.requisitor_nome)}</span></td>
+            <td title="${escapeHtml(motivo)}">${escapeHtml(motivoCurto)}</td>
+            <td class="text-center"><div class="btn-group" role="group">
+                <button type="button" class="btn btn-success btn-sm action-btn pedido-action" data-action="aprovar" data-tempo="${tempo}" data-data="${data}" data-sala="${sala}" data-salaname="${escapeHtml(salaNome)}" data-dataformatted="${escapeHtml(dataFormatada)}" data-horasname="${escapeHtml(tempoNome)}" title="Aprovar">&#x2705;</button>
+                <button type="button" class="btn btn-danger btn-sm action-btn pedido-action" data-action="rejeitar" data-tempo="${tempo}" data-data="${data}" data-sala="${sala}" data-salaname="${escapeHtml(salaNome)}" data-dataformatted="${escapeHtml(dataFormatada)}" data-horasname="${escapeHtml(tempoNome)}" title="Rejeitar"><span style="color: white; font-weight: bold;">✕</span></button>
+                <a href="/reservar/manage.php?tempo=${tempo}&data=${data}&sala=${sala}" class="btn btn-outline-secondary btn-sm action-btn" title="Ver Detalhes" target="_blank">&#x1F441;</a>
+            </div></td>
+        </tr>`;
+}
+
+function renderPedidos(data, append) {
+    const results = document.getElementById('pedidosResults');
+    if (!results) return;
+
+    if (!append) {
+        results.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">${escapeHtml(data.title)}</h5>
+                <span class="badge bg-secondary fs-6">${data.total} resultado(s)</span>
+            </div>
+            <div id="pedidosEmpty"></div>
+            <div id="pedidosTools" class="${data.total > 0 ? '' : 'd-none'}">
+                <div class="mb-3"><input type="text" class="form-control search-box" id="tableSearch" placeholder="Pesquisar nos resultados..." value="${escapeHtml(pedidosState.search)}" oninput="filterTable()"></div>
+                <div class="mb-3 d-flex gap-2 align-items-center">
+                    <button type="button" class="btn btn-success" onclick="bulkApprove()" id="bulkApproveBtn" disabled><span>&#x2705;</span> Aprovar Selecionados</button>
+                    <button type="button" class="btn btn-danger" onclick="bulkReject()" id="bulkRejectBtn" disabled><span style="color: white; font-weight: bold;">✕</span> Rejeitar Selecionados</button>
+                    <span class="text-muted ms-2" id="selectedCount">0 selecionados</span>
+                </div>
+                <div class="table-responsive"><table class="table table-hover align-middle" id="pedidosTable"><thead class="table-dark"><tr><th scope="col" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()"></th><th scope="col">Data</th><th scope="col">Horário</th><th scope="col">Sala</th><th scope="col">Requisitor</th><th scope="col">Motivo</th><th scope="col" class="text-center">Ações</th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div id="pedidosLoadingMore" class="text-center my-3 d-none"><div class="spinner-border spinner-border-sm" role="status"></div> A carregar...</div>
+        `;
+    }
+
+    if (data.total === 0) {
+        document.getElementById('pedidosEmpty').innerHTML = '<div class="card shadow-sm"><div class="card-body empty-state"><div class="empty-state-icon">&#x1F4ED;</div><h5>Nenhum pedido encontrado</h5><p class="mb-0">Não existem pedidos pendentes para os filtros selecionados.</p></div></div>';
+        updatePedidosStats(data.stats);
+        return;
+    }
+
+    const tbody = document.querySelector('#pedidosTable tbody');
+    tbody.insertAdjacentHTML('beforeend', data.pedidos.map(renderPedidoRow).join(''));
+    updateBulkButtons();
+    updatePedidosStats(data.stats);
+    if (window.twemoji) twemoji.parse(results, { folder: 'svg', ext: '.svg' });
+}
+
+async function loadPedidos(reset = false) {
+    if (!reset && (pedidosState.loading || !pedidosState.hasMore)) return;
+    if (reset && pedidosState.requestController) {
+        pedidosState.requestController.abort();
+    }
+
+    const requestId = ++pedidosState.requestId;
+    const controller = new AbortController();
+    pedidosState.requestController = controller;
+    pedidosState.loading = true;
+    if (reset) {
+        pedidosState.page = 1;
+        pedidosState.hasMore = true;
+        showPedidosSkeleton();
+    } else {
+        document.getElementById('pedidosLoadingMore')?.classList.remove('d-none');
+    }
+
+    try {
+        const params = getFilterParams();
+        params.set('page', pedidosState.page);
+        const response = await fetch('/admin/api/pedidos_list.php?' + params.toString(), {
+            headers: { 'Accept': 'application/json' },
+            signal: controller.signal
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao carregar pedidos.');
+        if (requestId !== pedidosState.requestId) return;
+        renderPedidos(data, !reset);
+        pedidosState.hasMore = data.hasMore;
+        pedidosState.page += 1;
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        document.getElementById('pedidosAlerts').innerHTML = `<div class="alert alert-danger">${escapeHtml(error.message)}</div>`;
+    } finally {
+        if (requestId !== pedidosState.requestId) return;
+        pedidosState.loading = false;
+        pedidosState.requestController = null;
+        document.getElementById('pedidosLoadingMore')?.classList.add('d-none');
+        setTimeout(maybeLoadMore, 0);
+    }
+}
+
+async function submitPedidosAction(action, reservations) {
+    const formData = new FormData();
+    formData.append('action', action === 'bulk_approve' ? 'aprovar' : action === 'bulk_reject' ? 'rejeitar' : action);
+    formData.append('reservations', JSON.stringify(reservations));
+    formData.append('csrf_token', document.getElementById('global-csrf-token')?.value || '');
+
+    const response = await fetch('/admin/api/pedidos_action.php', { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao processar pedido.');
+    return data;
 }
 
 // Bulk action functions
 function toggleSelectAll() {
     const selectAllCheckbox = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.row-checkbox');
-    
+
     checkboxes.forEach(checkbox => {
         // Only toggle visible checkboxes
         if (checkbox.closest('tr').style.display !== 'none') {
             checkbox.checked = selectAllCheckbox.checked;
         }
     });
-    
+
     updateBulkButtons();
 }
 
 function updateBulkButtons() {
     const checkboxes = document.querySelectorAll('.row-checkbox:checked');
     const count = checkboxes.length;
-    
+
     const approveBtn = document.getElementById('bulkApproveBtn');
     const rejectBtn = document.getElementById('bulkRejectBtn');
     const countSpan = document.getElementById('selectedCount');
-    
+
     if (approveBtn && rejectBtn && countSpan) {
         approveBtn.disabled = count === 0;
         rejectBtn.disabled = count === 0;
         countSpan.textContent = count + ' selecionado' + (count !== 1 ? 's' : '');
     }
-    
+
     // Update select all checkbox state
     const selectAllCheckbox = document.getElementById('selectAll');
     if (selectAllCheckbox) {
-        const visibleCheckboxes = Array.from(document.querySelectorAll('.row-checkbox')).filter(cb => 
+        const visibleCheckboxes = Array.from(document.querySelectorAll('.row-checkbox')).filter(cb =>
             cb.closest('tr').style.display !== 'none'
         );
         const checkedVisibleCheckboxes = visibleCheckboxes.filter(cb => cb.checked);
@@ -1216,10 +1431,10 @@ function bulkApprove() {
         alert('Por favor, selecione pelo menos uma reserva.');
         return;
     }
-    
+
     const reservations = [];
     let summary = '<ul class="text-start">';
-    
+
     checkboxes.forEach(checkbox => {
         const sala = checkbox.getAttribute('data-sala');
         const tempo = checkbox.getAttribute('data-tempo');
@@ -1227,23 +1442,23 @@ function bulkApprove() {
         const salaName = checkbox.getAttribute('data-salaname');
         const dataFormatted = checkbox.getAttribute('data-dataformatted');
         const horasName = checkbox.getAttribute('data-horasname');
-        
+
         reservations.push({
             sala: decodeURIComponent(sala),
             tempo: decodeURIComponent(tempo),
             data: decodeURIComponent(data)
         });
-        
-        summary += `<li><strong>${salaName}</strong> - ${dataFormatted} às ${horasName}</li>`;
+
+        summary += `<li><strong>${escapeHtml(salaName)}</strong> - ${escapeHtml(dataFormatted)} às ${escapeHtml(horasName)}</li>`;
     });
-    
+
     summary += '</ul>';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
     const modalHeader = document.getElementById('modalHeader');
     const modalBody = document.getElementById('modalBody');
     const confirmBtn = document.getElementById('confirmBtn');
-    
+
     modalHeader.className = 'modal-header bg-success text-white';
     modalBody.innerHTML = `
         <div class="text-center mb-3">
@@ -1260,7 +1475,7 @@ function bulkApprove() {
     confirmBtn.onclick = function() {
         submitBulkAction('bulk_approve', reservations);
     };
-    
+
     modal.show();
 }
 
@@ -1270,10 +1485,10 @@ function bulkReject() {
         alert('Por favor, selecione pelo menos uma reserva.');
         return;
     }
-    
+
     const reservations = [];
     let summary = '<ul class="text-start">';
-    
+
     checkboxes.forEach(checkbox => {
         const sala = checkbox.getAttribute('data-sala');
         const tempo = checkbox.getAttribute('data-tempo');
@@ -1281,23 +1496,23 @@ function bulkReject() {
         const salaName = checkbox.getAttribute('data-salaname');
         const dataFormatted = checkbox.getAttribute('data-dataformatted');
         const horasName = checkbox.getAttribute('data-horasname');
-        
+
         reservations.push({
             sala: decodeURIComponent(sala),
             tempo: decodeURIComponent(tempo),
             data: decodeURIComponent(data)
         });
-        
-        summary += `<li><strong>${salaName}</strong> - ${dataFormatted} às ${horasName}</li>`;
+
+        summary += `<li><strong>${escapeHtml(salaName)}</strong> - ${escapeHtml(dataFormatted)} às ${escapeHtml(horasName)}</li>`;
     });
-    
+
     summary += '</ul>';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
     const modalHeader = document.getElementById('modalHeader');
     const modalBody = document.getElementById('modalBody');
     const confirmBtn = document.getElementById('confirmBtn');
-    
+
     modalHeader.className = 'modal-header bg-danger text-white';
     modalBody.innerHTML = `
         <div class="text-center mb-3">
@@ -1316,38 +1531,86 @@ function bulkReject() {
     confirmBtn.onclick = function() {
         submitBulkAction('bulk_reject', reservations);
     };
-    
+
     modal.show();
 }
 
-function submitBulkAction(action, reservations) {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/pedidos.php?subaction=' + action;
-    
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'reservations';
-    input.value = JSON.stringify(reservations);
-    
-    form.appendChild(input);
+async function submitBulkAction(action, reservations) {
+    try {
+        const result = await submitPedidosAction(action, reservations);
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        showPedidosActionResult(result);
+        loadPedidos(true);
+    } catch (error) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/pedidos.php?subaction=' + action;
 
-    const tokenSource = document.getElementById('global-csrf-token');
-    const csrfToken = tokenSource ? tokenSource.value : '';
-    if (csrfToken) {
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'reservations';
+        input.value = JSON.stringify(reservations);
+        form.appendChild(input);
+
+        const tokenSource = document.getElementById('global-csrf-token');
+        const csrfToken = tokenSource ? tokenSource.value : '';
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
     }
+}
 
-    document.body.appendChild(form);
-    form.submit();
+function maybeLoadMore() {
+    if (pedidosState.loading || !pedidosState.hasMore) return;
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+        loadPedidos(false);
+    }
 }
 
 // Initialize Twemoji to parse all emojis on the page
 document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            loadPedidos(true);
+        });
+        filterForm.querySelectorAll('select, input[type="hidden"]').forEach(function(input) {
+            input.addEventListener('change', function() { loadPedidos(true); });
+        });
+    }
+
+    document.getElementById('pedidosResults')?.addEventListener('click', function(event) {
+        const button = event.target.closest('.pedido-action');
+        if (!button) return;
+
+        confirmAction(
+            button.getAttribute('data-action'),
+            button.getAttribute('data-tempo'),
+            button.getAttribute('data-data'),
+            button.getAttribute('data-sala'),
+            button.getAttribute('data-salaname'),
+            button.getAttribute('data-dataformatted'),
+            button.getAttribute('data-horasname')
+        );
+    });
+
+    window.addEventListener('scroll', function() {
+        maybeLoadMore();
+    });
+
+    const hasServerAction = new URLSearchParams(window.location.search).has('subaction');
+    if (!hasServerAction) {
+        loadPedidos(true);
+    }
+
     twemoji.parse(document.body, {
         folder: 'svg',
         ext: '.svg'
