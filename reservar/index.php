@@ -51,10 +51,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                 width: 12px !important;
                 height: 12px !important;
             }
+            .bulk-reservation-toggle {
+                max-width: 100%;
+            }
         }
         .reservation-table-container {
             overflow-x: auto;
             width: 100%;
+        }
+        .bulk-checkbox {
+            display: none;
+        }
+        #bulkReservationForm.bulk-mode-active .bulk-checkbox {
+            display: inline-block;
+        }
+        .bulk-reservation-toggle {
+            width: 100%;
+            max-width: 70%;
+            margin: 0 auto 0.5rem auto;
+            text-align: right;
+        }
+        .bulk-reservation-toggle-button {
+            background: none;
+            border: 0;
+            color: var(--link-color);
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+        }
+        .bulk-reservation-toggle-button:hover,
+        .bulk-reservation-toggle-button:focus {
+            color: var(--accent-color);
         }
     </style>
     <script>
@@ -75,6 +102,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             const checkboxes = document.querySelectorAll('.bulk-checkbox');
             checkboxes.forEach(cb => cb.checked = false);
             updateBulkControls();
+        }
+
+        function toggleBulkReservation(event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            const form = document.getElementById('bulkReservationForm');
+            const toggle = document.getElementById('bulkReservationToggle');
+            if (!form || !toggle) {
+                return;
+            }
+
+            clearBulkSelection();
+            form.classList.toggle('bulk-mode-active');
+
+            const bulkModeActive = form.classList.contains('bulk-mode-active');
+            toggle.setAttribute('aria-pressed', bulkModeActive ? 'true' : 'false');
+            toggle.textContent = bulkModeActive ? 'Ocultar reserva em massa' : 'Fazer reserva em massa';
         }
         
         // User selection modal functions for bulk reservations
@@ -192,6 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         echo (
             "<form id='bulkReservationForm' method='POST' action='/reservar/manage.php?subaction=bulk' data-prevent-double-submit>
             " . csrf_token_field() . "
+            <div class='bulk-reservation-toggle'>
+                <button type='button' class='bulk-reservation-toggle-button' id='bulkReservationToggle' onclick='toggleBulkReservation(event)' aria-pressed='false'>Fazer reserva em massa</button>
+            </div>
             <div class='reservation-table-container'>
             <table class='table table-bordered' style='table-layout: fixed; width: 100%; max-width: 70%; margin: 0 auto; font-size: 0.85rem;'><thead><tr><th scope='col' style='font-size: 0.75rem;'>Tempos</th>"
         );
