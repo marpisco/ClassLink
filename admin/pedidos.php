@@ -134,26 +134,29 @@ $totalAprovadas = $db->query("SELECT COUNT(*) as total FROM reservas WHERE aprov
         background-color: #0d6efd;
         color: white;
     }
+    .pedidos-admin-shell {
+        margin-left: 10%;
+        margin-right: 10%;
+        text-align: left;
+    }
+    .pedidos-admin-header {
+        margin-bottom: 1rem;
+    }
+    .pedidos-admin-header h3 {
+        margin-bottom: 0;
+    }
 </style>
 
-<div class="container-fluid px-4 fade-in">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-1">
-                        <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                            Gestão de Pedidos
-                        </span>
-                    </h2>
-                    <p class="text-muted mb-0">Gerir e aprovar pedidos de reserva de salas</p>
-                </div>
-                <div>
-                    <span class="badge bg-primary fs-6 px-3 py-2">
-                        <?php echo date('d/m/Y'); ?>
-                    </span>
-                </div>
-            </div>
+<div class="pedidos-admin-shell fade-in">
+    <div class="pedidos-admin-header d-flex justify-content-between align-items-start gap-3">
+        <div>
+            <h3>Gestão de Pedidos</h3>
+            <p class="text-muted mb-0">Gerir e aprovar pedidos de reserva de salas</p>
+        </div>
+        <div>
+            <span class="badge bg-primary fs-6 px-3 py-2">
+                <?php echo date('d/m/Y'); ?>
+            </span>
         </div>
     </div>
 
