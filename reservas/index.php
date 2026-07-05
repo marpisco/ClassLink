@@ -248,11 +248,7 @@ $stmt->close();
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
-                        <h2 class="mb-1">
-                            <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                                As Minhas Reservas
-                            </span>
-                        </h2>
+                        <p class="h2 fw-light mb-1">As Minhas Reservas</p>
                         <p class="text-muted mb-0">Gerir e acompanhar as suas reservas de salas</p>
                     </div>
                     <div>
