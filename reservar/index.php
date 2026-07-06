@@ -293,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
             if ($isHeaderToday) {
                 $headerStyle .= ' box-shadow: inset 0 0 0 3px #0d6efd; background-color: rgba(13, 110, 253, 0.1);';
             } elseif ($isHeaderPast) {
-                $headerStyle .= ' opacity: 0.5;';
+                $headerStyle .= ' color: #4a4a4a; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);';
             }
             echo "<th scope='col' class='reservation-day-header' style='{$headerStyle}'>{$diaFormatted}</th>";
         };
@@ -312,6 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                     $isToday = ($diacheckdb === $today);
                     $isPast = ($diacheckdb < $today);
                     $canInteract = (!$isPast || $_SESSION['admin']);
+                    $pastTextStyle = $isPast ? 'color: #4a4a4a; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);' : '';
                     
                     $sala = isset($_POST['sala']) ? $_POST['sala'] : $_GET['sala'];
                     
@@ -330,26 +331,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                     if (!$tempoatualdb || $tempoatualdb['aprovado'] == -1) {
                         if ($canCreateReservation && $canInteract) {
                             $innerStyle = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;';
-                            if ($isPast) {
-                                $innerStyle .= ' opacity: 0.5;';
-                            }
                             $manageUrl = '/reservar/manage.php?tempo=' . urlencode($row['id']) . '&sala=' . urlencode($sala) . '&data=' . urlencode($diacheckdb);
                             $manageUrlAttr = htmlspecialchars($manageUrl, ENT_QUOTES, 'UTF-8');
                             echo "<td class='bg-success text-white text-center availability-cell' data-href='{$manageUrlAttr}' style='{$cellStyle}'>
                             <div style='{$innerStyle}'>
                             <input type='checkbox' name='slots[]' value='" . urlencode($row['id']) . "|" . urlencode($sala) . "|" . urlencode($diacheckdb) . "' class='bulk-checkbox' style='width: 16px; height: 16px;'>
-                            <a class='reserva' href='{$manageUrlAttr}' style='display: block; font-size: 0.75rem; word-break: break-word;'>
+                            <a class='reserva' href='{$manageUrlAttr}' style='display: block; font-size: 0.75rem; word-break: break-word; {$pastTextStyle}'>
                             Livre
                             </a>
                             </div></td>";
                         } else {
                             $innerStyle = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;';
-                            if ($isPast) {
-                                $innerStyle .= ' opacity: 0.5;';
-                            }
                             echo "<td class='bg-success text-white text-center' style='{$cellStyle}'>
                             <div style='{$innerStyle}'>
-                            <span style='font-size: 0.75rem;'>Livre</span>
+                            <span style='font-size: 0.75rem; {$pastTextStyle}'>Livre</span>
                             </div></td>";
                         }
                     } else {
@@ -362,14 +357,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                         $nomerequisitor['nome'] = preg_replace('/^(\S+).*?(\S+)$/u', '$1 $2', $nomerequisitor['nome']);
                         $cellStyleWithHeight = $cellStyle . ' min-height: 50px;';
                         $innerStyle = '';
-                        if ($isPast) {
-                            $innerStyle = 'opacity: 0.5;';
-                        }
                         if ($tempoatualdb['aprovado'] == 0) {
                             if ($canInteract) {
                                 echo "<td class='bg-warning text-white text-center' style='{$cellStyleWithHeight}'>
                                 <div style='{$innerStyle}'>
-                                <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word;'>
+                                <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word; {$pastTextStyle}'>
                                 Pendente
                                 <br>
                                 " . htmlspecialchars($nomerequisitor['nome'], ENT_QUOTES, 'UTF-8') . "
@@ -377,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                             } else {
                                 echo "<td class='bg-warning text-white text-center' style='{$cellStyleWithHeight}'>
                                 <div style='{$innerStyle}'>
-                                <span style='font-size: 0.75rem; word-break: break-word;'>
+                                <span style='font-size: 0.75rem; word-break: break-word; {$pastTextStyle}'>
                                 Pendente
                                 <br>
                                 " . htmlspecialchars($nomerequisitor['nome'], ENT_QUOTES, 'UTF-8') . "
@@ -387,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                             if ($canInteract) {
                                 echo "<td class='bg-danger text-white text-center' style='{$cellStyleWithHeight}'>
                                 <div style='{$innerStyle}'>
-                                <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word;'>
+                                <a class='reserva' href='/reservar/manage.php?tempo=" . urlencode($row['id']) . "&sala=" . urlencode($sala) . "&data=" . urlencode($diacheckdb) . "' style='font-size: 0.75rem; word-break: break-word; {$pastTextStyle}'>
                                 Ocupado
                                 <br>
                                 " . htmlspecialchars($nomerequisitor['nome'], ENT_QUOTES, 'UTF-8') . "
@@ -395,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
                             } else {
                                 echo "<td class='bg-danger text-white text-center' style='{$cellStyleWithHeight}'>
                                 <div style='{$innerStyle}'>
-                                <span style='font-size: 0.75rem; word-break: break-word;'>
+                                <span style='font-size: 0.75rem; word-break: break-word; {$pastTextStyle}'>
                                 Ocupado
                                 <br>
                                 " . htmlspecialchars($nomerequisitor['nome'], ENT_QUOTES, 'UTF-8') . "

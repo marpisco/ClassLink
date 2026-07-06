@@ -72,26 +72,31 @@ function bindBulkCheckboxHandlers() {
     });
 }
 
-function buildReservationSlotCell(slot, tempoId, salaId, date) {
+function buildReservationPastTextStyle(isPast) {
+    return isPast ? 'color: #4a4a4a; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);' : '';
+}
+
+function buildReservationSlotCell(slot, tempoId, salaId, date, isPast) {
     const cellClass = slot.status === 'free' ? 'bg-success' : (slot.status === 'pending' ? 'bg-warning' : 'bg-danger');
     const label = reservationEscapeHtml(slot.label);
     const requisitor = slot.requisitor ? '<br>' + reservationEscapeHtml(slot.requisitor) : '';
     const link = '/reservar/manage.php?tempo=' + encodeURIComponent(tempoId) + '&sala=' + encodeURIComponent(salaId) + '&data=' + encodeURIComponent(date);
     const checkboxValue = encodeURIComponent(tempoId) + '|' + encodeURIComponent(salaId) + '|' + encodeURIComponent(date);
     const clickableCell = slot.status === 'free' && slot.canInteract;
+    const pastTextStyle = buildReservationPastTextStyle(isPast);
     let content = '';
 
     if (clickableCell && slot.canCreateReservation) {
         content = '<input type="checkbox" name="slots[]" value="' + checkboxValue + '" class="bulk-checkbox" style="width: 16px; height: 16px;">' +
-            '<a class="reserva" href="' + link + '" style="display: block; font-size: 0.75rem; word-break: break-word;">' + label + '</a>';
+            '<a class="reserva" href="' + link + '" style="display: block; font-size: 0.75rem; word-break: break-word;' + pastTextStyle + '">' + label + '</a>';
     } else if (slot.canInteract && slot.status !== 'free') {
-        content = '<a class="reserva" href="' + link + '" style="font-size: 0.75rem; word-break: break-word;">' + label + requisitor + '</a>';
+        content = '<a class="reserva" href="' + link + '" style="font-size: 0.75rem; word-break: break-word;' + pastTextStyle + '">' + label + requisitor + '</a>';
     } else {
-        content = '<span style="font-size: 0.75rem; word-break: break-word;">' + label + requisitor + '</span>';
+        content = '<span style="font-size: 0.75rem; word-break: break-word;' + pastTextStyle + '">' + label + requisitor + '</span>';
     }
 
     return '<td class="' + cellClass + ' text-white text-center' + (clickableCell ? ' availability-cell' : '') + '"' + (clickableCell ? ' data-href="' + link + '"' : '') + ' style="padding: 4px; overflow: hidden; position: relative;">' +
-        '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;' + (!slot.canInteract ? ' opacity: 0.5;' : '') + '">' + content + '</div></td>';
+        '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px;">' + content + '</div></td>';
 }
 
 function setReservationSkeleton() {
@@ -121,13 +126,14 @@ function renderReservationStatuses(data) {
         header.style.padding = '4px';
         header.style.boxShadow = day.isToday ? 'inset 0 0 0 3px #0d6efd' : '';
         header.style.backgroundColor = day.isToday ? 'rgba(13, 110, 253, 0.1)' : '';
-        header.style.opacity = day.isPast ? '0.5' : '';
+        header.style.color = day.isPast ? '#4a4a4a' : '';
+        header.style.textShadow = day.isPast ? '0 1px 1px rgba(255, 255, 255, 0.35)' : '';
     });
     tbody.innerHTML = '';
     data.tempos.forEach(tempo => {
         let row = '<tr><th scope="row" style="font-size: 0.75rem; padding: 4px;">' + reservationEscapeHtml(tempo.horashumanos) + '</th>';
         data.days.forEach(day => {
-            row += buildReservationSlotCell(data.slots[tempo.id][day.date], tempo.id, data.sala, day.date);
+            row += buildReservationSlotCell(data.slots[tempo.id][day.date], tempo.id, data.sala, day.date, day.isPast);
         });
         row += '</tr>';
         tbody.insertAdjacentHTML('beforeend', row);
