@@ -103,14 +103,14 @@ $dbConfigs = get_app_config('db_configs', [
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="form-check form-switch">
+                    <div class="col-md-12 text-start">
+                        <div class="form-check form-switch d-inline-block">
                             <input class="form-check-input" type="checkbox" id="admin_requires_totp" name="admin_requires_totp" value="true" <?= filter_var($adminRequiresTotp, FILTER_VALIDATE_BOOLEAN) ? 'checked' : '' ?>>
                             <label class="form-check-label" for="admin_requires_totp">
                                 <strong>Exigir TOTP para Administradores</strong>
                             </label>
-                            <div class="form-text">Se ativado, todos os administradores devem configurar e usar TOTP (autenticador) para iniciar sessão.</div>
                         </div>
+                        <div class="form-text">Se ativado, todos os administradores devem configurar e usar TOTP (autenticador) para iniciar sessão.</div>
                     </div>
                 </div>
             </div>
