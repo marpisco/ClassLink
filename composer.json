@@ -4,7 +4,7 @@
         "ext-dom": "*",
         "phpmailer/phpmailer": "^7.1.1",
         "league/oauth2-client": "^2.8",
-        "tecnickcom/tcpdf": "^6.7",
+        "tecnickcom/tcpdf": "^7.0",
         "pragmarx/google2fa": "^9.0"
     }
 }
